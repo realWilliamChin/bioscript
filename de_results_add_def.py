@@ -3,6 +3,7 @@
 # Author        : WilliamGoGo
 import os
 import pandas as pd
+from merge_fpkm_reads_matrix import add_kns_def
 
 
 def parse_input():
@@ -18,22 +19,25 @@ def parse_input():
     return args.kegg, args.nr, args.swiss
 
 
-def add_kns_def(df, kegg_file, nr_file, swiss_file):
-    """
-    添加 kegg nr swiss def
-    """
-    kegg_df = pd.read_csv(kegg_file, sep='\t', skiprows=1, names=['GeneID', 'KO_Number', 'KEGG_Def'])
-    kegg_df['KEGG_Def'] = kegg_df['KO_Number'] + '::' + kegg_df['KEGG_Def']
-    kegg_df.drop(columns=['KO_Number'], inplace=True)
-    nr_df = pd.read_csv(nr_file, sep='\t', skiprows=1, usecols=[0, 2], names=['GeneID', 'NR_Def'])
-    swiss_df = pd.read_csv(swiss_file, sep='\t', skiprows=1, usecols=[0, 2], names=['GeneID', 'Swiss_Def'])
-    result_df = pd.merge(left=df, right=kegg_df, on='GeneID', how='left')
-    result_df = pd.merge(left=result_df, right=nr_df, on='GeneID', how='left')
-    result_df = pd.merge(left=result_df, right=swiss_df, on='GeneID', how='left')
-    return result_df
+def process_deresults(de_results_file, kegg_file, nr_file, swiss_file):
+    de_df = pd.read_csv(de_results_file, sep='\t')
+    de_matrix_df = pd.read_csv(de_results_file + '_readCounts.matrix', sep='\t')
+    de_df = pd.merge(left=de_df, right=de_matrix_df, on='GeneID', how='left')
+    # 排序 down，up，NOsig。down 的 FC 值从小到大，up 的 FC 值从大到小
+    # 先分三份，再合并
+    de_df_down = de_df[de_df['regulation'] == 'Down'].copy()
+    de_df_down.sort_values(by='FC', ascending=True, inplace=True)
+    de_df_up = de_df[de_df['regulation'] == 'Up'].copy()
+    de_df_up.sort_values(by='FC', ascending=False, inplace=True)
+    de_df_nosig = de_df[de_df['regulation'] == 'NoSignificant'].copy()
+    # 合并
+    de_df = pd.concat([de_df_down, de_df_up, de_df_nosig])
+    # 添加注释
+    de_df = add_kns_def(de_df, kegg_file, nr_file, swiss_file)
+    de_df.to_csv(de_results_file.replace('DE_results', 'DEG_data.txt'), sep='\t', index=False)
 
 
-def process_deresults():
+def main():
     file = parse_input()
     kegg_file = file[0]
     nr_file = file[1]
@@ -44,12 +48,10 @@ def process_deresults():
 
     for de_results_file in os.listdir():
         if de_results_file.endswith('DE_results'):
-            de_df = pd.read_csv(de_results_file, sep='\t')
-            de_matrix_df = pd.read_csv(de_results_file + '_readCounts.matrix', sep='\t')
-            de_df = pd.merge(left=de_df, right=de_matrix_df, on='GeneID', how='left')
-            de_df = add_kns_def(de_df, kegg_file, nr_file, swiss_file)
-            de_df.to_csv(de_results_file + '_def.txt', sep='\t', index=False)
+            process_deresults(de_results_file, kegg_file, nr_file, swiss_file)
 
 
 if __name__ == '__main__':
-    process_deresults()
+    main()
+
+
