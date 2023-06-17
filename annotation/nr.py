@@ -1,4 +1,7 @@
-# -*- coding: UTF-8 -*-
+#!/home/train/miniconda3/bin/python
+# -*- coding: utf-8 -*-
+# Created Time  : 2023/06/14 17:05
+# Author        : William GoGo
 import argparse
 import os
 from shutil import copyfile
@@ -11,8 +14,7 @@ import pandas as pd
 ###输入
 input=os.getcwd()
 parser=argparse.ArgumentParser(description="nr")
-parser.add_argument('--input',dest='input',default=input,
-        help='path of nr.blast')
+parser.add_argument('--input',dest='input',default=input,help='path of nr.blast')
 
 arg=parser.parse_args()
 
