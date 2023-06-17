@@ -61,10 +61,10 @@ f1=open(temp+os.sep+new_name2,'r')
 f2=open(output_path+os.sep+new_name1,'w')
 f2.write('qseqid'+'\t'+ 'sseqid'+'\t'+ 'pident'+'\t'+ 'length'+'\t'+ 'mismatch'+'\t'+ 'gapopen'+'\t' +'qstart'+'\t'+ 'qend''\t' +'sstart'+'\t' +'send' +'\t'+'evalue' +'\t'+'bitscore' +'\t'+'stitle'+'\n')
 f3=open(output_path+os.sep+new_name3,'w')
-f3.write('GeneID'+'\t'+'NCBI_ID'+'\t'+'NR_def'+'\n')
+f3.write('GeneID'+'\t'+'NCBI_ID'+'\t'+'NR_Def'+'\n')
 
 f4=open(output_path+os.sep+new_name4,'w')
-f4.write('GeneID'+'\t'+'NCBI_ID'+'\t'+'NR_def'+'\n')
+f4.write('GeneID'+'\t'+'NCBI_ID'+'\t'+'NR_Def'+'\n')
 
 for each_line in f1:
     id=each_line.split('\t')[0]
