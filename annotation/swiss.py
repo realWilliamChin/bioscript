@@ -9,6 +9,14 @@ import pandas as pd
 import numpy as np
 
 
+def parse_input():
+    argparser = argparse.ArgumentParser(description='')
+    argparser.add_argument('-b', '--blast', help='指定 swiss.blast 文件, 默认当前文件夹下的 _swiss.blast 文件')
+    argparser.add_argument('-p', '--prefix', required=True, help='生成文件的前缀')
+    args = argparser.parse_args()
+    return args
+
+
 def _keep_goid(s):
     """
     处理表里的元素，只留下 GO number，格式 GO:xxxxxx
@@ -45,25 +53,23 @@ def process_go(swiss_df, ref_df):
 
 
 def main():
-    swiss_file = [x for x in os.listdir() if 'swiss.blast' in x][0]
+    args = parse_input()
+    swiss_file = args.blast if args.blast else [x for x in os.listdir() if '_swiss.blast' in x][0]
     # 读取 swiss 参考文件和 blast 文件，并初始化
-    swiss_df = pd.read_csv(swiss_file, sep='\t', usecols=[0, 1, 15], names=['GeneID', 'GOID', 'Swiss_def'])
+    swiss_df = pd.read_csv(swiss_file, sep='\t', usecols=[0, 1, 15], names=['GeneID', 'GOID', 'Swiss_Def'])
     swiss_df = swiss_df.drop_duplicates(subset='GeneID', keep='first', inplace=False)
     siwss_df_expand = swiss_df['Swiss_def'].str.split(';', expand=True)
     swiss_df['Swiss_def'] = siwss_df_expand.iloc[:, 0]
-    # 删掉 RecName: Full=
+    # 在 swiss_gene_def 中 Swiss_Def 删掉 RecName: Full=
     swiss_df['Swiss_def'] = swiss_df['Swiss_def'].str.replace('RecName: Full=', '')
-    
     # 生成 _unigene_swiss_gene_def.txt
-    swiss_df.to_csv(swiss_file.replace('.blast', '_gene_def.txt'), sep='\t', index=False, header=['GeneID', 'Swissprot_ID', 'Swiss_def'])
+    swiss_df.to_csv(args.prefix + '_swiss_gene_def.txt', sep='\t', index=False, header=['GeneID', 'Swissprot_ID', 'Swiss_Def'])
 
     ref_file = '/home/data/ref_data/db/swiss_go_txt/Swiss_protein_go.txt'
-    # ref_file = 'Swiss_protein_go.txt'
     ref_df = pd.read_csv(ref_file, sep='\t', skiprows=1, names=['GOID', 'GO_BP', 'GO_CC', 'GO_MF'])
 
     # 生成 idNO_def 文件
-    # 这句比较耗费时间，连接三列成一列
-    # ref_df['merge_go'] = ref_df[['GO_BP', 'GO_CC', 'GO_MF']].apply(lambda x: x.str.cat(sep=''), axis=1)
+    idNO_def_filename = args.prefix + '_swiss_idNo_def.txt'
     ref_df['merge_go'] = ref_df['GO_BP'] + '_' + ref_df['GO_CC'] + '_' + ref_df['GO_MF']
     ref_df['merge_go'].replace('', np.nan, regex=True, inplace=True)
     idNo_def = pd.merge(left=swiss_df.iloc[:, [0, 1]], right=ref_df.iloc[:, [0, 4]], on='GOID', how='left')
@@ -71,13 +77,13 @@ def main():
     idNo_def_expand = idNo_def['merge_go'].str.split('\[G', expand=True)
     idNo_def_expand = idNo_def_expand.applymap(_keep_goid)
     idNo_def = pd.concat([idNo_def['GeneID'], idNo_def_expand], axis=1).fillna('')
-    idNo_def.to_csv(swiss_file.replace('.blast', '_idNo_def.txt'), sep='\t', index=False, header=False)
-    with open(swiss_file.replace('.blast', '_idNo_def.txt'), 'r') as idNo_def_file:
-        os.remove(swiss_file.replace('.blast', '_idNo_def.txt'))
+    idNo_def.to_csv(idNO_def_filename, sep='\t', index=False, header=False)
+    with open(idNO_def_filename, 'r') as idNo_def_file:
+        os.remove(idNO_def_filename)
         for line in idNo_def_file.readlines():
             line = line.replace('\t\t', '\t')
             line = line.strip() + '\n'
-            with open(swiss_file.replace('.blast', '_idNo_def.txt'), 'a') as f:
+            with open(idNO_def_filename, 'a') as f:
                 f.write(line)
 
     # 生成 wego 注释所需要的格式
