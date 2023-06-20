@@ -12,7 +12,7 @@ import numpy as np
 def parse_input():
     argparser = argparse.ArgumentParser(description='')
     argparser.add_argument('-b', '--blast', help='指定 swiss.blast 文件, 默认当前文件夹下的 _swiss.blast 文件')
-    argparser.add_argument('-p', '--prefix', required=True, help='生成文件的前缀')
+    argparser.add_argument('-p', '--prefix', help='生成文件的前缀(一般是种名加属名), 默认去掉 blast 作为前缀')
     args = argparser.parse_args()
     return args
 
@@ -55,21 +55,22 @@ def process_go(swiss_df, ref_df):
 def main():
     args = parse_input()
     swiss_file = args.blast if args.blast else [x for x in os.listdir() if '_swiss.blast' in x][0]
+    key_name = args.prefix + '_swiss' if args.prefix else swiss_file.replace('.blast', '')
     # 读取 swiss 参考文件和 blast 文件，并初始化
     swiss_df = pd.read_csv(swiss_file, sep='\t', usecols=[0, 1, 15], names=['GeneID', 'GOID', 'Swiss_Def'])
     swiss_df = swiss_df.drop_duplicates(subset='GeneID', keep='first', inplace=False)
-    siwss_df_expand = swiss_df['Swiss_def'].str.split(';', expand=True)
-    swiss_df['Swiss_def'] = siwss_df_expand.iloc[:, 0]
+    siwss_df_expand = swiss_df['Swiss_Def'].str.split(';', expand=True)
+    swiss_df['Swiss_Def'] = siwss_df_expand.iloc[:, 0]
     # 在 swiss_gene_def 中 Swiss_Def 删掉 RecName: Full=
-    swiss_df['Swiss_def'] = swiss_df['Swiss_def'].str.replace('RecName: Full=', '')
+    swiss_df['Swiss_Def'] = swiss_df['Swiss_Def'].str.replace('RecName: Full=', '')
     # 生成 _unigene_swiss_gene_def.txt
-    swiss_df.to_csv(args.prefix + '_swiss_gene_def.txt', sep='\t', index=False, header=['GeneID', 'Swissprot_ID', 'Swiss_Def'])
+    swiss_df.to_csv(key_name + '_gene_def.txt', sep='\t', index=False, header=['GeneID', 'Swissprot_ID', 'Swiss_Def'])
 
     ref_file = '/home/data/ref_data/db/swiss_go_txt/Swiss_protein_go.txt'
     ref_df = pd.read_csv(ref_file, sep='\t', skiprows=1, names=['GOID', 'GO_BP', 'GO_CC', 'GO_MF'])
 
     # 生成 idNO_def 文件
-    idNO_def_filename = args.prefix + '_swiss_idNo_def.txt'
+    idNO_def_filename = key_name + '_idNo_def.txt'
     ref_df['merge_go'] = ref_df['GO_BP'] + '_' + ref_df['GO_CC'] + '_' + ref_df['GO_MF']
     ref_df['merge_go'].replace('', np.nan, regex=True, inplace=True)
     idNo_def = pd.merge(left=swiss_df.iloc[:, [0, 1]], right=ref_df.iloc[:, [0, 4]], on='GOID', how='left')
@@ -96,9 +97,9 @@ def main():
 
     result_df = process_go(swiss_df, ref_df)
     # 保存 GO_BP GO_CC GO_MF 文件
-    result_df[0].to_csv(swiss_file.replace('.blast', '_GO_BP_ID.txt'), sep='\t', index=False, header=False)
-    result_df[1].to_csv(swiss_file.replace('.blast', '_GO_CC_ID.txt'), sep='\t', index=False, header=False)
-    result_df[2].to_csv(swiss_file.replace('.blast', '_GO_MF_ID.txt'), sep='\t', index=False, header=False)
+    result_df[0].to_csv(key_name + '_GO_BP_ID.txt', sep='\t', index=False, header=False)
+    result_df[1].to_csv(key_name + '_GO_CC_ID.txt', sep='\t', index=False, header=False)
+    result_df[2].to_csv(key_name + '_GO_MF_ID.txt', sep='\t', index=False, header=False)
 
 
 if __name__ == '__main__':
