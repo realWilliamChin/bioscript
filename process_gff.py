@@ -11,7 +11,7 @@ def parse_input():
     argparser = argparse.ArgumentParser(description='处理一些 gff3 文件，生成 chromesome geneid startpos endpos strand')
     argparser.add_argument('-g', '--gff', help='gff3 file，默认是当前文件夹下的 gff3 或者 gff 文件')
     argparser.add_argument('-p', '--prefix', required=True, help='输出文件的前缀')
-    argparser.add_argument('-t', '--type', required=True, help='输入 embl 或者 ncbi')
+    argparser.add_argument('-t', '--type', required=True, choices=['embl', 'ncbi'], help='输入 embl 或者 ncbi')
     args = argparser.parse_args()
     
     return args
