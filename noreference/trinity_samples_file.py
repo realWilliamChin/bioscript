@@ -1,4 +1,7 @@
-# -*- coding: UTF-8 -*-
+#!/home/train/miniconda3/bin/python
+# -*- coding: utf-8 -*-
+# Created Time  : 2023/05/20 21:41
+# Author        : William GoGo
 import os
 
 paired = []
