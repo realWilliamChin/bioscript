@@ -8,8 +8,8 @@ import pandas as pd
 
 def parse_input():
     parser = argparse.ArgumentParser(description='根据 samples 对一些文件列排序，主要针对 fpkm_matrix_filterd.txt 和 reads_matrix_filterd.txt 优化')
-    parser.add_argument('-s', '--sample', type=str, help='指定 samples_described.txt 文件', required=True)
-    parser.add_argument('-f', '--file', required=True, type=str, help='输入需要重新对列排序的文件')
+    parser.add_argument('-s', '--sample', help='指定 samples_described.txt 文件', required=True)
+    parser.add_argument('-f', '--file', required=True, help='输入需要重新对列排序的文件')
     parser.add_argument('-r', '--replacefile', action='store_true', help='是否对源文件替换，不替换则会重新生成 _realign.txt')
     args = parser.parse_args()
     return args.sample, args.file, args.replacefile
