@@ -47,6 +47,11 @@ def process_go(swiss_df, ref_df):
         # 对后面的 GOID 格式改成 ID 在前，使用 _ 连接
         df_expand = df['GOID'].str.split('\[GO', expand=True)
         df['Def'] = df_expand[1].str.replace(':', 'GO:', regex=True).str.replace(']', '_', regex=True) + df_expand[0].str.strip()
+        # 替换某些字符，在 Funrich 中会出错的
+        df['Def'] = df['Def'].str.replace(', ', '_', regex=True)
+        df['Def'] = df['Def'].str.replace('\'', '', regex=True)
+        df['Def'] = df['Def'].str.replace('/', '_', regex=True)
+        df['Def'] = df['Def'].str.replace(',', '_', regex=True)
         df = df.drop(columns=['GOID']).sort_values('GeneID')
         df_lst.append(df)
     return df_lst
@@ -87,16 +92,9 @@ def main():
             with open(idNO_def_filename, 'a') as f:
                 f.write(line)
 
-    # 生成 wego 注释所需要的格式
-    # go_bp_df_wego = go_bp_df_expand.applymap(_keep_goid)
-    # go_cc_df_wego = go_cc_df_expand.applymap(_keep_goid)
-    # go_mf_df_wego = go_mf_df_expand.applymap(_keep_goid)
-    # go_bp_df_wego = pd.concat([go_bp_df['GeneID'], go_bp_df_wego], axis=1).fillna('')
-    # go_cc_df_wego = pd.concat([go_cc_df['GeneID'], go_cc_df_wego], axis=1).fillna('')
-    # go_mf_df_wego = pd.concat([go_mf_df['GeneID'], go_mf_df_wego], axis=1).fillna('')
-
     result_df = process_go(swiss_df, ref_df)
     # 保存 GO_BP GO_CC GO_MF 文件
+    
     result_df[0].to_csv(key_name + '_GO_BP_ID.txt', sep='\t', index=False, header=False)
     result_df[1].to_csv(key_name + '_GO_CC_ID.txt', sep='\t', index=False, header=False)
     result_df[2].to_csv(key_name + '_GO_MF_ID.txt', sep='\t', index=False, header=False)
