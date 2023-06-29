@@ -2,6 +2,7 @@
 # Created Time  : 3/6/2023 3:25 PM
 # Author        : WilliamGoGo
 # 根据 samples 对一些文件列排序，主要针对 fpkm_matrix_filterd.txt 和 reads_matrix_filterd.txt 优化
+import sys
 import argparse
 import pandas as pd
 
@@ -10,18 +11,19 @@ def parse_input():
     parser = argparse.ArgumentParser(description='根据 samples 对一些文件列排序，主要针对 fpkm_matrix_filterd.txt 和 reads_matrix_filterd.txt 优化')
     parser.add_argument('-s', '--sample', help='指定 samples_described.txt 文件', required=True)
     parser.add_argument('-f', '--file', required=True, help='输入需要重新对列排序的文件')
-    parser.add_argument('-r', '--replacefile', action='store_true', help='是否对源文件替换，不替换则会重新生成 _realign.txt')
+    parser.add_argument('-r', '--isreplace', action='store_true', help='是否对源文件替换，不替换则会重新生成 _realign.txt')
     args = parser.parse_args()
-    return args.sample, args.file, args.replacefile
+    return args
 
 
 def check_columns_name(lst, df_columns):
-    for i in lst:
+    for i in df_columns:
         if i == df_columns[0]:
             continue
-        if not i in df_columns:
-            print(f'{i} not in {df_columns}')
-            exit(1)
+        if i not in lst:
+            message = f"{i} not in {lst}"
+            print(message)
+            sys.exit(1)
     
     
 def reindex(lst, file, replace_or_not):
@@ -34,15 +36,12 @@ def reindex(lst, file, replace_or_not):
 
 
 def main():
-    parse_input = parse_input()
-    samples_file = parse_input[0]
-    realign_file = parse_input[1]
-    replace_ornot = parse_input[2]
+    args = parse_input()
     
-    sample_arr = list(pd.read_csv(samples_file, sep='\t')['sample'])
+    sample_arr = list(pd.read_csv(args.sample, sep='\t')['sample'])
     sample_arr
-    check_columns_name(sample_arr, pd.read_csv(realign_file, sep='\t').columns)
-    reindex(sample_arr, realign_file, replace_ornot)
+    check_columns_name(sample_arr, pd.read_csv(args.file, sep='\t').columns.values)
+    reindex(sample_arr, args.file, args.isreplace)
 
 
 if __name__ == '__main__':
