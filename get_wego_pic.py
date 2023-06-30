@@ -3,6 +3,7 @@
 # Created Time  : 2023/06/29 21:26
 # Author        : William GoGo
 import os
+import argparse
 import requests
 import json
 from urllib.parse import quote
@@ -15,7 +16,15 @@ from fake_useragent import UserAgent
 import time
 
 
-def get_wego_pic(geneid_goid_file):
+def parse_input():
+    argparser = argparse.ArgumentParser(description='')
+    argparser.add_argument('-f', '--file', required=True, help='指定基因的 GO 文件')
+    argparser.add_argument('-l', '--level', type=str, default='3', help='指定 GO 的 level, 默认 3')
+    args = argparser.parse_args()
+    return args
+
+
+def get_wego_pic(geneid_goid_file, go_level):
     # step.1 上传文件到 wego
     with open(geneid_goid_file, 'r') as file:
         lines = file.read().splitlines()
@@ -46,7 +55,7 @@ def get_wego_pic(geneid_goid_file):
     response = requests.post(upload_file_url, headers=headers, data=payload)
     upload_code = response.json()['code']
     
-    # step.2 获取 wego 网页
+    # step.2 get wego webpage
     get_view_url = 'https://wego.genomics.cn/savejob'
     payload = quote(f'bundle[dir]={dir}&bundle[archive]=2018-11-01&bundle[format]=native', safe='=&')
     headers['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8'
@@ -56,7 +65,7 @@ def get_wego_pic(geneid_goid_file):
     print(f'{geneid_goid_file}：\t\tupload:{upload_code}\tgetview:{getpic_code}')
     view_ID = response.json()['jid']
     
-    # step.3 加载网页
+    # step.3 loading wego view
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--disable-gpu')
@@ -64,7 +73,6 @@ def get_wego_pic(geneid_goid_file):
     chrome_options.add_argument("--disable-dev-shm-usage")
     driver = webdriver.Chrome(service=Service('./lib/chromedriver'), options=chrome_options)
     # driver.implicitly_wait(10)
-    
     driver.set_window_size(1920, 1440)
     wego_view_link = f'https://wego.genomics.cn/view/{view_ID}'
     driver.get(wego_view_link)
@@ -74,7 +82,7 @@ def get_wego_pic(geneid_goid_file):
     get_status_url = 'https://wego.genomics.cn/getJobDetail'
     max_retry = 0
     while max_retry < 500:
-        response = requests.post(get_status_url, headers=headers, data=f'jobname={view_ID}&level=3')
+        response = requests.post(get_status_url, headers=headers, data=f'jobname={view_ID}&level={go_level}')
         if response.json()['code'] == 'success':
             break
         time.sleep(1)
@@ -93,6 +101,7 @@ def get_wego_pic(geneid_goid_file):
     Select(pictype_element).select_by_visible_text("image/jpeg")
     time.sleep(1)
     
+    # step.5 download picture
     download_max_retry = 0
     driver.save_screenshot(f'{geneid_goid_file}.png')
     while download_max_retry < 5:
@@ -106,3 +115,12 @@ def get_wego_pic(geneid_goid_file):
         download_max_retry += 1
     driver.quit()
     print(f'download wego picture failed {geneid_goid_file}')
+
+
+def main():
+    args = parse_input()
+    get_wego_pic(args.file, args.go_level)
+
+
+if __name__ == '__main__':
+    main()
