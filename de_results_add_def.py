@@ -3,7 +3,7 @@
 # Author        : WilliamGoGo
 import os
 import pandas as pd
-from merge_fpkm_reads_matrix import add_kns_def
+from genedf_add_def import add_kns_def
 
 
 def parse_input():
