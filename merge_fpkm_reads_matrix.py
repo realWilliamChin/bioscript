@@ -4,6 +4,7 @@
 # 合并 fpkm 和 reads 然后添加 def
 import argparse
 import pandas as pd
+from genedf_add_def import add_kns_def
 
 
 def parse_input():
@@ -38,25 +39,6 @@ def merge_fpkm_reads(fpkm_file, reads_file):
     # 合并
     reads_fpkm_df = pd.merge(left=fpkm_df, right=reads_df, on=fpkm_df.columns[0], how='left')
     return reads_fpkm_df
-
-
-def add_kns_def(df, kegg_file, nr_file, swiss_file):
-    """
-    添加 kegg nr swiss def
-    """
-    kegg_df = pd.read_csv(kegg_file, sep='\t', skiprows=1, usecols=[0, 1], names=['GeneID', 'KEGG_ID'])
-    nr_df = pd.read_csv(nr_file, sep='\t', skiprows=1, usecols=[0, 1, 2], names=['GeneID', 'NR_ID', 'NR_Def1'])
-    # 没有 NCBI ID 直接加会丢失先 fillna，再去掉 NA::
-    nr_df.fillna(value='NA', inplace=True)
-    nr_df['NR_Def'] = nr_df['NR_ID'] + '::' + nr_df['NR_Def1']
-    nr_df['NR_Def'] = nr_df['NR_Def'].str.replace('NA::', '', regex=False)
-    nr_df.drop(columns=['NR_ID', 'NR_Def1'], inplace=True)
-    swiss_df = pd.read_csv(swiss_file, sep='\t', skiprows=1, usecols=[0, 1], names=['GeneID', 'Swiss_protein_ID'])
-    result_df = pd.merge(left=df, right=kegg_df, on='GeneID', how='left')
-    result_df = pd.merge(left=result_df, right=nr_df, on='GeneID', how='left')
-    result_df = pd.merge(left=result_df, right=swiss_df, on='GeneID', how='left')
-    result_df.fillna(value='NA', inplace=True)
-    return result_df
 
 
 if __name__ == '__main__':
