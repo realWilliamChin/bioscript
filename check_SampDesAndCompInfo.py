@@ -3,6 +3,7 @@
 # Created Time  : 2023/06/20 22:51
 # Author        : William GoGo
 import os
+import sys
 import argparse
 import pandas as pd
 
@@ -22,11 +23,16 @@ def main():
     treat_lst = pd.read_csv(args.compare, sep='\t')['Treat'].tolist()
     control_lst = pd.read_csv(args.compare, sep='\t')['Control'].tolist()
     
-    treat_err_in_group_lst = [(i, j) for i, j in enumerate(treat_lst) if j not in group_lst]
-    control_err_in_group_lst = [(i, j) for i, j in enumerate(control_lst) if j not in group_lst]
+    treat_err_in_group_lst = [(i+1, j) for i, j in enumerate(treat_lst) if j not in group_lst]
+    control_err_in_group_lst = [(i+1, j) for i, j in enumerate(control_lst) if j not in group_lst]
     
-    print(f'treat err in group lst: {treat_err_in_group_lst}')
-    print(f'control err in group lst: {control_err_in_group_lst}')
+    if treat_err_in_group_lst or control_err_in_group_lst:
+        print(f'treat err in group lst: {str(treat_err_in_group_lst)}')
+        print(f'control err in group lst: {control_err_in_group_lst}')
+        sys.exit(1)
+    elif treat_err_in_group_lst == [] and control_err_in_group_lst == []:
+        print('samples_described.txt and Compare_info.txt is Match!')
+        sys.exit(0)
 
 
 if __name__ == '__main__':
