@@ -17,7 +17,8 @@ def parse_input():
                            help='指定生成类型, wego_genomics(tab 分隔) 或者 tbtools(逗号分隔), 默认 wego_web)')
     argparser.add_argument('-p', '--picture', action='store_true', default=False,
                            help='是否生成图片，默认不生成')
-    argparser.add_argument('-l', '--level', type=str, default='3', help='指定 GO 的 level, 默认 3, 与 -p 一块儿使用')
+    argparser.add_argument('-l', '--level', type=str, default='3',
+                           help='指定 GO 的 level, 默认 3, 与 -p 一块儿使用')
     args = argparser.parse_args()
     return args
 
@@ -26,7 +27,7 @@ def geneid_goid(all_geneid_goid_file, updownid_file, generate_type):
     """
     生成每个样本的上下调基因的 GO 文件
     """
-    updown_go_filename = updownid_file.replace('_ID.txt', '_Go.txt')
+    updown_go_filename = updownid_file.replace('_ID.txt', '_GO.txt')
     # 读取 updownid_file 为 list
     print(f'reading {updownid_file}, generating {updown_go_filename} ...')
     with open(updownid_file, 'r') as id_lst_file:
@@ -39,7 +40,7 @@ def geneid_goid(all_geneid_goid_file, updownid_file, generate_type):
                 # 如果是 wego_genomics，就直接写入，如果是 tbtools，就把除第一个 tab 换成逗号
                 if generate_type == 'tbtools':
                     line = line.replace('\t', ',')
-                    line = line.replace('\t', ',', 1)
+                    line = line.replace(',', '\t', 1)
                 updown_go_file.write(line)
     return updown_go_filename
 
