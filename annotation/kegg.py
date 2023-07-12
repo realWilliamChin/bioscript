@@ -13,7 +13,8 @@ def parse_input():
     """
     parser = argparse.ArgumentParser(description='指定 keg 文件，对 keg 文件清理，处理拆分')
     parser.add_argument('-k', '--keg', type=str, help='指定 keg 文件，默认当前文件夹 keg 结尾的文件')
-    parser.add_argument('-t', '--type', type=str, required=True, help='指定物种类型，植物=plant，动物=animal')
+    parser.add_argument('-t', '--type', type=str, required=True, choices=['plant', 'animal'],
+                        help='指定物种类型，植物=plant，动物=animal')
     parser.add_argument('-i', '--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
     args = parser.parse_args()
     if args.keg:
@@ -63,16 +64,18 @@ def process_keg():
     print('生成 KEGG_gene_def 文件，去重前的数量:{}，去重后的数量:{}'.format(kegg_clean_df.shape[0]-1, gene_def_df.shape[0]-1))
     gene_def_df['EC_number'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[1].str.replace(']', '').str.split(' ', expand=True)[0]
     gene_def_df['KEGG_def'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[0].str.strip()
-    gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0]
-    gene_def_df.drop(columns='Description EC_number', inplace=True)
     gene_def_df.fillna(value='NA', inplace=True)
+    # Gene_shortname 不能设置空为 NA，设置为空
+    gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0]
+    gene_def_df['Gene_shortname'].fillna(value='', inplace=True)
+    gene_def_df.drop(columns='Description EC_number', inplace=True)
     gene_def_df.to_csv(key_name + '_KEGG_gene_def.txt', sep='\t', index=False)
     
     # 如果指定了 -i allgeneid 文件，则生成 all_gene_id + KEGG gene_short_name 新文件
     if all_id_file:
         all_gene_df = pd.read_csv(all_id_file, sep='\t', names=['GeneID'])
         all_gene_df = pd.merge(left=all_gene_df, right=gene_def_df[['GeneID', 'Gene_shortname']], on='GeneID', how='left')
-        all_gene_df.fillna(value='NA', inplace=True)
+        all_gene_df.fillna(value='', inplace=True)
         all_gene_df.to_csv(key_name + '_shortname.txt', sep='\t', index=False)
     
     # 生成 tier2 和 tier3 文件
