@@ -8,13 +8,25 @@ import argparse
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='biogrid，')
-    parser.add_argument('-f', '--fasta', required=True, help='输入要比对的 fasta 文件')
-    parser.add_argument('-d', '--database', required=True, help='输入比对的数据库')
-    parser.add_argument('-r', '--ref', required=True, help='输入参考文件')
-    parser.add_argument('-c', '--cpu', help='输入线程数', default=16)
+    parser = argparse.ArgumentParser(description="biogrid, 使用 cds fasta 文件")
+    parser.add_argument('-f', '--fasta', required=True, help='输入要比对的 cds_fasta 文件')
+    parser.add_argument('-d', '--database', choices=['plant', 'animal'],
+                        help='输入比对的数据库, plant(ath) or animal(human)')
+    parser.add_argument('--custom-database', help='自定义数据库')
+    parser.add_argument('-r', '--ref', help='自定义输入参考文件')
+    parser.add_argument('-c', '--cpu', help='输入线程数', default=32)
     parser.add_argument('-p', '--prefix', required=True, help='输入输出文件的前缀')
-    return parser.parse_args()
+    args = parser.parse_args()
+    biogrid_database = '/home/colddata/qinqiang/02_Biogrid'
+    if args.database == 'plant':
+        plant_dir = os.path.join(biogrid_database, 'Plant_Biogrid_Arabidopsis_thalinan')
+        args.database = os.path.join(plant_dir, '00_Database', 'Arabidopsis_thaliana')
+        args.ref = os.path.join(plant_dir, 'BIOGRID-Arabidopsis_thaliana-embl.txt')
+    elif args.database == 'animal':
+        animal_dir = os.path.join(biogrid_database, 'Animal_Biogrid_Homo_sapiens')
+        args.database = os.path.join(animal_dir, '00_Database', 'Homo_sapiens')
+        args.ref = os.path.join(animal_dir, 'BIOGRID-Homo_sapiens-embl.txt')
+    return args
 
 
 def exec_blast(fasta_file, num_threads, database, prefix):
@@ -110,11 +122,13 @@ def biogrid(in_blast_file, ref_file, out_file):
 
 def main():
     args = parse_arguments()
+    # 比对
     blast_file = exec_blast(args.fasta, args.cpu, args.database, args.prefix)
-    
+    # 结果文件名
     result_file = 'Biogrid_PPI_relation_from_' + args.prefix + '.txt'
-    
+    # 处理 blast 去重
     drop_dup(blast_file)
+    # biogrid
     biogrid(blast_file.replace('.blast', '_uniq.blast'), args.ref, result_file)
 
 
