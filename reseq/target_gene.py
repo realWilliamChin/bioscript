@@ -5,6 +5,7 @@
 import os
 import argparse
 import pandas as pd
+from reseq.common import skip_rows
 
 
 def parse_input():
@@ -19,8 +20,10 @@ def parse_input():
 
 def target_gene_for_vcf(file, gff_file):
     # Trait	Model	Threshold	Marker	Chrom	Position	Ref	Alt	Score	Effect
-    df = pd.read_csv(file, sep='\t', skiprows=318, low_memory=False)
-    gff_df = pd.read_csv(gff_file, sep='\t', header=None, usecols=[0, 1, 2, 3, 4, 6, 8], names=["seqid", "source", "type", "start", "end", "strand", "attributes"])
+    skiprows = skip_rows(file)
+    df = pd.read_csv(file, sep='\t', skiprows=skiprows, low_memory=False)
+    gff_df = pd.read_csv(gff_file, sep='\t', header=None, usecols=[0, 1, 2, 3, 4, 6, 8],
+                         names=["seqid", "source", "type", "start", "end", "strand", "attributes"])
     gff_df = gff_df[gff_df['attributes'].str.contains('ID=')]
     # gff_df = gff_df[gff_df['seqid'].str.contains('chr')]
     df['start'] = df['POS'].apply(lambda x: max(x - 10000, 0))

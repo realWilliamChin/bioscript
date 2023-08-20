@@ -47,10 +47,14 @@ def main():
     identity_evalue[1].to_csv('identity.txt', header=False, index=False)
     identity_evalue[2].to_csv('evalue.txt', header=False, index=False)
     identity_evalue[3].to_csv('species_count.txt', sep='\t', header=False, index=False)
-    pd.read_csv(go_file, sep='\t', header=None, error_bad_lines=False)[0].drop_duplicates().to_csv('GO_ID.list', header=False, index=False)
-    pd.read_csv(kegg_file, sep='\t', header=None)[0].drop_duplicates().to_csv('KEGG_ID.list', header=False, index=False)
-    pd.read_csv(cog_file_id, sep='\t', skiprows=5, header=None)[0].to_csv('COG_ID.list', header=False, index=False)
-    pd.read_csv(swiss_file, sep='\t', header=None)[0].to_csv('Swiss_ID.list', header=False, index=False)
+    go_id_df = pd.read_csv(go_file, sep='\t', header=None, usecols=[0])
+    go_id_df.drop_duplicates().to_csv('GO_ID.list', header=False, index=False)
+    kegg_id_df = pd.read_csv(kegg_file, sep='\t', header=None, usecols=[0])
+    kegg_id_df.drop_duplicates().to_csv('KEGG_ID.list', header=False, index=False)
+    cog_id_df = pd.read_csv(cog_file_id, sep='\t', comment='#', header=None, usecols=[0])
+    cog_id_df.drop_duplicates().to_csv('COG_ID.list', header=False, index=False)
+    swiss_id_df = pd.read_csv(swiss_file, sep='\t', usecols=[0])
+    swiss_id_df.drop_duplicates().to_csv('Swiss_ID.list', header=False, index=False)
 
     # 定义 COG count
     cog_source_df = pd.DataFrame({

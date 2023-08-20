@@ -8,11 +8,11 @@ check_conda_env() {
 
 check_compareinfo_and_samplesdescribed() {
     # 如果 compare info 和 samples described 文件不存在则跳过检查
+    echo "检查 compare_info.txt 和 samples_described.txt 中..."
     if [[ ! -f ${work_dir}/compare_info.txt ]] || [[ ! -f ${work_dir}/samples_described.txt ]]; then
-        echo "compare_info.txt 或 samples_described.txt 文件不存在"
+        echo "compare_info.txt 或 samples_described.txt 文件不存在或没有放在工作目录"
         return 0
     fi
-    echo "检查 compare_info.txt 和 samples_described.txt 文件是否有不对应的地方"
     python ${python_script}/check_SampDesAndCompInfo.py
 }
 
@@ -37,9 +37,9 @@ exec_fastqc() {
 exec_pinjie() {
     # 生成 sample trinity 文件, 可能需要修改一下 sample trinity，太多了拼接太慢了
     source /home/train/miniconda3/bin/activate base
-    python /home/colddata/qinqiang/script/noreference/trinity_samples_file.py
+    # python ${python_script}/noreference/trinity_samples_file.py
     cat ${work_dir}/samples_trinity.txt
-    echo "##############################################\n"
+    echo -e "\n##############################################\n"
     read -p "是否更改 samples_trinity.txt，回车继续"
     mv ${work_dir}/samples_trinity.txt ${work_dir}/${specie}_samples_trinity.txt
 
@@ -52,24 +52,37 @@ exec_pinjie() {
         --no_version_check \
         --samples_file ${specie}_samples_trinity.txt \
         --output ${assemble_trinity} \
-        --CPU ${num_threads} --SS_lib_type RF --normalize_reads \
-        --min_contig_length 500
+        --CPU ${num_threads} \
+        --SS_lib_type RF \
+        --normalize_reads \
+        --min_contig_length 500 \
+        && echo "已生成 Trinity.fasta"
 
+    echo "正在执行 extract_longest_isoforms_from_TrinityFasta.pl"
     perl /home/train/trainingStuff/bin/extract_longest_isoforms_from_TrinityFasta.pl \
-        ${assemble_trinity}/Trinity.fasta >${assemble_trinity}/unigene_longest.fasta
+        ${assemble_trinity}/Trinity.fasta \
+        > ${assemble_trinity}/unigene_longest.fasta \
+        && echo "已生成 unigene_longest.fasta"
 
+    echo "cd-hit-est 正在执行"
     cd-hit-est -i ${assemble_trinity}/unigene_longest.fasta \
-        -o ${unigene_fasta} -c 0.95 && echo "cd-hit-est 已完成，已生成 ${specie}_unigene.fasta"
+        -o ${assemble_trinity}/${specie}_unigene.fasta \
+        -c 0.95 \
+        && echo "cd-hit-est 已完成，已生成 ${specie}_unigene.fasta"
 
     /opt/biosoft/Trinity-v2.8.5/util/TrinityStats.pl \
-        ${unigene_fasta} >${assemble_trinity}/assemble_stat.txt
-    seqkit stats ${unigene_fasta} >>${assemble_trinity}/assemble_stat.txt
-    grep '>' ${unigene_fasta} | cut -d ' ' -f 1 | tr -d '>' > ${specie}_all_gene_id.txt
+        ${assemble_trinity}/${specie}_unigene.fasta \
+        > ${assemble_trinity}/assemble_stat.txt
+    seqkit stats ${assemble_trinity}/${specie}_unigene.fasta >> ${assemble_trinity}/assemble_stat.txt
+    grep '>' ${assemble_trinity}/${specie}_unigene.fasta | cut -d ' ' -f 1 | tr -d '>' > ${specie}_all_gene_id.txt
     echo "pinjie 流程已完成"
+    cd ${assemble_trinity} || exit
     assemble_report
+    cd ${work_dir} || exit
 }
 # assemble_stat.txt for report
 assemble_report() {
+    # 针对 TrinityStats.pl 和 seqkit stats 生成的 assemble_stat.txt 进行处理，可直接插入报告使用
     Total_sequence_num=$(tail -n 1 assemble_stat.txt | awk -F' ' '{print $4}' | tr -d ',')
     Total_sequence_bases=$(grep 'Total assembled bases' assemble_stat.txt | head -n 1 | awk -F':' '{print $2}' | tr -d ' ')
     Percent_GC=$(grep 'Percent GC' assemble_stat.txt | awk -F':' '{print $2}' | tr -d ' ')
@@ -77,12 +90,12 @@ assemble_report() {
     Smallest_transcript=$(tail -n 1 assemble_stat.txt | awk -F' ' '{print $6}' | tr -d ',')
     Average_length=$(tail -n 1 assemble_stat.txt | awk -F' ' '{print $7}' | tr -d ',')
     N50=$(grep N50 assemble_stat.txt | head -n 1 | awk -F':' '{print $2}' | tr -d ' ')
-    echo -e "Total_sequence_num\t${Total_sequence_num}
-    Total_sequence_bases\t${Total_sequence_bases}
-    Percent_GC\t${Percent_GC}
-    Largest_transcript\t${Largest_transcript}
-    Smallest_transcript\t${Smallest_transcript}
-    Average_length\t${Average_length}
+    echo -en "Total_sequence_num\t${Total_sequence_num}\n
+    Total_sequence_bases\t${Total_sequence_bases}\n
+    Percent_GC\t${Percent_GC}\n
+    Largest_transcript\t${Largest_transcript}\n
+    Smallest_transcript\t${Smallest_transcript}\n
+    Average_length\t${Average_length}\n
     N50\t${N50}" > assemble_stat_report.txt
 }
 
@@ -98,13 +111,19 @@ exec_swiss() {
     echo "执行 Annotation - Swiss 步骤"
     /opt/biosoft/ncbi-blast-2.9.0+/bin/blastx \
         -db /home/data/ref_data/Linux_centos_databases/2019_Unprot_databases/swissprot \
-        -query ${unigene_fasta} \
+        -query ${assemble_trinity}/${specie}_unigene.fasta \
         -out ${annotation}/${specie}_unigene_swiss.blast \
         -max_target_seqs 20 \
         -evalue 1e-5 \
         -num_threads ${num_threads} \
         -outfmt "6 qacc sacc pident qcovs qcovhsp ppos length mismatch gapopen qstart qend sstart send evalue bitscore stitle" 
-    py_swiss && echo "swiss 注释完成"
+    # 如果 swiss 注释成功，则对 swiss blast 结果进行处理
+    if [ -f ${annotation}/${specie}_unigene_swiss.blast ]; then
+        py_swiss && echo "swiss 注释完成"
+    else
+        echo "swiss blast 失败"
+    fi
+    
 }
 
 ## nr
@@ -117,7 +136,7 @@ exec_nr() {
     echo "执行 Annotation - nr 步骤"
     mkdir -p ${annotation}/temp
     diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
-        --query ${unigene_fasta} \
+        --query ${assemble_trinity}/${specie}_unigene.fasta \
         --out ${annotation}/${specie}_unigene_nr_diamond.blast \
         --outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle \
         --sensitive \
@@ -127,16 +146,23 @@ exec_nr() {
         --block-size 20.0 \
         --tmpdir ${annotation}/temp \
         --index-chunks 1 && echo 'nr 注释完成'
+    # 如果 nr 执行成功，则对 nr 结果进行处理
+    if [ -f ${annotation}/${specie}_unigene_nr_diamond.blast ]; then
+        py_nr && echo "nr 注释完成"
+    else
+        echo "nr 注释失败"
+    fi
 }
 
 ### cog
 # emappey.py youhuma 45分钟，运行完需要 conda deactivate
 exec_cog() {
+    mkdir ${annotation}
     cd ${annotation} || exit
     echo "正在切换到 python27 conda 环境"
     source /home/train/miniconda3/bin/activate python27
     check_conda_env
-    emapper.py -i ${specie}_unigene.fasta \
+    emapper.py -i ${assemble_trinity}/${specie}_unigene.fasta \
         --output ${specie}_unigene \
         --cpu ${num_threads} \
         --data_dir /home/data/xuezhen/download/eggNOG/eggnog.db \
@@ -148,10 +174,38 @@ exec_cog() {
 }
 
 ### kegg
-kegg() {
-    # TODO: 后面继续写爬虫程序
+exec_kegg() {
+    # 判断 $specie_unigene.fasta 是否大于 50000 条，如果大于 50000 条，则需要分批生成 keg 文件
+    if [[ $(grep -c '>' ${assemble_trinity}/${specie}_unigene.fasta) -gt 50000 ]]; then
+        echo "unigene.fasta 文件大于 50000 条"
+        split -l 100000 ${assemble_trinity}/${specie}_unigene.fasta ${annotation}/${specie}_unigene.fasta_
+        for i in $(ls ${annotation} | grep "${specie}_unigene.fasta_"); do
+            echo "正在生成 ${i} 的 keg 文件"
+            python ${python_script}/annotation/kegg_annotation.py \
+            -f ${annotation}/${i} \
+            -o ${annotation}/${i}_keg \
+            -l "${kegg_org}" && echo "${i} 的 keg 文件已生成"
+            # 检查文件是否生成，如果生成则把临时分割的文件删除
+            if [[ -f ${annotation}/${i}_keg ]]; then
+                cat ${annotation}/${i}_keg >> ${annotation}/${specie}_unigene.keg
+                rm ${annotation}/${i}_keg
+                rm ${annotation}/${i}
+            elif [[ ! -f ${annotation}/${i}_keg ]]; then
+                echo "${i} 的 keg 文件生成失败"
+            fi
+        done
+    else
+        echo "unigene.fasta 文件小于 50000 条"
+        python ${python_script}/annotation/kegg_annotation.py \
+            -f ${assemble_trinity}/${specie}_unigene.fasta \
+            -o ${annotation}/${specie}_unigene.keg \
+            -l "${kegg_org}" && echo "${specie}_unigene.fasta 的 keg 文件已生成"
+    fi
+
     # 拿着 $specie_unigene.fasta 去 kegg 网站生成 keg 文件，再做下面的东西 -t plant/animal 动物或植物
-    python ${python_script}/annotation/kegg.py -t ${specie_type} -i ${all_gene_id}
+    cd ${annotation} || exit
+    python ${python_script}/annotation/kegg.py -t ${specie_type} -i ${word_dir}/${specie}_all_gene_id.txt
+    cd ${work_dir} || exit
 }
 
 ### transdecoder
@@ -160,17 +214,17 @@ transdecoder() {
     cd ${annotation} || exit
     mkdir transdecoder
     cd transdecoder || exit
-    TransDecoder.LongOrfs -t ${unigene_fasta}
+    TransDecoder.LongOrfs -t ${assemble_trinity}/${specie}_unigene.fasta
     # 先运行完上面那句，才能运行下面这句
-    TransDecoder.Predict -t ${unigene_fasta}
+    TransDecoder.Predict -t ${assemble_trinity}/${specie}_unigene.fasta
     cd ${work_dir} || exit
 }
 exec_annotation() {
     mkdir ${annotation}
-    cp ${unigene_fasta} ${annotation}
+    cp ${assemble_trinity}/${specie}_unigene.fasta ${annotation}
     exec_swiss
     exec_nr
-    # exec_cog
+    exec_cog
     transdecoder
 }
 
@@ -179,20 +233,30 @@ rsem() {
     mkdir ${reference}
     # 建库
     cd ${reference} || exit
-    rsem-prepare-reference --bowtie2 ${unigene_fasta} ${specie}
+    echo "正在建库 ${assemble_trinity}/${specie}_unigene.fasta ${specie}"
+    sleep 60
+    rsem-prepare-reference --bowtie2 ${assemble_trinity}/${specie}_unigene.fasta ${specie}
     cd ${work_dir} || exit
     mkdir ${mapping}
     # 读取 samples_described.txt 循环比对
-    cat ${work_dir}/samples_described.txt | grep -v sample | while read line; do
+    tail -n +2 ${work_dir}/samples_described.txt | grep -v '^$' | while read line; do
         sample=$(echo $line | awk '{print $2}')
-        echo "正在执行 $sample 的 rsem 流程"
+        sample1=$sample$(ls ${pinjiedata} | grep ${sample} | awk -F"${sample}" '{print $2}' | grep '1')
+        sample2=$sample$(ls ${pinjiedata} | grep ${sample} | awk -F"${sample}" '{print $2}' | grep '2')
+        echo "正在执行 $sample 的 rsem 流程, $sample1 $sample2 正在比对"
         rsem-calculate-expression -p ${num_threads} \
-            --bowtie2 --strandedness reverse --paired-end \
-            ${pinjiedata}/${sample}_1.clean.fq.gz ${pinjiedata}/${sample}_2.clean.fq.gz \
+            --bowtie2 \
+            --strandedness reverse \
+            --paired-end \
+            ${pinjiedata}/${sample1} ${pinjiedata}/${sample2} \
             ${reference}/${specie} ${mapping}/${sample} \
             1>${mapping}/${sample}_mapping.txt \
             2>${mapping}/${sample}.log
+        echo "$sample 的 rsem 比对流程已完成"
     done
+
+    # 使用 base 的 python3 环境运行 python 脚本
+    source /home/train/miniconda3/bin/activate base
     cd ${mapping} || exit
     # 提出 rawreads
     python /home/colddata/chen/03_transcript/No_Reference_transcriptome/all_sample_raw_reads.py
@@ -206,15 +270,21 @@ rsem() {
 
     # 列名按照 samples_described.txt 重新排序
     python ${python_script}/realignment_fpkm_columns.py -r \
-    -s ${work_dir}/samples_described.txt -f ${mapping}/reads_matrix_filtered.txt
+        -s ${work_dir}/samples_described.txt \
+        -f ${mapping}/reads_matrix_filtered.txt
     python ${python_script}/realignment_fpkm_columns.py -r \
-    -s ${work_dir}/samples_described.txt -f ${mapping}/fpkm_matrix_filtered.txt
+        -s ${work_dir}/samples_described.txt \
+        -f ${mapping}/fpkm_matrix_filtered.txt
     python ${python_script}/realignment_fpkm_columns.py -r \
-    -s ${work_dir}/samples_described.txt -f ${mapping}/gene_count_matrix.txt
+        -s ${work_dir}/samples_described.txt \
+        -f ${mapping}/gene_count_matrix.txt
     python ${python_script}/realignment_fpkm_columns.py -r \
-    -s ${work_dir}/samples_described.txt -f ${mapping}/gene_fpkm_matrix.txt
-
+        -s ${work_dir}/samples_described.txt \
+        -f ${mapping}/gene_fpkm_matrix.txt
     # 合并 fpkm 和 reads 矩阵
+    kegg_gene_def=$(realpath -s  ${annotation}/*KEGG_gene_def.txt)
+    nr_gene_def=$(realpath -s ${annotation}/*nr_gene_def.txt)
+    swiss_gene_def=$(realpath -s ${annotation}/*swiss_gene_def.txt)
     cd ${mapping} || exit
     echo -e "正在合并 fpkm 和 reads 矩阵，Def 使用\n"
     echo -e "${kegg_gene_def}"
@@ -242,16 +312,22 @@ rsem() {
 multi_deseq() {
     mkdir ${multideseq}
     cd ${multideseq} || exit
-    cp ${mapping}/*matrix_filtered.txt ${multideseq}/
+    cp ${mapping}/reads_matrix_filtered.txt ${multideseq}/
+    cp ${mapping}/fpkm_matrix_filtered.txt ${multideseq}/
     cp ${work_dir}/samples_described.txt ${multideseq}/
     cp ${work_dir}/compare_info.txt ${multideseq}/
+    echo "正在执行 multi_deseq 流程，Rlog number 为 ${rlog_number}"
     Rscript /home/data/command/Reference_transcriptome/multiple_samples_DESeq2_V7.r ${rlog_number}
 
+    kegg_gene_def=$(realpath -s  ${annotation}/*KEGG_gene_def.txt)
+    nr_gene_def=$(realpath -s ${annotation}/*nr_gene_def.txt)
+    swiss_gene_def=$(realpath -s ${annotation}/*swiss_gene_def.txt)
     cd ${multideseq} || exit
     python ${python_script}/de_results_add_def.py \
         -k "$kegg_gene_def" \
         -n "$nr_gene_def" \
         -s "$swiss_gene_def"
+    cat DEG_summary.txt
     cd ${work_dir} || exit
 }
 
@@ -351,12 +427,8 @@ reference=${work_dir}/05_Reference
 mapping=${work_dir}/06_Mapping_mapping
 multideseq=${work_dir}/07_Multi_deseq
 jiaofu=${work_dir}/jiaofu_perpare
-
 # 文件
-unigene_fasta=${assemble_trinity}/${specie}_unigene.fasta
-kegg_gene_def=$(realpath -s  ${annotation}/*KEGG_gene_def.txt)
-nr_gene_def=$(realpath -s ${annotation}/*nr_gene_def.txt)
-swiss_gene_def=$(realpath -s ${annotation}/*swiss_gene_def.txt)
+# unigene_fasta=
 
 ### 读取输入参数
 # 默认参数
@@ -364,79 +436,8 @@ max_memory=500
 num_threads=60
 rlog_number=1
 
-while getopts ":h-:" opt; do
-    case ${opt} in
-    -)
-        case "${OPTARG}" in
-        specie)
-            specie="${!OPTIND}"
-            OPTIND=$((OPTIND + 1))
-            ;;
-        threads)
-            num_threads="${!OPTIND}"
-            OPTIND=$((OPTIND + 1))
-            ;;
-        max_memory)
-            max_memory="${!OPTIND}"
-            OPTIND=$((OPTIND + 1))
-            ;;
-        rlog_number)
-            rlog_number="${!OPTIND}"
-            OPTIND=$((OPTIND + 1))
-            ;;
-        help)
-            echo "使用 -h 查看帮助信息"
-            exit 0
-            ;;
-        *)
-            echo "无效的选项：--$OPTARG"
-            exit 1
-            ;;
-        esac
-        ;;
-    h)
-        echo "帮助信息："
-        echo "使用方法：./noref.sh [选项]"
-        echo "选项："
-        echo "  --specie <specie> 指定物种"
-        echo "  --threads <threads> 指定线程数"
-        echo "  --max_memory <max_memory> 指定最大内存"
-        echo "  --rlog_number <rlog_number> multi deseq 的倍数"
-        echo "  -h 显示帮助信息"
-        exit 0
-        ;;
-    \?)
-        echo "无效的选项：-$OPTARG"
-        exit 1
-        ;;
-    esac
-done
-
-show_menu() {
-    echo "
-    无参执行程序
-    物种名: $specie
-
-    0 执行所有流程
-    ————————————————
-    1 执行 merge
-    2 执行 fastqc
-    3 执行 pinjie
-    4 执行 pinjie result
-    5 执行 Annotation
-        5.1 执行 swiss
-        5.2 执行 nr
-        5.3 执行 cog
-        5.4 执行 kegg
-        5.5 执行 transdecoder
-    6 执行 rsem
-    7 执行 multi_deseq
-    8 整理交付目录
- "
-    # show_status
-    read -p "请输入选择(其他任意退出): " select
-
-    case "${select}" in
+run_program() {
+    case "$1" in
     0)
         echo "程序开始执行"
         # check_source_data
@@ -488,9 +489,97 @@ show_menu() {
         jiaofu
         ;;
     *)
-        # LOGE "请输入正确的数字: "
+        echo "无效的选项：$1"
         exit 0
         ;;
     esac
 }
-show_menu
+
+help_info() {
+    echo "帮助信息：
+    ————————————————————————————————————————————————————————
+    0 执行所有流程
+
+    2 执行 fastqc
+    3 执行 pinjie（需指定 --specie, --threads, --max-memory）
+    5 执行 Annotation（需指定 --specie, --threads）
+        5.1 执行 swiss（需指定 --specie, --threads)
+        5.2 执行 nr（需指定 --specie)
+        5.3 执行 cog（需指定 --specie，--threads）
+        5.4 执行 kegg（需指定 --specie, --specie-type [plant, animal], --kegg-org）
+        5.5 执行 transdecoder（需指定 --specie）
+    6 执行 rsem（需指定 --specie, --threads）
+    7 执行 multi_deseq（需指定 --rlog-number）
+    8 整理交付目录
+    ————————————————————————————————————————————————————————
+    使用方法：./noref.sh [参数]
+    参数：
+        -r, --run <run> 指定运行的流程 (指上面的数字，例如 -r 5)
+        -s, --specie <specie> 指定物种
+        -c, --threads <threads> 指定线程数
+        -m, --max-memory <max_memory> 指定最大内存
+        --rlog-number <rlog_number> multi deseq 的倍数
+        --trinity-type <trinity_type> 设置 trinity 的类型 all/planA/custom
+            all：全部拼接
+            planA：只拼接每组中最长的
+            custom：自定义，生成文件后手动修改
+        -h 显示帮助信息
+"
+}
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -r | --run)
+            run="$2"
+            echo "run: $2"
+            shift 2
+            ;;
+        -s | --specie)
+            specie="$2"
+            echo "specie: $2"
+            shift 2
+            ;;
+        -c | --threads)
+            num_threads="$2"
+            echo "num_threads: $2"
+            shift 2
+            ;;
+        -m | --max-memory)
+            max_memory="$2"
+            echo "max_memory: $2"
+            shift 2
+            ;;
+        --rlog-number)
+            rlog_number="$2"
+            echo "rlog_number: $2"
+            shift 2
+            ;;
+        --trinity-type)
+            trinity_type="$2"
+            echo "trinity_type: $2"
+            shift 2
+            ;;
+        --kegg-org)
+            kegg_org="$2"
+            echo "kegg_org: $2"
+            shift 2
+            ;;
+        --specie-type)
+            specie_type="$2"
+            echo "specie_type: $2"
+            shift 2
+            ;;
+        -h)
+            help_info
+            exit 0
+            ;;
+        *)
+            echo "无效的选项：$1"
+            exit 1
+            ;;
+    esac
+done
+if [[ -z $run ]]; then
+    echo "未指定运行流程，使用 -h 查看帮助"
+    exit 0
+fi
+run_program $run
