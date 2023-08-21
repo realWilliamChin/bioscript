@@ -1,6 +1,7 @@
 #!/bin/bash
 # set -e -o pipefail
 
+# 检查 conda 环境功能
 check_conda_env() {
     conda_env=$(conda env list | grep "*" | cut -d " " -f 1)
     echo $conda_env
@@ -35,13 +36,14 @@ exec_fastqc() {
 
 ### pinjie 步骤
 exec_pinjie() {
-    # 生成 sample trinity 文件, 可能需要修改一下 sample trinity，太多了拼接太慢了
     source /home/train/miniconda3/bin/activate base
-    # python ${python_script}/noreference/trinity_samples_file.py
-    cat ${work_dir}/samples_trinity.txt
+    python ${python_script}/noreference/trinity_samples_file.py \
+    -i ${work_dir}/${pinjiedata}
+    -s ${work_dir}/samples_described.txt \
+    -o ${specie}_samples_trinity.txt \
+    -t ${trinity_type}
     echo -e "\n##############################################\n"
-    read -p "是否更改 samples_trinity.txt，回车继续"
-    mv ${work_dir}/samples_trinity.txt ${work_dir}/${specie}_samples_trinity.txt
+    read -p "请确认 samples_trinity.txt，回车继续"
 
     mkdir ${assemble_trinity}
     # 生成 trinity.fasta 文件
@@ -103,6 +105,7 @@ assemble_report() {
 ## Swiss
 py_swiss() {
     cd ${annotation} || exit
+    source /home/train/miniconda3/bin/activate base
     python ${python_script}/annotation/swiss.py
     cd ${work_dir} || exit
 }
@@ -129,12 +132,13 @@ exec_swiss() {
 ## nr
 py_nr() {
     cd ${annotation} || exit
+    source /home/train/miniconda3/bin/activate base
     python ${python_script}/annotation/nr.py
     cd ${work_dir} || exit
 }
 exec_nr() {
     echo "执行 Annotation - nr 步骤"
-    mkdir -p ${annotation}/temp
+    mkdir -p ${annotation}/temp > /dev/null 2>&1
     diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
         --query ${assemble_trinity}/${specie}_unigene.fasta \
         --out ${annotation}/${specie}_unigene_nr_diamond.blast \
@@ -157,7 +161,7 @@ exec_nr() {
 ### cog
 # emappey.py youhuma 45分钟，运行完需要 conda deactivate
 exec_cog() {
-    mkdir ${annotation}
+    mkdir ${annotation} > /dev/null 2>&1
     cd ${annotation} || exit
     echo "正在切换到 python27 conda 环境"
     source /home/train/miniconda3/bin/activate python27
@@ -210,17 +214,16 @@ exec_kegg() {
 
 ### transdecoder
 transdecoder() {
-    # 也可以自动生成到报告里
     cd ${annotation} || exit
     mkdir transdecoder
     cd transdecoder || exit
     TransDecoder.LongOrfs -t ${assemble_trinity}/${specie}_unigene.fasta
-    # 先运行完上面那句，才能运行下面这句
     TransDecoder.Predict -t ${assemble_trinity}/${specie}_unigene.fasta
     cd ${work_dir} || exit
 }
+
 exec_annotation() {
-    mkdir ${annotation}
+    mkdir ${annotation} > /dev/null 2>&1
     cp ${assemble_trinity}/${specie}_unigene.fasta ${annotation}
     exec_swiss
     exec_nr
@@ -323,6 +326,7 @@ multi_deseq() {
     nr_gene_def=$(realpath -s ${annotation}/*nr_gene_def.txt)
     swiss_gene_def=$(realpath -s ${annotation}/*swiss_gene_def.txt)
     cd ${multideseq} || exit
+    source /home/train/miniconda3/bin/activate base
     python ${python_script}/de_results_add_def.py \
         -k "$kegg_gene_def" \
         -n "$nr_gene_def" \
@@ -443,49 +447,42 @@ run_program() {
         # check_source_data
         exec_fastqc
         exec_pinjie
-        pinjie_result
         exec_annotation
         rsem
         multi_deseq
         jiaofu
         ;;
     1)
-        merge
-        ;;
-    2)
         exec_fastqc
         ;;
-    3)
+    2)
         exec_pinjie
         ;;
-    4)
-        pinjie_result
-        ;;
-    5)
+    3)
         exec_annotation
         ;;
-    5.1)
+    3.1)
         exec_swiss
         ;;
-    5.2)
+    3.2)
         exec_nr
         ;;
-    5.3)
+    3.3)
         exec_cog
         ;;
-    5.4)
+    3.4)
         exec_kegg
         ;;
-    5.5)
+    3.5)
         transdecoder
         ;;
-    6)
+    4)
         rsem
         ;;
-    7)
+    5)
         multi_deseq
         ;;
-    8)
+    6)
         jiaofu
         ;;
     *)
@@ -500,17 +497,17 @@ help_info() {
     ————————————————————————————————————————————————————————
     0 执行所有流程
 
-    2 执行 fastqc
-    3 执行 pinjie（需指定 --specie, --threads, --max-memory）
-    5 执行 Annotation（需指定 --specie, --threads）
-        5.1 执行 swiss（需指定 --specie, --threads)
-        5.2 执行 nr（需指定 --specie)
-        5.3 执行 cog（需指定 --specie，--threads）
-        5.4 执行 kegg（需指定 --specie, --specie-type [plant, animal], --kegg-org）
-        5.5 执行 transdecoder（需指定 --specie）
-    6 执行 rsem（需指定 --specie, --threads）
-    7 执行 multi_deseq（需指定 --rlog-number）
-    8 整理交付目录
+    1 执行 fastqc
+    2 执行 pinjie（需指定 --specie, --threads, --max-memory, --trinity-type）
+    3 执行 Annotation（需指定 --specie, --threads）
+        3.1 执行 swiss（需指定 --specie, --threads)
+        3.2 执行 nr（需指定 --specie)
+        3.3 执行 cog（需指定 --specie，--threads）
+        3.4 执行 kegg（需指定 --specie, --specie-type [plant, animal], --kegg-org）
+        3.5 执行 transdecoder（需指定 --specie）
+    4 执行 rsem（需指定 --specie, --threads）
+    5 执行 multi_deseq（需指定 --rlog-number）
+    6 整理交付目录
     ————————————————————————————————————————————————————————
     使用方法：./noref.sh [参数]
     参数：
@@ -521,7 +518,7 @@ help_info() {
         --rlog-number <rlog_number> multi deseq 的倍数
         --trinity-type <trinity_type> 设置 trinity 的类型 all/planA/custom
             all：全部拼接
-            planA：只拼接每组中最长的
+            max：只拼接每组中最长的
             custom：自定义，生成文件后手动修改
         -h 显示帮助信息
 "
