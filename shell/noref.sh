@@ -1,6 +1,7 @@
 #!/bin/bash
 # set -e -o pipefail
 
+# 检查 conda 环境功能
 check_conda_env() {
     conda_env=$(conda env list | grep "*" | cut -d " " -f 1)
     echo $conda_env
@@ -104,6 +105,7 @@ assemble_report() {
 ## Swiss
 py_swiss() {
     cd ${annotation} || exit
+    source /home/train/miniconda3/bin/activate base
     python ${python_script}/annotation/swiss.py
     cd ${work_dir} || exit
 }
@@ -130,12 +132,13 @@ exec_swiss() {
 ## nr
 py_nr() {
     cd ${annotation} || exit
+    source /home/train/miniconda3/bin/activate base
     python ${python_script}/annotation/nr.py
     cd ${work_dir} || exit
 }
 exec_nr() {
     echo "执行 Annotation - nr 步骤"
-    mkdir -p ${annotation}/temp
+    mkdir -p ${annotation}/temp > /dev/null 2>&1
     diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
         --query ${assemble_trinity}/${specie}_unigene.fasta \
         --out ${annotation}/${specie}_unigene_nr_diamond.blast \
@@ -158,7 +161,7 @@ exec_nr() {
 ### cog
 # emappey.py youhuma 45分钟，运行完需要 conda deactivate
 exec_cog() {
-    mkdir ${annotation}
+    mkdir ${annotation} > /dev/null 2>&1
     cd ${annotation} || exit
     echo "正在切换到 python27 conda 环境"
     source /home/train/miniconda3/bin/activate python27
@@ -211,17 +214,16 @@ exec_kegg() {
 
 ### transdecoder
 transdecoder() {
-    # 也可以自动生成到报告里
     cd ${annotation} || exit
     mkdir transdecoder
     cd transdecoder || exit
     TransDecoder.LongOrfs -t ${assemble_trinity}/${specie}_unigene.fasta
-    # 先运行完上面那句，才能运行下面这句
     TransDecoder.Predict -t ${assemble_trinity}/${specie}_unigene.fasta
     cd ${work_dir} || exit
 }
+
 exec_annotation() {
-    mkdir ${annotation}
+    mkdir ${annotation} > /dev/null 2>&1
     cp ${assemble_trinity}/${specie}_unigene.fasta ${annotation}
     exec_swiss
     exec_nr
@@ -324,6 +326,7 @@ multi_deseq() {
     nr_gene_def=$(realpath -s ${annotation}/*nr_gene_def.txt)
     swiss_gene_def=$(realpath -s ${annotation}/*swiss_gene_def.txt)
     cd ${multideseq} || exit
+    source /home/train/miniconda3/bin/activate base
     python ${python_script}/de_results_add_def.py \
         -k "$kegg_gene_def" \
         -n "$nr_gene_def" \
