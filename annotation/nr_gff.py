@@ -47,14 +47,14 @@ def main():
         for line in f:
             # if b'ensembl' in line and b'ID=gene:' in line:
             if 'ID=gene:' in line and args.gfftype == 'embl':
-                geneid = re.search('ID=gene:(.*?);', line).group(1)
-                ensembl_type = line.split('\t')[2]
-                biotype = re.search('biotype=(.*?);', line).group(1)
+                geneid = re.search('ID=gene:(.*?);', line).group(1).strip()
+                ensembl_type = line.split('\t')[2].strip()
+                biotype = re.search('biotype=(.*?);', line).group(1).strip()
                 lines.append([geneid, ensembl_type, biotype])
             elif 'ID=gene-' in line and args.gfftype == 'ncbi':
-                geneid = re.search('GeneID:(.*?);', line).group(1).split(',')[0]
-                ensembl_type = line.split('\t')[2]
-                biotype = line.split('gene_biotype=')[1].strip().split(';')[0]
+                geneid = re.search('GeneID:(.*?);', line).group(1).split(',')[0].strip()
+                ensembl_type = line.split('\t')[2].strip()
+                biotype = line.split('gene_biotype=')[1].strip().split(';')[0].strip()
                 lines.append([geneid, ensembl_type, biotype])
 
     # gene_id.txt   Rat_Rattus_novergicus.mRatBN7.2_embl_gene_id_biotype.txt
@@ -64,22 +64,22 @@ def main():
     # gene_id_df.drop(columns=['protein_coding', 'biotype']).to_csv(gff_file.replace('.gff3', '_gene_id.txt'), sep='\t', index=False)
 
     # gene_id.txt   Rat_Rattus_novergicus.mRatBN7.2_embl_gene_id_biotype.txt
-    gene_protein_coding_df = gene_id_df[gene_id_df['biotype'].str.contains('protein_coding')]
+    gene_protein_coding_df = gene_id_df[gene_id_df['biotype'].str.contains('protein_coding')].reset_index(drop=True)
     # gene_protein_coding_df['GeneID'].to_csv(gff_file.replace('.gff3', '_gene_protein_coding_id.txt'), sep='\t', index=False)
 
     # 加到 nr 后面的 'GeneID', 'NCBI_ID', 'NR_Def'
-    nr_gene_def_df = pd.read_csv(args.nr, sep='\t')
+    nr_gene_def_df = pd.read_csv(args.nr, sep='\t', dtype={'GeneID': 'object', 'NCBI_ID': 'object'})
 
     # 没有注释上的
     non_annotationed_df = gene_protein_coding_df[~gene_protein_coding_df['GeneID'].isin(nr_gene_def_df['GeneID'])]
-    non_annotationed_df = non_annotationed_df.drop(columns='protein_coding').rename(columns={'biotype': 'NR_def'})
+    non_annotationed_df = non_annotationed_df.drop(columns='protein_coding').rename(columns={'biotype': 'NR_Def'})
 
     # 不是 protein_coding 的
     gene_non_protein_coding_df = gene_id_df[~gene_id_df['biotype'].str.contains('protein_coding')]
-    gene_non_protein_coding_df = gene_non_protein_coding_df.drop(columns='protein_coding').rename(columns={'biotype': 'NR_def'})
+    gene_non_protein_coding_df = gene_non_protein_coding_df.drop(columns='protein_coding').rename(columns={'biotype': 'NR_Def'})
 
     result_df = pd.concat([nr_gene_def_df, non_annotationed_df, gene_non_protein_coding_df], axis=0)
-    result_df = result_df.drop_duplicates(subset='GeneID', keep='first')
+    result_df.drop_duplicates(subset='GeneID', keep='first', inplace=True)
     result_df.to_csv(args.nr, sep='\t', index=False)
     
     
