@@ -8,6 +8,7 @@ import pandas as pd
 
 def parse_input():
     argparser = argparse.ArgumentParser(description='输入 k，n，s，def 文件，添加 KEGG_ID, KEGG_GeneID, NR_Def, Swiss_protein_ID')
+    argparser.add_argument('--kns', help='输入 kns_def 文件，添加 KEGG_ID, KEGG_GeneID, NR_Def, Swiss_protein_ID')
     argparser.add_argument('-k', '--kegg', help='KEGG_gene_def 文件，会添加 KEGG_ID 和 KEGG_Shortname 列')
     argparser.add_argument('-n', '--nr', help='NR_gene_def 文件')
     argparser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
@@ -20,10 +21,12 @@ def parse_input():
     return argparser.parse_args()
 
 
-def add_kns_def(df, kegg_file=None, nr_file=None, swiss_file=None):
+def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file=None):
     """
     添加 NR_Def, Swiss_protein_ID, KEGG_Pathway_ID, KEGG_Shortname, EC_number, KEGG_description 列
     """
+    file_df.astype({'GeneID': 'object'})
+    result_df = file_df
     if nr_file:
         nr_df = pd.read_csv(nr_file, sep='\t', skiprows=1, usecols=[0, 1, 2], names=['GeneID', 'NR_ID', 'NR_Def1'])
         # 没有 NCBI ID 直接加会丢失先 fillna，再去掉 NA::
@@ -31,7 +34,7 @@ def add_kns_def(df, kegg_file=None, nr_file=None, swiss_file=None):
         nr_df['NR_ID_Des'] = nr_df['NR_ID'] + '::' + nr_df['NR_Def1']
         nr_df['NR_ID_Des'] = nr_df['NR_ID_Des'].str.replace('NA::', '', regex=False)
         nr_df.drop(columns=['NR_ID', 'NR_Def1'], inplace=True)
-        result_df = pd.merge(left=df, right=nr_df, on='GeneID', how='left')
+        result_df = pd.merge(left=result_df, right=nr_df, on='GeneID', how='left')
     if swiss_file:
         swiss_df = pd.read_csv(swiss_file, sep='\t', skiprows=1, usecols=[0, 1, 2], names=['GeneID', 'Swiss_Protein_ID', 'Swiss_Def'])
         swiss_df.fillna(value='NA', inplace=True)
@@ -42,6 +45,9 @@ def add_kns_def(df, kegg_file=None, nr_file=None, swiss_file=None):
     if kegg_file:
         kegg_df = pd.read_csv(kegg_file, sep='\t', skiprows=1, names=['GeneID', 'KEGG_ID', 'KEGG_Shortname', 'EC_Number', 'KEGG_Description'])
         result_df = pd.merge(left=result_df, right=kegg_df, on='GeneID', how='left')
+    if kns_file:
+        kns_df = pd.read_csv(kns_file, sep='\t', dtype={'GeneID': 'object'})
+        result_df = pd.merge(left=file_df, right=kns_df, on='GeneID', how='left')
     result_df.fillna(value='NA', inplace=True)
     return result_df
 
@@ -58,7 +64,7 @@ def main():
     df = pd.read_csv(args.input, sep='\t')
     source_key_col_name = df.columns[args.input_col]
     df.rename(columns={source_key_col_name: 'GeneID'}, inplace=True)
-    result_df = add_kns_def(df, args.kegg, args.nr, args.swiss)
+    result_df = add_kns_def(df, args.kegg, args.nr, args.swiss, args.kns)
     result_df.rename(columns={'GeneID': source_key_col_name}, inplace=True)
     result_df.to_csv(args.output, sep='\t', index=False)
 
