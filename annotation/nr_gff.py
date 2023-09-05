@@ -5,42 +5,39 @@
 import re
 import pandas as pd
 import argparse
+import sys
 
 
 def parse_input():
     argparser = argparse.ArgumentParser(description='给 nr_gene_def 下面添加一些东西')
     argparser.add_argument('-n', '--nr', required=True, help='nr_gene_def file')
     argparser.add_argument('-g', '--gff', required=True, help='gff file')
-    argparser.add_argument('-t', '--gfftype', required=True, help='gff type, embl or ncbi')
+    argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'auto_detect'], default='auto_detect',
+                           help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
     # argparser.add_argument('-b', '--gffbasicinfo', required=True, help='gff basic info file')
     args = argparser.parse_args()
     return args
 
+
+def detect_gff_type(gff_file):
+    with open(gff_file, 'r') as f:
+        gff_data = f.read()
+        embl_type_count = gff_data.count("ID=gene:")
+        ncbi_type_count = gff_data.count("ID=gene-")
+        if embl_type_count > 0 and ncbi_type_count == 0:
+            return "embl"
+        elif embl_type_count == 0 and ncbi_type_count > 0:
+            return "ncbi"
+        else:
+            print(embl_type_count, ncbi_type_count)
+            print("nr_gff.py 注释检测 gff 类型失败！")
+            sys.exit(1)
+
+
 def main():
     args = parse_input()
-        
-    # nr_gene_def_df = pd.read_csv(args.nr, sep='\t', names=['GeneID', 'NCBI_ID', 'NR_Def'])
-    # gff_basic_info_df = pd.read_csv(args.gffbasicinfo, sep='\t', skiprows=1, usecols=[0, 5], names=['GeneID', 'NR_Def'])
-    
-    # # convert NCBI_ID to object, gff_basic_info_df GeneID to object，不然没法合并
-    # nr_gene_def_df['NCBI_ID'] = nr_gene_def_df['NCBI_ID'].astype('object')
-    # gff_basic_info_df['GeneID'] = gff_basic_info_df['GeneID'].astype('object')
-    
-    # # 把 gff_basic_info_df 中 GeneID 在 NR 中的去掉，NR 没有注释上的
-    # print(gff_basic_info_df.shape)
-    # gff_basic_info_df = gff_basic_info_df[~gff_basic_info_df['GeneID'].isin(nr_gene_def_df['GeneID'])]
-
-    # print(gff_basic_info_df.shape)
-    # # 把不是 protein_coding 的去掉
-    # # gff_basic_info_df = gff_basic_info_df[~gff_basic_info_df['NR_Def'].str.contains('protein_coding')]
-    
-    # print(gff_basic_info_df.shape)
-    # # basic_info 中的 Gene_Def 加到 nr_gene_def 的 NR_Def 列后面
-    # nr_gene_def_df = pd.merge(nr_gene_def_df, gff_basic_info_df, on='GeneID', how='left')
-    # print(nr_gene_def_df.shape)
-    # print(nr_gene_def_df.tail())
-    # nr_gene_def_df.to_csv('test.txt', sep='\t', index=False)
-    
+    if args.gfftype == 'auto_detect':
+        args.gfftype = detect_gff_type(args.gff)
 
     with open(args.gff, 'r') as f:
         lines = []
