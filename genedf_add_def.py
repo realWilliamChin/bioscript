@@ -26,7 +26,7 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
     添加 NR_Def, Swiss_protein_ID, KEGG_Pathway_ID, KEGG_Shortname, EC_number, KEGG_description 列
     """
     result_df = file_df
-    source_shape = file_df.shape()[0]
+    source_shape = file_df.shape[0]
     if nr_file:
         nr_df = pd.read_csv(nr_file, sep='\t', skiprows=1, usecols=[0, 1, 2], names=['GeneID', 'NR_ID', 'NR_Def1'], dtype={'GeneID': str})
         # 没有 NCBI ID 直接加会丢失先 fillna，再去掉 NA::
@@ -50,7 +50,7 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
         result_df = pd.merge(left=file_df, right=kns_df, on='GeneID', how='left')
         result_df['GeneID'].to_csv('test.list', sep='\t', index=False)
     result_df.fillna(value='NA', inplace=True)
-    result_shape = result_df.shape()[0]
+    result_shape = result_df.shape[0]
     if source_shape != result_shape:
         print(f"原表行数{source_shape}, 结果表行数{result_shape}, 可能输入文件基因 ID 有重复，或注释文件有重复")
         result_df.drop_duplicates(subset='GeneID', inplace=True)
