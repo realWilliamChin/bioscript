@@ -19,15 +19,16 @@ def parse_input():
 
 def get_all_id(gene_basicinfo_file, key_name):
     all_id_filename = key_name + '_all_gene_id.txt'
-    command = f'cut -f 1 {gene_basicinfo_file} | grep -v GeneID > {all_id_filename}'
+    # TODO:以后建议更换成不使用系统命令的方式
+    command = f'cut -f 1 {gene_basicinfo_file} | tail -n +2 | sort -u > {all_id_filename}'
     os.system(command)
     
 
-def get_basic_info(gff_file, gene_basicinfo_file, gff_type):
+def get_basic_info(gff_file, output_file, gff_type):
     # ncbi 的 chromosome
     ncbi_chromosome = None
     
-    with open(gene_basicinfo_file, 'w') as gff3_w:
+    with open(output_file, 'w') as gff3_w:
         gff3_w.write('GeneID\tChr_Number\tStart\tEnd\tStrand\tGene_Def\n')
     with open(gff_file, 'r') as file:
         for line in file:
@@ -56,7 +57,7 @@ def get_basic_info(gff_file, gene_basicinfo_file, gff_type):
             end_pos = int(columns[4])
             strand = columns[6]
             
-            with open(gene_basicinfo_file, 'a') as gff3_w:
+            with open(output_file, 'a') as gff3_w:
                 gff3_w.write(f'{gene_id}\t{chromosome}\t{start_pos}\t{end_pos}\t{strand}\t{biotype}\n')
     
     
