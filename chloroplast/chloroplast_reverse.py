@@ -18,17 +18,16 @@ def main():
     args = parse_input()
 
     f2=open(args.output,'w')
-    with open(args.input,'r') as f:
+    with open(args.input,'r') as f, open(args.output, 'w') as out_f:
 
         for each_line in f:
             if '>' not in each_line:
                 line=each_line
                 break
             else:
-                f2.write(each_line)
-
-    my_seq= reverse_complement(line)
-    f2.write(my_seq)
+                out_f.write(each_line)
+        my_seq = reverse_complement(line)
+        out_f.write(my_seq)
     print('Done!')
 
 

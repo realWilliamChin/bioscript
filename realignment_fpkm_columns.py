@@ -23,7 +23,7 @@ def check_columns_name(lst, df_columns):
         if i not in lst:
             message = f"{i} not in {lst}"
             print(message)
-            sys.exit(1)
+            # sys.exit(1)
     
     
 def reindex(lst, file, replace_or_not):
