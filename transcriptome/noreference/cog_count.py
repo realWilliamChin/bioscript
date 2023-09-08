@@ -10,51 +10,14 @@ from collections import Counter
 
 def parse_input():
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-n', '--nr_blast_file', help='nr_diamond.blast 文件')
-    argparser.add_argument('-g', '--go_file', help='swiss idNo_def 文件')
-    argparser.add_argument('-k', '--kegg_file', help='KEGG_clean 文件')
     argparser.add_argument('-c', '--cog_file', help='unigene.emapper.annotations 文件')
-    argparser.add_argument('-i', '--cog_file_id', help='unigene.emapper.seed_orthologs 文件')
-    argparser.add_argument('-s', '--swiss_file', help='swiss_gene_def 文件')
-    argparser.add_argument('-o', '--output_path', help='输出文件夹')
+    argparser.add_argument('-o', '--output_path', default='.', help='输出文件夹')
     return argparser.parse_args()
-
-
-def get_nrid_identity_evalue_spcount(nr_file):
-    df = pd.read_csv(nr_file, sep='\t', header=None)
-    df_uniq = df.drop_duplicates(subset=0)
-    species = df_uniq[12]
-    lst = list()
-    for each in species:
-        lst.append(each.split('[')[-1].split(']')[0])
-    head_10 = Counter(lst).most_common()[0:10]
-    df_species = pd.DataFrame(head_10)
-    return df_uniq[0], df_uniq[2], df_uniq[10], df_species
 
 
 def main():
     args = parse_input()
-    nr_file = args.nr_blast_file if args.nr_blast_file else [x for x in os.listdir() if x.endswith('nr_diamond.blast')][0]
-    go_file = args.go_file if args.go_file else [x for x in os.listdir() if x.endswith('idNo_def.txt')][0]
-    kegg_file = args.kegg_file if args.kegg_file else [x for x in os.listdir() if x.endswith('KEGG_clean.txt')][0]
     cog_file = args.cog_file if args.cog_file else [x for x in os.listdir() if x.endswith('emapper.annotations')][0]
-    cog_file_id = args.cog_file_id if args.cog_file_id else [x for x in os.listdir() if x.endswith('emapper.seed_orthologs')][0]
-    swiss_file = args.swiss_file if args.swiss_file else [x for x in os.listdir() if x.endswith('swiss_gene_def.txt')][0]
-
-    identity_evalue = get_nrid_identity_evalue_spcount(nr_file)
-    # 输出文件
-    identity_evalue[0].to_csv('NR_ID.list', header=False, index=False)
-    identity_evalue[1].to_csv('identity.txt', header=False, index=False)
-    identity_evalue[2].to_csv('evalue.txt', header=False, index=False)
-    identity_evalue[3].to_csv('species_count.txt', sep='\t', header=False, index=False)
-    go_id_df = pd.read_csv(go_file, sep='\t', header=None, usecols=[0])
-    go_id_df.drop_duplicates().to_csv('GO_ID.list', header=False, index=False)
-    kegg_id_df = pd.read_csv(kegg_file, sep='\t', header=None, usecols=[0])
-    kegg_id_df.drop_duplicates().to_csv('KEGG_ID.list', header=False, index=False)
-    cog_id_df = pd.read_csv(cog_file_id, sep='\t', comment='#', header=None, usecols=[0])
-    cog_id_df.drop_duplicates().to_csv('COG_ID.list', header=False, index=False)
-    swiss_id_df = pd.read_csv(swiss_file, sep='\t', usecols=[0])
-    swiss_id_df.drop_duplicates().to_csv('Swiss_ID.list', header=False, index=False)
 
     # 定义 COG count
     cog_source_df = pd.DataFrame({
@@ -94,7 +57,7 @@ def main():
     cog_list = Counter(''.join(list(cog_count_source_df['COG Functional cat.'].dropna()))).most_common()
     cog_count_df = pd.DataFrame(list(cog_list))
     cog_df = pd.merge(left=cog_source_df, right=cog_count_df, on=0, how='left').fillna(0)
-    cog_df.to_csv('COG_count.txt', sep='\t', header=False, index=False)
+    cog_df.to_csv(os.path.join(args.output_path, 'COG_count.txt'), sep='\t', header=False, index=False)
 
 
 if __name__ == '__main__':
