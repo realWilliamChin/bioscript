@@ -40,14 +40,14 @@ if not isExists:
     os.makedirs(temp)
 dir_list=os.listdir(cur_path)
 for each_doc in dir_list:
-    if ('nr_diamond.blast' in each_doc):
+    if ('nr.blast' in each_doc):
     #if ('swiss.blast' in each_doc):
         new_name1=each_doc.replace('.blast','_uniq.blast')
         new_name2 = each_doc.replace('.blast', '_after_sort_all_info.txt')
         # new_name3 = each_doc.replace('.blast', '_nr_gene_def.txt')
         # new_name4 = each_doc.replace('.blast','_nr_TF_def.txt')
-        new_name3 = each_doc.replace('nr_diamond.blast', 'nr_gene_def.txt')
-        new_name4 = each_doc.replace('nr_diamond.blast','nr_TF_def.txt')
+        new_name3 = each_doc.replace('nr.blast', 'nr_gene_def.txt')
+        new_name4 = each_doc.replace('nr.blast','nr_TF_def.txt')
         data_frame = pd.read_csv(cur_path+os.sep+each_doc, header=None ,sep='\t')  # 获取日期数据
         print(data_frame)
         data_frame2=data_frame.sort_values(by=[0, 2],ascending=[True,False])

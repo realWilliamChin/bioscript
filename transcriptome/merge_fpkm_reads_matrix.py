@@ -11,12 +11,13 @@ def parse_input():
     parser = argparse.ArgumentParser(description='合并 fpkm 和 reads matrix, 然后加上三个注释的定义')
     parser.add_argument('-f', '--fpkm', type=str, required=True, help='指定 fpkm 文件')
     parser.add_argument('-r', '--reads', type=str, required=True, help='指定 reads 文件')
-    parser.add_argument('-k', '--kegg', type=str, required=True, help='指定 kegg_gene_def file')
-    parser.add_argument('-n', '--nr', type=str, required=True, help='指定 nr_gene_def file')
-    parser.add_argument('-s', '--swiss', type=str, required=True, help='指定 swiss_gene_def file')
+    parser.add_argument('--kns', help='输入 kns_def 文件，添加 KEGG_ID, KEGG_GeneID, NR_Def, Swiss_protein_ID')
+    parser.add_argument('-k', '--kegg', type=str, help='指定 kegg_gene_def file')
+    parser.add_argument('-n', '--nr', type=str, help='指定 nr_gene_def file')
+    parser.add_argument('-s', '--swiss', type=str, help='指定 swiss_gene_def file')
     parser.add_argument('-o', '--output', type=str, help='指定 output 文件名，不指定默认 fpkm_and_reads_matrix_filtered_data_def.txt')
-    args = parser.parse_args()
-    return args.fpkm, args.reads, args.kegg, args.nr, args.swiss, args.output
+
+    return parser.parse_args()
 
 
 def merge_fpkm_reads(fpkm_file, reads_file):
@@ -41,12 +42,15 @@ def merge_fpkm_reads(fpkm_file, reads_file):
     return reads_fpkm_df
 
 
-if __name__ == '__main__':
-    parse_input = parse_input()
-    fpkm, reads, kegg, nr, swiss, output_file = parse_input[0], parse_input[1], parse_input[2], parse_input[3], parse_input[4], parse_input[5]
-    merged_df = merge_fpkm_reads(fpkm, reads)
-    result_df = add_kns_def(merged_df, kegg, nr, swiss)
-    if output_file:
-        result_df.to_csv(output_file, sep='\t', index=False)
+def main():
+    args = parse_input()
+    merged_df = merge_fpkm_reads(args.fpkm, args.reads)
+    result_df = add_kns_def(merged_df, args.kegg, args.nr, args.swiss, args.kns)
+    if args.output:
+        result_df.to_csv(args.output, sep='\t', index=False)
     else:
         result_df.to_csv('fpkm_and_reads_matrix_filtered_data_def.txt', sep='\t', index=False)
+
+
+if __name__ == '__main__':
+    main()

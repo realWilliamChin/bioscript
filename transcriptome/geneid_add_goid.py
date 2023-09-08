@@ -9,11 +9,11 @@ from get_wego_pic import get_wego_pic
 
 def parse_input():
     argparser = argparse.ArgumentParser(description='')
-    argparser.add_argument('-a', '--all', default='all_geneid_GO.txt',
-                           help='指定所有基因的 GO 文件, 默认当前文件夹下的 _all_geneid_Go 文件')
+    argparser.add_argument('-a', '--all',
+                           help='指定所有基因的 GO 文件, 默认当前文件夹下的 _all_geneid_GO 或者 _idNo_def 文件')
     argparser.add_argument('-f', '--file',
                            help='指定基因的 ID 文件(结尾必须是_ID.txt), 默认当前文件夹下的 Up Down_ID.txt 文件')
-    argparser.add_argument('-t', '--generate_type', default='wego_genomics', choices=['wego_genomics', 'tbtools'],
+    argparser.add_argument('-t', '--generate_type', default='tbtools', choices=['wego_genomics', 'tbtools'],
                            help='指定生成类型, wego_genomics(tab 分隔) 或者 tbtools(逗号分隔), 默认 wego_web)')
     argparser.add_argument('-p', '--picture', action='store_true', default=False,
                            help='是否生成图片，默认不生成')
@@ -47,6 +47,10 @@ def geneid_goid(all_geneid_goid_file, updownid_file, generate_type):
 
 def main():
     args = parse_input()
+    if args.all == None:
+        for each_file in os.listdir():
+            if 'all_geneid_GO.txt' in each_file or '_idNo_def.txt' in each_file:
+                args.all = each_file
     if args.file:
         geneid_goid(args.all, args.file, args.generate_type)
     else:

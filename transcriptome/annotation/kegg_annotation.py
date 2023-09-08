@@ -202,8 +202,8 @@ def upload_fasta_to_kegg(fasta_file, org_lst, eamil_address):
     sub_element = html.xpath('//div[@id="main"]/p[1]/text()')[0]
     right_sub = 'Job Request'
     # An eamil has been sent to email_address for confirmation.
-    res_element = html.xpath('//p[@class="res"]/text()')[0]
-    right_res = f'An email has been sent to {eamil_address} for confirmation.'
+    # res_element = html.xpath('//p[@class="res"]/text()')[0]
+    # right_res = f'An email has been sent to {eamil_address} for confirmation.'
     if sub_element == right_sub:
         print('upload success!')
     elif 'Sorry' in sub_element:
@@ -219,12 +219,19 @@ def email_link_click(link):
         'Host': 'www.genome.jp',
         'User-Agent': UserAgent().random,
     }
-    resp = requests.get(link, headers=headers)
-    return resp.text
-
+    max_retry = 0
+    while max_retry <= 5:
+        resp = requests.get(link, headers=headers)
+        if resp.status_code == 200:
+            return resp.text
+        else:
+            max_retry += 1
+            time.sleep(3)
+    sys.exit(1)
+    
 
 def parse_input():
-    argparser = argparse.ArgumentParser(description='kegg annotation')
+    argparser = argparse.ArgumentParser(description='kegg annotation，一次只能注释一个任务，除非添加其他邮箱')
     argparser.add_argument('-f', '--fasta', required=True,
                            help='输入 fasta file')
     argparser.add_argument('-o', '--output', default='kegg_annotation.keg',
@@ -232,11 +239,11 @@ def parse_input():
     argparser.add_argument('-l', '--org_lst', required=True,
                            help='指定物种列表，以 ", " 分隔')
     argparser.add_argument('-u', '--username', default='dagongrenyyds@163.com',
-                           help='输入163邮箱用户名')
+                           help='【默认就行】输入163邮箱用户名')
     argparser.add_argument('-p', '--password', default='IFBWCQOBTEOXODTK',
-                           help='输入163邮箱密码')
+                           help='【默认就行】输入163邮箱密码，密码非常规密码，查看获取方法 https://m.jqjq.net/jiqiao/108147.html')
     argparser.add_argument('-m', '--mail_type', default='163', choices=['163', 'qq'],
-                           help='输入邮箱类型 163 or qq，目前只支持 163 邮箱')
+                           help='【默认就行】输入邮箱类型 163 or qq，目前只支持 163 邮箱')
     return argparser.parse_args()
 
 
@@ -318,9 +325,9 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst, output_filenam
             resp = email_link_click(download_link)
             
             # check file if correct
-            print('checking file header is correct ...')
+            print('checking file ...')
             if resp.split('\n')[0] == '+D\tKO':
-                print('file header is correct!')
+                print('checking file done ...')
             else:
                 resp_file_header = resp.split('\n')[0:5]
                 print(f'get file failed!, file is not correct ID{job_ID},key{job_key}!\n{resp_file_header}')
