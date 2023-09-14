@@ -87,9 +87,9 @@ check_compareinfo_and_samplesdescribed() {
 
 ### fastqc
 exec_fastqc() {
-    mkdir ${pinjiedata}/fastqc
+    mkdir ${work_dir}/fastqc
     log INFO "正在后台生成 fastqc 报告"
-    echo "nohup fastqc ${pinjiedata}/*.fq.* \
+    echo "nohup fastqc ${cleandata}/*.fq.* \
     -o ${work_dir}/fastqc > ${log}/fastqc.log 2>&1 & " | bash
 }
 
