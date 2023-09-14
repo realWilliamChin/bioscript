@@ -38,26 +38,32 @@ log() {
   echo -e "$colored_message"
 }
 
-# 接收两个参数，源 目标，目标目录不存在则创建
+
 mycp() {
-    param_count=$#
-    last_param="${!param_count}"
-    
-    if [ ! -d $last_param ]; then
-        mkdir -p $last_param
+    # 检查参数数量是否小于2
+    if [ "$#" -lt 2 ]; then
+        log WARNING "用法: $0 源文件... 目的地目录"
+        return 1
     fi
 
-    while ((i<=$#)); do
-        echo ${!i}
-    #     if [[ $last_param -eq ${!i} ]]; then
-    #         return 0
-    #     fi
-    #     cp ${!i} $last_param
+    dest="${!#}"
+    if [ ! -d $dest ]; then
+        mkdir -p $dest
+    fi
+
+    # 复制源文件到目的地
+    for ((i = 1; i < $#; i++)); do
+        src="${!i}"
+        if [ -e "$src" ]; then
+            cp -r "$src" "$dest"
+            log INFO "复制 '$src' 到 '$dest'"
+        else
+            log WARNING "源文件 '$src' 不存在"
+        fi
     done
 }
 
-
-# 检查 conda 环境功能
+# 检查 conda 当前环境
 check_conda_env() {
     conda_env=$(conda env list | grep "*" | cut -d " " -f 1)
     log INFO $conda_env
@@ -80,26 +86,26 @@ check_compareinfo_and_samplesdescribed() {
 
 ### fastqc
 exec_fastqc() {
-    mkdir ${pinjiedata}/fastqc
+    mkdir ${pinjiedata}/fastqc > /dev/null 2>&1
     log INFO "正在后台生成 fastqc 报告"
     echo "nohup fastqc ${pinjiedata}/*.fq.* \
     -o ${work_dir}/fastqc > ${log}/fastqc.log 2>&1 & " | bash
 }
 
-### pinjie 步骤
+### Trinity pinjie 步骤
 exec_pinjie() {
     python ${script}/trinity_samples_file.py \
     -i ${pinjiedata} \
     -s ${work_dir}/samples_described.txt \
-    -o ${specie}_samples_trinity.txt \
+    -o samples_trinity.txt \
     -t ${trinity_type} > /dev/null
-    cat ${specie}_samples_trinity.txt
-    log INFO "请确认 samples_trinity.txt，回车继续"
+    cat samples_trinity.txt
+    log WARNING "请确认 samples_trinity.txt，回车继续（如需修改，重新开个终端修改完再回车，勿重新启动程序）"
     read -p ""
 
-    mkdir ${assemble_trinity}
+    mkdir ${assemble_trinity} > /dev/null 2>&1
     # 生成 trinity.fasta 文件
-    log INFO "正在执行pinjie流程"
+    log INFO "正在执行 Trinity 拼接流程"
     Trinity --seqType fq \
         --max_memory ${max_memory}G \
         --no_salmon \
@@ -109,8 +115,9 @@ exec_pinjie() {
         --CPU ${num_threads} \
         --SS_lib_type RF \
         --normalize_reads \
-        --min_contig_length 500 
-    if [[ ! -f ${assemble_trinity }/Trinity.fasta ]]; then
+        --min_contig_length 500 \
+        && log INFO "Trinity 结束"
+    if [[ ! -f ${assemble_trinity}/Trinity.fasta ]]; then
         log ERROR "Trinity 拼接错误，未生成 Trinity.fasta 文件，程序退出"
         exit 1
     fi
@@ -193,6 +200,7 @@ exec_nr() {
     log INFO "执行 Annotation - nr 步骤"
     mkdir -p ${annotation}/temp > /dev/null 2>&1
     diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
+        --threads ${num_threads} \
         --query ${assemble_trinity}/${specie}_unigene.fasta \
         --out ${annotation}/${specie}_unigene_nr.blast \
         --outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle \
@@ -236,26 +244,26 @@ exec_cog() {
 
 ### kegg
 exec_kegg() {
-    log INFO "执行 kegg 注释步骤"
+    log INFO "[KEGG]执行 kegg 注释步骤"
     # 判断 $specie_unigene.fasta 是否大于 50000 条，如果大于 50000 条，则需要分批生成 keg 文件
     if [[ $(grep -c '>' ${assemble_trinity}/${specie}_unigene.fasta) -gt 50000 ]]; then
-        log INFO "unigene.fasta 文件大于 50000 条，切割进行注释"
+        log INFO "[KEGG]unigene.fasta 文件大于 50000 条，切割进行注释"
         split -l 100000 ${assemble_trinity}/${specie}_unigene.fasta ${annotation}/${specie}_unigene.fasta_
         for i in $(ls ${annotation} | grep "${specie}_unigene.fasta_"); do
-            log INFO "正在生成 ${i} 的 keg 文件"
+            log INFO "[KEGG]正在生成 ${i} 的 keg 文件"
             python ${script}/kegg_annotation.py \
             -f ${annotation}/${i} \
             -o ${annotation}/${i}_keg \
-            -l "${kegg_org}"
+            -l "${kegg_org}" >> ${log}/kegg.log
             # 检查文件是否生成
             if [[ -f ${annotation}/${i}_keg ]]; then
                 cat ${annotation}/${i}_keg >> ${annotation}/${specie}_unigene.keg
             elif [[ ! -f ${annotation}/${i}_keg ]]; then
-                log ERROR "${i} 的 keg 文件生成失败"
+                log ERROR "[KEGG]${i} 的 keg 文件生成失败"
             fi
         done
     else
-        log INFO "unigene.fasta 文件小于 50000 条，直接进行注释"
+        log INFO "[KEGG]unigene.fasta 文件小于 50000 条，直接进行注释"
         python ${script}/kegg_annotation.py \
             -f ${assemble_trinity}/${specie}_unigene.fasta \
             -o ${annotation}/${specie}_unigene.keg \
@@ -267,7 +275,7 @@ exec_kegg() {
     if [[ -f ${work_dir}/${specie}_all_gene_id.txt ]]; then
         python ${script}/kegg.py -t ${specie_type} -i ${work_dir}/${specie}_all_gene_id.txt
     else
-        log INFO "未检测到 ${work_dir}/${specie}_all_gene_id.txt 文件，将不会生成 ${specie}_shortname.txt"
+        log WARNING "[KEGG]未检测到 ${work_dir}/${specie}_all_gene_id.txt 文件，将不会生成 ${specie}_shortname.txt"
         python ${script}/kegg.py -t ${specie_type}
     fi
     cd ${work_dir} || exit
@@ -277,7 +285,7 @@ exec_kegg() {
 transdecoder() {
     log INFO "执行 transdecoder 步骤"
     cd ${annotation} || exit
-    mkdir transdecoder
+    mkdir transdecoder >/dev/null 2>&1
     cd transdecoder || exit
     TransDecoder.LongOrfs -t ${assemble_trinity}/${specie}_unigene.fasta
     TransDecoder.Predict -t ${assemble_trinity}/${specie}_unigene.fasta
@@ -323,6 +331,7 @@ exec_annotation_report() {
     mmv "${specie}_unigene_*" "#1"
 
     log INFO "检查 annotation_report.r 画图所需文件是否全部生成"
+    # annotation_report.r 画图所需的全部文件
     file_list=(
         "all_gene_id.txt" "KEGG_clean.txt" "GO_ID.list" "KEGG_ID.list" "COG_ID.list"
         "Swiss_ID.list" "NR_ID.list" "identity.txt" "evalue.txt" "species_count.txt"
@@ -374,7 +383,7 @@ exec_biogrid() {
 exec_annotation() {
     mkdir ${annotation} > /dev/null 2>&1
     cp ${assemble_trinity}/${specie}_unigene.fasta ${annotation}
-    exec_kegg > ${work_dir}/kegg.log &
+    exec_kegg &
     exec_swiss
     exec_nr
     exec_cog
@@ -405,38 +414,40 @@ exec_rsem() {
             --paired-end \
             ${pinjiedata}/${sample1} ${pinjiedata}/${sample2} \
             ${reference}/${specie} ${mapping}/${sample} \
-            1>${mapping}/${sample}_mapping.txt \
-            2>${mapping}/${sample}.log
+            2>${mapping}/${sample}_mapping.txt \
+            1>${mapping}/${sample}.log
         log INFO "$sample 的 rsem 比对流程已完成"
     done
+}
 
+process_fpkm_reads(){
+    log INFO "处理 fpkm 和 reads 矩阵中 ..."
     # 使用 base 的 python3 环境运行 python 脚本
     cd ${mapping} || exit
     # 提出 rawreads
-    python /home/colddata/chen/03_transcript/No_Reference_transcriptome/all_sample_raw_reads.py
+    python ${script}/all_sample_raw_reads.py
     # 提出 fpkm
-    python /home/colddata/chen/03_transcript/No_Reference_transcriptome/all_sample_fpkm.py
+    python ${script}/all_sample_fpkm.py
     # 过滤掉 rawreads 小于 50 的 gene
-    python /home/colddata/chen/03_transcript/No_Reference_transcriptome/count_filtered.py
+    python ${script}/count_filtered.py
     # 提出过滤后的基因的 fpkm 值
-    python /home/colddata/chen/03_transcript/No_Reference_transcriptome/fpkm_filtered.py
-    cd ${work_dir} || exit
+    python ${script}/fpkm_filtered.py
 
+    log INFO "正在对 fpkm 和 reads 矩阵的列重新排序"
     # 列名按照 samples_described.txt 重新排序
     python ${script}/realignment_fpkm_columns.py -r \
         -s ${work_dir}/samples_described.txt \
-        -f ${mapping}/reads_matrix_filtered.txt
+        -f reads_matrix_filtered.txt
     python ${script}/realignment_fpkm_columns.py -r \
         -s ${work_dir}/samples_described.txt \
-        -f ${mapping}/fpkm_matrix_filtered.txt
+        -f fpkm_matrix_filtered.txt
     python ${script}/realignment_fpkm_columns.py -r \
         -s ${work_dir}/samples_described.txt \
-        -f ${mapping}/gene_count_matrix.txt
+        -f gene_count_matrix.txt
     python ${script}/realignment_fpkm_columns.py -r \
         -s ${work_dir}/samples_described.txt \
-        -f ${mapping}/gene_fpkm_matrix.txt
+        -f gene_fpkm_matrix.txt
     # 合并 fpkm 和 reads 矩阵
-    cd ${mapping} || exit
     log INFO "正在合并 fpkm 和 reads 矩阵"
     python ${script}/merge_fpkm_reads_matrix.py \
         -f fpkm_matrix_filtered.txt \
@@ -454,7 +465,7 @@ exec_rsem() {
 ### multi deseq
 ### 需要创建一个 compare.txt 和 samples_described.txt
 exec_multi_deseq() {
-    mkdir ${multideseq}
+    mkdir ${multideseq} >/dev/null 2>&1
     cd ${multideseq} || return 1
     cp ${mapping}/reads_matrix_filtered.txt ${multideseq}/
     cp ${mapping}/fpkm_matrix_filtered.txt ${multideseq}/
@@ -462,24 +473,21 @@ exec_multi_deseq() {
     cp ${work_dir}/compare_info.txt ${multideseq}/
 
     log INFO "正在执行 multi_deseq 流程，Rlog number 为 ${rlog_number}"
-    Rscript /home/data/command/Reference_transcriptome/multiple_samples_DESeq2_V7.r ${rlog_number}
+    Rscript ${script}/multiple_samples_DESeq2.r ${rlog_number}
 
     cd ${multideseq} || return 1
     python ${script}/de_results_add_def.py \
-        --kns ${annotation}/${specie}_kns_gene_def.txt \
+        --kns ${annotation}/${specie}_kns_gene_def.txt
     cat DEG_summary.txt
     cd ${work_dir} || exit
 }
 
 
-
-
 ### 整理交付目录的文件，比较麻烦
-jiaofu() {
+jiaofu_prepare() {
 
     mkdir -p ${jiaofu}/00_Background_materials \
         ${jiaofu}/03_PPI_analysis_KEGG_pathways \
-
 
     log INFO "copy files to 00_Funrich_software_def_files"
     mycp ${annotation}/*GO*ID.txt ${jiaofu}/00_Funrich_software_def_files/
@@ -499,6 +507,7 @@ jiaofu() {
     mycp ${mapping}/*_data_def.txt ${jiaofu}/01_Original_expression_data
 
     log INFO "copy files to 02_DEG_analysis"
+    mycp ${multideseq}/DEG_summary.txt ${jiaofu}/02_DEG_analysis/Analysis/
     mycp ${multideseq}/*Down_ID.txt ${jiaofu}/02_DEG_analysis/Analysis/
     mycp ${multideseq}/*Up_ID.txt ${jiaofu}/02_DEG_analysis/Analysis/
     mycp ${multideseq}/*_DEG_data.txt ${jiaofu}/02_DEG_analysis/Analysis/Expression_data
@@ -539,7 +548,6 @@ run_program() {
         exec_annotation
         exec_rsem
         exec_multi_deseq
-        exec_biogrid
         ;;
     1)
         exec_fastqc
@@ -560,7 +568,7 @@ run_program() {
         exec_cog
         ;;
     3.4)
-        exec_kegg > ${work_dir}/kegg.log 2>&1 &
+        exec_kegg &
         ;;
     3.5)
         transdecoder
@@ -569,17 +577,20 @@ run_program() {
         exec_biogrid
         ;;
     3.7)
-        check_compareinfo_and_samplesdescribed
         exec_annotation_report
         ;;
     4)
-        rsem
+        exec_rsem
         ;;
     5)
+        process_fpkm_reads
+        ;;
+    6)
+        check_compareinfo_and_samplesdescribed
         exec_multi_deseq
         ;;
     7)
-        jiaofu
+        jiaofu_prepare
         ;;
     *)
         echo "无效的选项：$1"
@@ -598,17 +609,19 @@ assemble_trinity=${work_dir}/03_Assemble_trinity
 annotation=${work_dir}/04_Annotation
 reference=${work_dir}/05_Reference
 mapping=${work_dir}/06_Mapping_mapping
-multideseq=${work_dir}/07_Multi_deseq
+multideseq=${work_dir}/07_Multi_DESeq
 biogrid=${work_dir}/08_Biogrid
-jiaofu=${work_dir}/jiaofu_perpare
+jiaofu=${work_dir}/jiaofu_prepare
 
 # 激活配置文件
 source $1
+
 log INFO "
 ####################################
+程序开始执行：初始变量如下
 run:${run} 
 specie:${specie}
-threads:${threads}
+num_threads:${num_threads}
 max_memory:${max_memory}
 trinity_type:${trinity_type}
 specie_type:${specie_type}
@@ -619,10 +632,17 @@ rlog_number:${rlog_number}
 source /home/train/miniconda3/bin/activate base
 mkdir ${log} > /dev/null 2>&1
 
-# 如果已经有了组间比较文件，则检查组间比较文件和样本文件是否正确
-if [[ -f ${work_dir}/compare_info.txt ]]; then
+# 如果已经有了组间比较文件，则首先检查组间比较文件和样本文件是否正确，以便后续不出错
+if [[ -f ${work_dir}/compare_info.txt && $run -eq 0 ]]; then
     check_compareinfo_and_samplesdescribed
 fi
 
 # 执行流程
-run_program $run
+# 判断是否是列表，如果是列表，则按照列表内循环运行，列表内不能含有 0
+if [ ${#run[@]} -gt 1 ]; then
+    run_program $run
+else
+    for item in "${run[@]}"; do
+        run_program $item
+    done
+fi
