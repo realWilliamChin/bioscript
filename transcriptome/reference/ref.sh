@@ -112,6 +112,8 @@ hisat_compare() {
         -2 ${cleandata}/${filename_2_list[i]} \
         2> ${mapping}/${samplename_list[i]}_mapping.txt | \
         samtools sort --threads ${num_threads} -O BAM -o ${bam}/${samplename_list[i]}.bam
+
+        tail -n 1 ${mapping}/${samplename_list[i]}_mapping.txt
     done
     cd ${mapping} || exit
     python ${script}/hisat2_mapping_summary.py
@@ -320,15 +322,16 @@ source /home/train/miniconda3/bin/activate base
 mkdir ${log} > /dev/null 2>&1
 
 # 如果已经有了组间比较文件，则首先检查组间比较文件和样本文件是否正确，以便后续不出错
-if [[ -f ${work_dir}/compare_info.txt && $run -eq 0 ]]; then
+if [[ -f ${work_dir}/compare_info.txt && "$run" == "0" ]]; then
     check_compareinfo_and_samplesdescribed
 fi
 
 # 执行流程
-if [ ${#run[@]}  -gt 1 ]; then
-    run_program $run
-else
+# 判断是否是列表，如果是列表，则按照列表内循环运行，列表内不能含有 0
+if [ "${#run[@]}" -gt 1 ]; then
     for item in "${run[@]}"; do
         run_program $item
     done
+else
+    run_program $run
 fi
