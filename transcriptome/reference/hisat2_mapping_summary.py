@@ -6,7 +6,7 @@ import os
 
 out_doc = 'mapping_summary.txt'
 f1=open(out_doc,'w')
-f1.write('Sample'+'\t'+'Total reads'+'\t'+'Mapped reads'+'\t''Unmapped reads'+'\t'+'Unique mapped reads'+'\t'+'Multiple mapped reads'+'\n')
+f1.write('Sample'+'\t'+'Total reads'+'\t'+'Mapped reads'+'\t''Unmapped reads'+'\t'+'Unique mapped reads'+'\t'+'Multiple mapped reads'+'\t'+'overall alignment rate'+'\n')
 
 for dir_name in os.listdir():
     if '_mapping.txt' in dir_name:
@@ -35,7 +35,8 @@ for dir_name in os.listdir():
             unmapped_reads=total_reads-mapped_reads
             unique_mapped=int(data_list[3])+int(data_list[7])
             multi_mapped_reads=mapped_reads-unique_mapped
-            f1.write(str(total_reads)+'\t'+str(mapped_reads)+'\t'+str(unmapped_reads)+'\t'+str(unique_mapped)+'\t'+str(multi_mapped_reads)+'\n')
+            overall_rate = data_list[14].split(' ')[0]
+            f1.write(str(total_reads)+'\t'+str(mapped_reads)+'\t'+str(unmapped_reads)+'\t'+str(unique_mapped)+'\t'+str(multi_mapped_reads)+'\t'+str(overall_rate)+'\n')
 f1.close()
 
 
