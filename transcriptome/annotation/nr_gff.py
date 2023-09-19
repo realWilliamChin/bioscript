@@ -3,6 +3,7 @@
 # Created Time  : 2023/3/29 15:15
 # Author        : WilliamGoGo
 import re
+import os
 import pandas as pd
 import argparse
 import sys
@@ -10,8 +11,8 @@ import sys
 
 def parse_input():
     argparser = argparse.ArgumentParser(description='给 nr_gene_def 下面添加一些东西')
-    argparser.add_argument('-n', '--nr', required=True, help='nr_gene_def file')
-    argparser.add_argument('-g', '--gff', required=True, help='gff file')
+    argparser.add_argument('-n', '--nr', required=True, help='nr_gene_def file, 默认当前目录下面 nr_gene_def.txt')
+    argparser.add_argument('-g', '--gff', required=True, help='gff file，默认当前目录下的 .gff3 或 .gff 或 .gtf 文件')
     argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'auto_detect'], default='auto_detect',
                            help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
     # argparser.add_argument('-b', '--gffbasicinfo', required=True, help='gff basic info file')
@@ -36,6 +37,10 @@ def detect_gff_type(gff_file):
 
 def main():
     args = parse_input()
+    if args.nr == None:
+        args.nr = [x for x in os.listdir() if x.endswith('_nr_gene_def.txt')][0]
+    if args.gff == None:
+        args.gff = [x for x in os.listdir() if x.endswith('.gff') or x.endswith('.gff3') or x.endswith('.gtf')]
     if args.gfftype == 'auto_detect':
         args.gfftype = detect_gff_type(args.gff)
 
