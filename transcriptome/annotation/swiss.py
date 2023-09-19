@@ -62,7 +62,7 @@ def main():
     swiss_file = args.blast if args.blast else [x for x in os.listdir() if '_swiss.blast' in x][0]
     key_name = args.prefix + '_swiss' if args.prefix else swiss_file.replace('.blast', '')
     # 读取 swiss 参考文件和 blast 文件，并初始化
-    swiss_df = pd.read_csv(swiss_file, sep='\t', usecols=[0, 1, 15], names=['GeneID', 'GOID', 'Swiss_Def'])
+    swiss_df = pd.read_csv(swiss_file, sep='\t', usecols=[0, 1, 15], names=['GeneID', 'GOID', 'Swiss_Def'], low_memory=False)
     swiss_df = swiss_df.drop_duplicates(subset='GeneID', keep='first', inplace=False)
     siwss_df_expand = swiss_df['Swiss_Def'].str.split(';', expand=True)
     swiss_df['Swiss_Def'] = siwss_df_expand.iloc[:, 0]
