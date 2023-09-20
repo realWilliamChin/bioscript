@@ -58,7 +58,7 @@ def process_keg():
     
     # 生成 KEGG_gene_def 文件
     kegg_gene_def_titles = ['GeneID', 'Pathway', 'Level2', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number']
-    kegg_clean_df = pd.read_csv(kegg_clean_file, sep='\t', header=None, names=kegg_gene_def_titles)
+    kegg_clean_df = pd.read_csv(kegg_clean_file, sep='\t', header=None, names=kegg_gene_def_titles, dtype={"GeneID": str})
     gene_def_df = kegg_clean_df.drop(columns=['Pathway', 'Level2', 'Level1'])
     gene_def_df.drop_duplicates(subset=['GeneID', 'KEGG_ID'], keep='first', inplace=True)
     print('生成 KEGG_gene_def 文件，去重前的数量:{}，去重后的数量:{}'.format(kegg_clean_df.shape[0]-1, gene_def_df.shape[0]-1))
@@ -73,7 +73,7 @@ def process_keg():
     
     # 如果指定了 -i allgeneid 文件，则生成 all_gene_id + KEGG gene_short_name 新文件
     if all_id_file:
-        all_gene_df = pd.read_csv(all_id_file, sep='\t', names=['GeneID'])
+        all_gene_df = pd.read_csv(all_id_file, sep='\t', names=['GeneID'], dtype={"GeneID": str})
         all_gene_df = pd.merge(left=all_gene_df, right=gene_def_df[['GeneID', 'Gene_shortname']], on='GeneID', how='left')
         all_gene_df.fillna(value='', inplace=True)
         all_gene_df.to_csv(key_name + '_shortname.txt', sep='\t', index=False)
