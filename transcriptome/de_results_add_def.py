@@ -22,8 +22,8 @@ def parse_input():
 
 
 def process_deresults(de_results_file, kegg_file, nr_file, swiss_file, kns_file):
-    de_df = pd.read_csv(de_results_file, sep='\t')
-    de_matrix_df = pd.read_csv(de_results_file + '_readCounts.matrix', sep='\t')
+    de_df = pd.read_csv(de_results_file, sep='\t', dtype={"GeneID": str})
+    de_matrix_df = pd.read_csv(de_results_file + '_readCounts.matrix', sep='\t', dtype={"GeneID": str})
     de_df = pd.merge(left=de_df, right=de_matrix_df, on='GeneID', how='left')
     # 排序 down，up，NOsig。down 的 FC 值从小到大，up 的 FC 值从大到小
     # 先分三份，再合并
@@ -44,6 +44,7 @@ def main():
 
     for de_results_file in os.listdir():
         if de_results_file.endswith('DE_results'):
+            print(f'processing---{de_results_file}')
             process_deresults(de_results_file, args.kegg, args.nr, args.swiss, args.kns)
 
 
