@@ -13,10 +13,13 @@ def parse_input():
     argparser.add_argument('-n', '--nr', help='NR_gene_def 文件')
     argparser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
     argparser.add_argument('-i', '--input', help='输入文件')
-    argparser.add_argument('--input_col', default="GeneID", type=str, help='输入作为 GeneID 的列名，可以是其他列')
+    argparser.add_argument('--input_col', default="GeneID",
+                           help='输入作为 GeneID 的列，可以是其他列，如果没有列名，则输入第几列，从 0 开始数')
     argparser.add_argument('--input_sep', help='输入文件分隔符，默认制表符')
     argparser.add_argument('--input_format', default='txt', choices=['txt', 'csv', 'xlsx', 'other'],
                            help='输入文件格式，默认 csv(, 分隔符), xlsx, txt(tab 分隔符), other 指定 --input_sep 分隔符')
+    argparser.add_argument('--input_header', default='y', choices=['y', 'n'],
+                           help="输入文件是否有列名，默认包含列名，如果没有列名，输入参数 n")
     argparser.add_argument('-o', '--output', default='output.txt', help='输出文件')
     return argparser.parse_args()
 
@@ -66,12 +69,20 @@ def main():
         df = pd.read_excel(args.input, engine='openpyxl')
     elif args.input_format == 'txt':
         df = pd.read_csv(args.input, sep='\t')
-        
-    df = pd.read_csv(args.input, sep='\t', dtype={'GeneID': str})
+    
+    if args.input_header == 'y':
+        df = pd.read_csv(args.input, sep='\t')
+    elif args.input_header == 'n':
+        df = pd.read_csv(args.input, sep='\t', header=None)
+        args.input_col = int(args.input_col)
     # source_key_col_name = str(df.columns[args.input_col])
     df.rename(columns={args.input_col: 'GeneID'}, inplace=True)
+    df['GeneID'] = df["GeneID"].astype(str)
     result_df = add_kns_def(df, args.kegg, args.nr, args.swiss, args.kns)
-    result_df.rename(columns={'GeneID': args.input_col}, inplace=True)
+    
+    if args.input_header == 'y':
+        result_df.rename(columns={'GeneID': args.input_col}, inplace=True)
+    
     result_df.to_csv(args.output, sep='\t', index=False)
 
 
