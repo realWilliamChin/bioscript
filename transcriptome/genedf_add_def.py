@@ -30,34 +30,51 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
     """
     result_df = file_df
     source_shape = file_df.shape[0]
+
     if nr_file:
         nr_df = pd.read_csv(nr_file, sep='\t', skiprows=1, usecols=[0, 1, 2], names=['GeneID', 'NR_ID', 'NR_Def1'], dtype={'GeneID': str})
-        # 没有 NCBI ID 直接加会丢失先 fillna，再去掉 NA::
+        # 没有 NCBI ID 直接加会丢失。先 fillna，再去掉 NA::
         nr_df.fillna(value='NA', inplace=True)
         nr_df['NR_ID_Des'] = nr_df['NR_ID'] + '::' + nr_df['NR_Def1']
         nr_df['NR_ID_Des'] = nr_df['NR_ID_Des'].str.replace('NA::', '', regex=False)
+        # ID 列
+        nr_id_df = nr_df[nr_df['NR_ID_Des'].str.contains('::')].copy()
+        nr_id_df.drop(columns=['NR_Def1', 'NR_ID_Des'], inplace=True)
+        result_df = pd.merge(left=result_df, right=nr_id_df, on='GeneID', how='left')
+        # ID_Des 列
         nr_df.drop(columns=['NR_ID', 'NR_Def1'], inplace=True)
         result_df = pd.merge(left=result_df, right=nr_df, on='GeneID', how='left')
+
     if swiss_file:
-        swiss_df = pd.read_csv(swiss_file, sep='\t', skiprows=1, usecols=[0, 1, 2], names=['GeneID', 'Swiss_Protein_ID', 'Swiss_Def'], dtype={'GeneID': str})
+        swiss_df = pd.read_csv(swiss_file, sep='\t', skiprows=1, usecols=[0, 1, 2], names=['GeneID', 'Swiss_ID', 'Swiss_Def'], dtype={'GeneID': str})
         swiss_df.fillna(value='NA', inplace=True)
-        swiss_df['Swiss_ID_Des'] = swiss_df['Swiss_Protein_ID'] + '::' + swiss_df['Swiss_Def']
+        swiss_df['Swiss_ID_Des'] = swiss_df['Swiss_ID'] + '::' + swiss_df['Swiss_Def']
         swiss_df['Swiss_ID_Des'] = swiss_df['Swiss_ID_Des'].str.replace('NA::', '', regex=False)
-        swiss_df.drop(columns=['Swiss_Protein_ID', 'Swiss_Def'], inplace=True)
+        # ID 列
+        swiss_id_df = swiss_df[swiss_df['Swiss_ID_Des'].str.contains('::')].copy()
+        swiss_id_df.drop(columns=['Swiss_Def', 'Swiss_ID_Des'], inplace=True)
+        result_df = pd.merge(left=result_df, right=swiss_id_df, on='GeneID', how='left')
+        # ID_Des 列
+        swiss_df.drop(columns=['Swiss_ID', 'Swiss_Def'], inplace=True)
         result_df = pd.merge(left=result_df, right=swiss_df, on='GeneID', how='left')
+        
     if kegg_file:
         kegg_df = pd.read_csv(kegg_file, sep='\t', skiprows=1, names=['GeneID', 'KEGG_ID', 'KEGG_Shortname', 'EC_Number', 'KEGG_Description'], dtype={'GeneID': str})
         result_df = pd.merge(left=result_df, right=kegg_df, on='GeneID', how='left')
+
     if kns_file:
         kns_df = pd.read_csv(kns_file, sep='\t', dtype={'GeneID': 'str'})
         result_df = pd.merge(left=file_df, right=kns_df, on='GeneID', how='left')
         result_df['GeneID'].to_csv('test.list', sep='\t', index=False)
+
     result_df.fillna(value='NA', inplace=True)
     result_shape = result_df.shape[0]
+    
     if source_shape != result_shape:
         print(f"原表行数{source_shape}, 结果表行数{result_shape}, 可能输入文件基因 ID 有重复，或注释文件有重复")
         result_df.drop_duplicates(subset='GeneID', inplace=True)
-        print('已自动去重，有问题请自己检查')
+        print('已自动去重处理')
+
     return result_df
 
 
@@ -84,6 +101,7 @@ def main():
         result_df.rename(columns={'GeneID': args.input_col}, inplace=True)
     
     result_df.to_csv(args.output, sep='\t', index=False)
+    print('\nDone!\n')
 
 
 if __name__ == '__main__':
