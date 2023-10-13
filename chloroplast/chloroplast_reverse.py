@@ -17,16 +17,15 @@ def parse_input():
 def main():
     args = parse_input()
 
-    f2=open(args.output,'w')
     with open(args.input,'r') as f, open(args.output, 'w') as out_f:
 
         for each_line in f:
-            if '>' not in each_line:
-                line=each_line
+            if '>' not in each_line:  # 读取序列赋给 line
+                line = each_line
                 break
-            else:
+            else:  # 输出 title
                 out_f.write(each_line)
-        my_seq = reverse_complement(line)
+        my_seq = reverse_complement(line)  # 反转 line 然后 write
         out_f.write(my_seq)
     print('Done!')
 
