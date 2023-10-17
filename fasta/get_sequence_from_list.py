@@ -13,24 +13,29 @@ def parse_input():
     return args
     
     
-def main():
-    args = parse_input()
+def get_seq_from_idlist(idlist, fasta, save_type, output):
     # 读取gene ID列表文件
-    with open(args.idlist, 'r') as gene_file:
+    with open(idlist, 'r') as gene_file:
         gene_ids = gene_file.read().splitlines()
 
     # 读取原始fasta文件并提取序列
     sequences = []
-    for record in SeqIO.parse(args.fasta, 'fasta'):
-        if args.type == 'on':
+    for record in SeqIO.parse(fasta, 'fasta'):
+        if save_type == 'on':
             if record.id in gene_ids:
                 sequences.append(record)
-        elif args.type == 'off':
+        elif save_type == 'off':
             if record.id not in gene_ids:
                 sequences.append(record)
 
     # 生成新的fasta文件
-    SeqIO.write(sequences, args.output, 'fasta')
+    SeqIO.write(sequences, output, 'fasta')
+
+
+def main():
+    args = parse_input()
+    get_seq_from_idlist(args.idlist, args.fasta, args.type, args.output)
+    
 
 if __name__ == '__main__':
     main()
