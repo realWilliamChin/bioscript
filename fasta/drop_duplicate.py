@@ -17,10 +17,12 @@ def filter_duplicates(fasta_file):
 
     # 读取 FASTA 文件，并将序列保存到字典中
     for record in SeqIO.parse(fasta_file, "fasta"):
-        sequence_id = record.id
+        # sequence_id = record.id
+        sequence_id = record.id.split('.')[0]
         sequence = str(record.seq)
         length = len(sequence)
-
+        
+        
         # 如果序列已存在且长度更长，则更新字典中的值
         if sequence_id in sequences and length > len(sequences[sequence_id][0]):
             sequences[sequence_id] = (sequence, length)
