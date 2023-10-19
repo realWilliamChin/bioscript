@@ -1,4 +1,12 @@
-#!/home/train/miniconda3/bin/python
+'''
+Author: WilliamGoGo realwilliamchin@outlook.com
+Date: 2023-10-19 14:02:47
+LastEditors: WilliamGoGo realwilliamchin@outlook.com
+LastEditTime: 2023-10-19 14:02:47
+FilePath: /script/fasta/drop_duplicate.py
+Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+'''
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Created Time  : 2023/06/14 17:37
 # Author        : William GoGo
@@ -18,7 +26,7 @@ def filter_duplicates(fasta_file):
     # 读取 FASTA 文件，并将序列保存到字典中
     for record in SeqIO.parse(fasta_file, "fasta"):
         # sequence_id = record.id
-        sequence_id = record.id.split('.')[0]
+        sequence_id = record.id.rsplit('.', 1)[0]
         sequence = str(record.seq)
         length = len(sequence)
         
