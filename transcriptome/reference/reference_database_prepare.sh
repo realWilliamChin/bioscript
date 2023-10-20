@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e -o pipefail
+# set -e -o pipefail
 
 GREEN="\e[32m"  # 绿色
 YELLOW="\e[33m" # 黄色
@@ -65,7 +65,9 @@ mycp() {
 gen_allgeneid() {
     log INFO "正在生成 ${specie}_all_gene_id.txt"
     cd ${reference_genome_fs} || exit
-    python ${script}/process_gff.py -p ${specie}
+    python ${script}/process_gff.py \
+        -p ${specie} \
+        -g ${gene_description_file}
     if [[ -f ${reference_genome_fs}/${specie}_all_gene_id.txt ]]; then
         log INFO "${specie}_all_gene_id.txt 已生成"
         return 0
@@ -77,22 +79,30 @@ gen_allgeneid() {
 
 exec_hisat2_build() {
     log INFO "正在进行 hisat2-build 建库"
-    cd ${hisat_database} || exit
-    genomic_fna=$(ls ${reference_genome_fs} | grep "genomic.fna")
-    hisat2-build ${reference_genome_fs}/${genomic_fna} ${specie} -p ${num_threads}
+
+    if [[ ! -d ${hisat_database} ]]; then
+        mkdir ${hisat_database}
+    fi
+    
+    hisat2-build ${all_gene_sequence_file} ${hisat_database}/${specie} -p ${num_threads}
+
     if [[ $? -eq 0 ]]; then
         log INFO "建库完成"
     fi
+
 }
 
 ### annotation
 ## Swiss
 exec_swiss() {
-    mkdir -p ${prep_fs}/swiss >/dev/null 2>&1
     log INFO "执行 Annotation - Swiss 步骤"
+    if [[ ! -d ${prep_fs}/swiss ]]; then
+        mkdir -p ${prep_fs}/swiss
+    fi
+    
     /opt/biosoft/ncbi-blast-2.9.0+/bin/blastx \
         -db /home/data/ref_data/Linux_centos_databases/2019_Unprot_databases/swissprot \
-        -query ${reference_genome_fs}/${specie}_cds.fasta \
+        -query ${cds_gene_sequence_file} \
         -out ${prep_fs}/swiss/${specie}_swiss.blast \
         -max_target_seqs 20 \
         -evalue 1e-5 \
@@ -114,7 +124,7 @@ exec_nr() {
     mkdir -p ${prep_fs}/nr/temp >/dev/null 2>&1
     diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
         --threads ${num_threads} \
-        --query ${reference_genome_fs}/${specie}_cds.fasta \
+        --query ${cds_gene_sequence_file} \
         --out ${prep_fs}/nr/${specie}_nr.blast \
         --outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle \
         --sensitive \
@@ -127,8 +137,9 @@ exec_nr() {
     # 如果 nr 执行成功，则对 nr 结果进行处理
     if [[ -f ${prep_fs}/nr/${specie}_nr.blast || $? -eq 0 ]]; then
         cd ${prep_fs}/nr || exit
-        gff_file=$(ls ${reference_genome_fs} | grep ".g.f")
-        python ${script}/nr.py && python ${script}/nr_gff.py -g ${reference_genome_fs}/${gff_file}
+        python ${script}/nr.py && \
+            python ${script}/nr_gff.py \
+            -g  ${gene_description_file}
         if [[ $? -eq 0 ]]; then
             cd ${work_dir} || exit
             log INFO "nr 注释完成"
@@ -145,57 +156,67 @@ exec_nr() {
 
 ### kegg
 exec_kegg() {
-    mkdir -p ${prep_fs}/kegg >/dev/null 2>&1
-    log INFO "[KEGG]执行 Annotation - kegg 步骤"
-    # 判断 $specie_cds.fasta 是否大于 50000 条，如果大于 50000 条，则需要分批生成 keg 文件
-    if [[ $(grep -c '>' ${reference_genome_fs}/${specie}_cds.fasta) -gt 50000 ]]; then
-        log INFO "[KEGG]unigene.fasta 文件大于 50000 条，切割进行注释"
-        split -l 100000 ${reference_genome_fs}/${specie}_cds.fasta ${prep_fs}/kegg/${specie}_unigene.fasta_
-        for i in $(ls ${prep_fs}/kegg/ | grep "${specie}_cds.fasta_"); do
+    log INFO "[KEGG]执行 kegg 注释步骤"
+    annotation=${prep_fs}/kegg
+    if [[ ! -d ${prep_fs}/kegg ]]; then
+        mkdir -p ${prep_fs}/kegg
+    fi
+    # 判断 $cds_gene_sequence_file 是否大于 50000 条，如果大于 50000 条，则需要分批生成 keg 文件
+    if [[ $(grep -c '>' ${cds_gene_sequence_file}) -gt 50000 ]]; then
+        log INFO "[KEGG]cds.fasta 文件大于 50000 条，切割进行注释"
+        split -l 100000 ${cds_gene_sequence_file} ${annotation}/${specie}.fasta_
+        for i in $(ls ${annotation} | grep "${specie}.fasta_"); do
             log INFO "[KEGG]正在生成 ${i} 的 keg 文件"
-            python ${script}/kegg_prep_fs.py \
-                -f ${prep_fs}/kegg/${i} \
-                -o ${prep_fs}/kegg/${i}_keg \
-                -l "${kegg_org}" >>${prep_fs}/kegg/kegg.log
+            python ${script}/kegg_annotation.py \
+                -f ${annotation}/${i} \
+                -o ${annotation}/${i}_keg \
+                -l "${kegg_org}"
             # 检查文件是否生成
-            if [[ -f ${prep_fs}/kegg/${i}_keg ]]; then
-                cat ${prep_fs}/kegg/${i}_keg >>${prep_fs}/kegg/${specie}.keg
-            elif [[ ! -f ${prep_fs}/kegg/${i}_keg ]]; then
+            if [[ -f ${annotation}/${i}_keg ]]; then
+                cat ${annotation}/${i}_keg >>${annotation}/${specie}.keg
+            elif [[ ! -f ${annotation}/${i}_keg ]]; then
                 log ERROR "[KEGG]${i} 的 keg 文件生成失败"
             fi
         done
     else
-        log INFO "[KEGG]unigene.fasta 文件小于 50000 条，直接进行注释"
+        log INFO "[KEGG]cds.fasta 文件小于 50000 条，直接进行注释"
         python ${script}/kegg_annotation.py \
-            -f ${reference_genome_fs}/${specie}_cds.fasta \
-            -o ${prep_fs}/kegg/${specie}.keg \
+            -f ${cds_gene_sequence_file} \
+            -o ${annotation}/${specie}.keg \
             -l "${kegg_org}"
     fi
 
-    # 拿着 $specie_cds.fasta 去 kegg 网站生成 keg 文件，再做下面的东西 -t plant/animal 动物或植物
-    cd ${prep_fs}/kegg || exit
+    # 拿着 $cds_gene_sequence_file 去 kegg 网站生成 keg 文件，再做下面的东西 -t plant/animal 动物或植物
+    cd ${annotation} || exit
     if [[ -f ${reference_genome_fs}/${specie}_all_gene_id.txt ]]; then
-        python ${script}/kegg.py -t ${specie_type} -i ${reference_genome_fs}/${specie}_all_gene_id.txt
+        python ${script}/kegg.py \
+            -t ${specie_type} \
+            -i ${reference_genome_fs}/${specie}_all_gene_id.txt
     else
         log WARNING "[KEGG]未检测到 ${reference_genome_fs}/${specie}_all_gene_id.txt 文件，将不会生成 ${specie}_shortname.txt"
-        python ${script}/kegg.py -t ${specie_type}
+        python ${script}/kegg.py \
+            -t ${specie_type}
     fi
     cd ${work_dir} || exit
 }
 
 merge_kns_def() {
+    if [[ ! -f ${prep_fs}/${specie}_all_gene_id.txt ]]; then
+        log ERROR "未找到 ${prep_fs}/${specie}_all_gene_id.txt 文件，无法进行合并"
+        return 1
+    fi
     kegg_gene_def=$(realpath -s  ${prep_fs}/kegg/*KEGG_gene_def.txt)
     nr_gene_def=$(realpath -s ${prep_fs}/nr/*nr_gene_def.txt)
     swiss_gene_def=$(realpath -s ${prep_fs}/swiss/*swiss_gene_def.txt)
     log INFO "正在合并 kegg swiss nr 基因注释，使用${kegg_gene_def}, ${nr_gene_def}, ${swiss_gene_def}"
-    python ${script}/kns_def_merge.py \
+    python ${script}/genedf_add_df.py \
         -k ${kegg_gene_def} \
         -n ${nr_gene_def} \
         -s ${swiss_gene_def} \
         -i ${reference_genome_fs}/${specie}_all_gene_id.txt \
         -o ${prep_fs}/${specie}_kns_gene_def.txt
     if [[ ! -f ${prep_fs}/${specie}_kns_gene_def.txt || $? -ne 0 ]]; then
-        log INFO "${prep_fs}/${specie}_kns_gene_def.txt 合并失败"
+        log ERROR "${prep_fs}/${specie}_kns_gene_def.txt 合并失败"
         return 1
     else
         log INFO "合并成功，${prep_fs}/${specie}_kegg_gene_def.txt"
@@ -209,7 +230,7 @@ exec_biogrid() {
     mkdir ${biogrid_fs} > /dev/null 2>&1
     cd ${biogrid_fs} || exit
     python ${script}/biogrid.py \
-        -f ${reference_genome_fs}/${specie}_cds.fasta \
+        -f ${cds_gene_sequence_file} \
         -d ${specie_type} \
         -p ${specie} \
         -c ${num_threads}
@@ -241,31 +262,39 @@ exec_gmt() {
     fi
 }
 
-run_program() {
-    case "$1" in
-    0)
-        gen_allgeneid
-        #    exec_kegg &
-        exec_swiss
-        exec_nr
-        exec_biogrid
-        exec_hisat2_build
-        ;;
-    1)
-        exec_nr
-        ;;
-    2)
-        exec_biogrid
-        exec_gmt
-        ;;
-    3)
-        merge_kns_def
-        ;;
-    *)
-        log ERROR "无效的选项：$1"
-        exit 0
-        ;;
-    esac
+
+cp_files() {
+    mkdir ${gene_annotation_fs} ${funrich_def_fs} > /dev/null 2>&1
+    mycp ${prep_fs}/nr/*def.txt ${gene_annotation_fs}
+    mycp ${prep_fs}/swiss/*_gene_def.txt ${gene_annotation_fs}
+    mycp ${prep_fs}/kegg/*_gene_def.txt ${gene_annotation_fs}
+
+    mycp ${prep_fs}/kegg/*KEGG.txt ${funrich_def_fs}
+    mycp ${prep_fs}/swiss/*GO* ${funrich_def_fs}
+    mycp ${reference_genome_fs}/*_all_gene_id.txt ${funrich_def_fs}
+    mycp ${prep_fs}/kegg/*shortname.txt ${funrich_def_fs}
+    mycp ${biogrid_fs}/Biogrid_PPI* ${funrich_def_fs}
+}
+
+exec_all() {
+    gen_allgeneid
+    exec_hisat2_build
+    exec_kegg &
+    exec_swiss
+    exec_nr
+    merge_kns_def
+    exec_biogrid
+    exec_gmt
+    cp_files
+}
+
+exec_annotation() {
+    exec_kegg &
+    exec_swiss
+    exec_nr
+    merge_kns_def
+    exec_biogrid
+    exec_gmt
 }
 
 # 目录变量
@@ -278,6 +307,7 @@ gsea_gmt_fs=${work_dir}/03_GSEA_GMT_files
 biogrid_fs=${work_dir}/Biogrid
 prep_fs=${work_dir}/Prep_files
 reference_genome_fs=${work_dir}/Reference_genome_data
+log=${work_dir}/log
 
 # 激活配置
 source $1
@@ -289,16 +319,27 @@ specie:${specie}
 threads:${num_threads}
 specie_type:${specie_type}
 kegg_org:${kegg_org}
+gene_description_file:${gene_description}
+all_gene_sequence_file:${all_gene_sequnce}
+cds_gene_sequence_file:${cds_gene_sequnce}
 ####################################"
 # 切换到 base 环境下，python 程序都是在 base 环境下编写的
 source /home/train/miniconda3/bin/activate base
+gene_description_file=${reference_genome_fs}/${gene_description}
+all_gene_sequence_file=${reference_genome_fs}/${all_gene_sequnce}
+cds_gene_sequence_file=${reference_genome_fs}/${cds_gene_sequnce}
+
+# 创建一个 log 目录
+if [[ ! -d ${log} ]]; then
+    mkdir ${log}
+fi
 
 # 执行流程
 # 判断是否是列表，如果是列表，则按照列表内循环运行，列表内不能含有 0
 if [ "${#run[@]}" -gt 1 ]; then
     for item in "${run[@]}"; do
-        run_program $item
+        $item
     done
 else
-    run_program $run
+    $run
 fi
