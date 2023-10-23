@@ -5,7 +5,6 @@
 import os
 import re
 import argparse
-from nr_gff import detect_gff_type
 
 
 def parse_input():
@@ -17,6 +16,21 @@ def parse_input():
     args = argparser.parse_args()
     
     return args
+
+
+def detect_gff_type(gff_file):
+    with open(gff_file, 'r') as f:
+        gff_data = f.read()
+        embl_type_count = gff_data.count("ID=gene:")
+        ncbi_type_count = gff_data.count("ID=gene-")
+        if embl_type_count > 0 and ncbi_type_count == 0:
+            return "embl"
+        elif embl_type_count == 0 and ncbi_type_count > 0:
+            return "ncbi"
+        else:
+            print(embl_type_count, ncbi_type_count)
+            print("nr_gff.py 注释检测 gff 类型失败！")
+            exit(1)
 
 
 def get_all_id(gene_basicinfo_file, key_name):
@@ -80,6 +94,7 @@ def main():
     get_basic_info(gff_file, gene_basicinfo_name, args.gfftype)
     # 生成 gene_id 的文件
     get_all_id(gene_basicinfo_name, args.prefix)
+
 
 if __name__ == '__main__':
     main()
