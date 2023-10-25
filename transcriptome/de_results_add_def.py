@@ -47,6 +47,12 @@ def main():
             print(f'processing---{de_results_file}')
             process_deresults(de_results_file, args.kegg, args.nr, args.swiss, args.kns)
 
+    for up_down_id_file in os.listdir():
+        if up_down_id_file.endswith('Down_ID.txt') or up_down_id_file.endswith('Up_ID.txt'):
+            up_down_id_df = pd.read_csv(up_down_id_file, sep='\t', names=['GeneID'])
+            result_df = add_kns_def(up_down_id_df, args.kegg, args.nr, args.swiss, args.kns)
+            result_df.to_csv(up_down_id_file.replace('.txt', '_def.txt'), sep='\t', index=False)
+
 
 if __name__ == '__main__':
     main()
