@@ -4,6 +4,7 @@
 # Author        : William GoGo
 import argparse
 import pandas as pd
+from traitlets import default
 
 
 def parse_input():
@@ -13,20 +14,18 @@ def parse_input():
     argparser.add_argument('-n', '--nr', help='NR_gene_def 文件')
     argparser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
     argparser.add_argument('-i', '--input', help='输入文件')
-    argparser.add_argument('--input_col', default="GeneID",
-                           help='输入作为 GeneID 的列，可以是其他列，如果没有列名，则输入第几列，从 0 开始数')
-    argparser.add_argument('--input_sep', help='输入文件分隔符，默认制表符')
-    argparser.add_argument('--input_format', default='txt', choices=['txt', 'csv', 'xlsx', 'other'],
-                           help='输入文件格式，默认 csv(, 分隔符), xlsx, txt(tab 分隔符), other 指定 --input_sep 分隔符')
-    argparser.add_argument('--input_header', default='y', choices=['y', 'n'],
-                           help="输入文件是否有列名，默认包含列名，如果没有列名，输入参数 n")
+    argparser.add_argument('--input-sep', dest='input_sep', default='\t',
+                           help='输入文件分隔符，默认制表符')
+    argparser.add_argument('--input-header', default='GeneID', dest='input_header',
+                           help="默认 GeneID 添加定义，如果有其他列名，请写出列名，如果没有列名，输入列的位置，从 0 开始数，列名不可以是数字")
     argparser.add_argument('-o', '--output', default='output.txt', help='输出文件')
     return argparser.parse_args()
 
 
 def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file=None):
     """
-    添加 NR_Def, Swiss_protein_ID, KEGG_Pathway_ID, KEGG_Shortname, EC_number, KEGG_description 列
+    传入表中必须包含 GeneID 列
+    添加 NR_Def, Swiss_protein_ID, KEGG_ID, GeneSymbol, EC_number, KEGG_Description 列
     """
     result_df = file_df
     source_shape = file_df.shape[0]
@@ -59,7 +58,7 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
         result_df = pd.merge(left=result_df, right=swiss_df, on='GeneID', how='left')
         
     if kegg_file:
-        kegg_df = pd.read_csv(kegg_file, sep='\t', skiprows=1, names=['GeneID', 'KEGG_ID', 'KEGG_Shortname', 'EC_Number', 'KEGG_Description'], dtype={'GeneID': str})
+        kegg_df = pd.read_csv(kegg_file, sep='\t', skiprows=1, names=['GeneID', 'KEGG_ID', 'GeneSymbol', 'EC_Number', 'KEGG_Description'], dtype={'GeneID': str})
         result_df = pd.merge(left=result_df, right=kegg_df, on='GeneID', how='left')
 
     if kns_file:
@@ -80,27 +79,26 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
 
 def main():
     args = parse_input()
-    if args.input_format == 'csv':
-        df = pd.read_csv(args.input, sep=',')
-    elif args.input_format == 'xlsx':
-        df = pd.read_excel(args.input, engine='openpyxl')
-    elif args.input_format == 'txt':
-        df = pd.read_csv(args.input, sep='\t')
-    
-    if args.input_header == 'y':
-        df = pd.read_csv(args.input, sep='\t')
-    elif args.input_header == 'n':
-        df = pd.read_csv(args.input, sep='\t', header=None)
+
+    if type(args.input_header) == str:
+        df = pd.read_csv(args.input, sep=args.input_sep)
+    elif type(args.input_header) == int:
+        df = pd.read_csv(args.input, sep=args.input_sep, header=None)
         args.input_col = int(args.input_col)
+    else:
+        print('输入的 input_header 有误，请检查')
+        exit(1)
     # source_key_col_name = str(df.columns[args.input_col])
     df.rename(columns={args.input_col: 'GeneID'}, inplace=True)
     df['GeneID'] = df["GeneID"].astype(str)
     result_df = add_kns_def(df, args.kegg, args.nr, args.swiss, args.kns)
     
-    if args.input_header == 'y':
-        result_df.rename(columns={'GeneID': args.input_col}, inplace=True)
-    
-    result_df.to_csv(args.output, sep='\t', index=False)
+    if type(args.input_header) == str:
+        result_df = result_df.rename(columns={'GeneID': args.input_col})
+        result_df.to_csv(args.output, sep='\t', index=False)
+    elif type(args.input_header) == int:
+        result_df.to_csv(args.output, sep='\t', index=False, header=False)
+        
     print('\nDone!\n')
 
 
