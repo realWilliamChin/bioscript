@@ -63,8 +63,7 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
 
     if kns_file:
         kns_df = pd.read_csv(kns_file, sep='\t', dtype={'GeneID': 'str'})
-        result_df = pd.merge(left=file_df, right=kns_df, on='GeneID', how='left')
-        result_df['GeneID'].to_csv('test.list', sep='\t', index=False)
+        result_df = pd.merge(left=result_df, right=kns_df, on='GeneID', how='left')
 
     result_df.fillna(value='NA', inplace=True)
     result_shape = result_df.shape[0]
