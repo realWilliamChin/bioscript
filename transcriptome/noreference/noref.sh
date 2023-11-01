@@ -13,31 +13,30 @@ ERROR="[ERROR]"
 
 # 定义日志函数
 log() {
-  local level="$1"
-  local message="$2"
-  local timestamp="$(date +'%Y-%m-%d_%H:%M:%S')"
-  local colored_message="[$timestamp $level]:$message"
-  
-  # 根据级别添加颜色
-  case "$level" in
-    INFO)
-      colored_message="${GREEN}${colored_message}${RESET}"
-      ;;
-    WARNING)
-      colored_message="${YELLOW}${colored_message}${RESET}"
-      ;;
-    ERROR)
-      colored_message="${RED}${colored_message}${RESET}"
-      ;;
-    *)
-      # 默认为INFO级别
-      colored_message="${GREEN}${colored_message}${RESET}"
-      ;;
-  esac
-  
-  echo -e "$colored_message"
-}
+    local level="$1"
+    local message="$2"
+    local timestamp="$(date +'%Y-%m-%d_%H:%M:%S')"
+    local colored_message="[$timestamp $level]:$message"
 
+    # 根据级别添加颜色
+    case "$level" in
+    INFO)
+        colored_message="${GREEN}${colored_message}${RESET}"
+        ;;
+    WARNING)
+        colored_message="${YELLOW}${colored_message}${RESET}"
+        ;;
+    ERROR)
+        colored_message="${RED}${colored_message}${RESET}"
+        ;;
+    *)
+        # 默认为INFO级别
+        colored_message="${GREEN}${colored_message}${RESET}"
+        ;;
+    esac
+
+    echo -e "$colored_message"
+}
 
 mycp() {
     # 检查参数数量是否小于2
@@ -86,7 +85,9 @@ check_compareinfo_and_samplesdescribed() {
 
 ### fastqc
 exec_fastqc() {
-    mkdir ${work_dir}/fastqc > /dev/null 2>&1
+    if [[ ! -d ${work_dir}/fastqc ]]; then
+        mkdir ${work_dir}/fastqc
+    fi
     log INFO "正在后台生成 fastqc 报告"
     echo "nohup fastqc ${pinjiedata}/*.fq* \
     -o ${work_dir}/fastqc > ${log}/fastqc.log 2>&1 & " | bash
@@ -94,29 +95,43 @@ exec_fastqc() {
 
 ### Trinity pinjie 步骤
 exec_pinjie() {
-    python ${script}/trinity_samples_file.py \
-    -i ${pinjiedata} \
-    -s ${work_dir}/samples_described.txt \
-    -o samples_trinity.txt \
-    -t ${trinity_type} > /dev/null
-    cat samples_trinity.txt
-    log WARNING "请确认 samples_trinity.txt，回车继续（如需修改，重新开个终端修改完再回车，勿重新启动程序）"
-    read -p ""
+    if [[ ! -d ${pinjiedata} ]]; then
+        log ERROR "未找到 ${pinjiedata} 目录，无法开始拼接"
+        exit 1
+    fi
+    
+    if [[ ! -f ${work_dir}/samples_described.txt ]]; then
+        python ${script}/trinity_samples_file.py \
+            -i ${pinjiedata} \
+            -s ${work_dir}/samples_described.txt \
+            -o samples_trinity.txt \
+            -t ${trinity_type} >/dev/null
+        cat samples_trinity.txt
+        log WARNING "请确认 samples_trinity.txt，回车继续（如需修改，重新开个终端修改完再回车，勿重新启动程序）"
+        read -p ""
+    else
+        cat samples_trinity.txt
+        log WARNING "请确认 samples_trinity.txt，回车继续（如需修改，重新开个终端修改完再回车，勿重新启动程序）"
+        read -p ""
+    fi
 
-    mkdir ${assemble_trinity} > /dev/null 2>&1
+    if [[ ! -d ${assemble_trinity} ]]; then
+        mkdir ${assemble_trinity}
+    fi
+
     # 生成 trinity.fasta 文件
     log INFO "正在执行 Trinity 拼接流程"
     Trinity --seqType fq \
         --max_memory ${max_memory}G \
         --no_salmon \
         --no_version_check \
-        --samples_file ${specie}_samples_trinity.txt \
+        --samples_file samples_trinity.txt \
         --output ${assemble_trinity} \
         --CPU ${num_threads} \
         --SS_lib_type RF \
         --normalize_reads \
-        --min_contig_length 500 \
-        && log INFO "Trinity 结束"
+        --min_contig_length 500 &&
+        log INFO "Trinity 结束"
     if [[ ! -f ${assemble_trinity}/Trinity.fasta ]]; then
         log ERROR "Trinity 拼接错误，未生成 Trinity.fasta 文件，程序退出"
         exit 1
@@ -126,7 +141,7 @@ exec_pinjie() {
     log INFO "正在执行 extract_longest_isoforms_from_TrinityFasta.pl"
     perl /home/train/trainingStuff/bin/extract_longest_isoforms_from_TrinityFasta.pl \
         ${assemble_trinity}/Trinity.fasta \
-        > ${assemble_trinity}/unigene_longest.fasta
+        >${assemble_trinity}/unigene_longest.fasta
     if [[ ! -f ${assemble_trinity}/unigene_longest.fasta ]]; then
         log ERROR "生成 unigene_longest.fasta 错误，程序退出"
         exit 1
@@ -145,9 +160,9 @@ exec_pinjie() {
     log INFO "正在生成拼接报告 assemble_stat.txt"
     /opt/biosoft/Trinity-v2.8.5/util/TrinityStats.pl \
         ${assemble_trinity}/${specie}_unigene.fasta \
-        > ${assemble_trinity}/assemble_stat.txt && log INFO "ok!"
-    seqkit stats ${assemble_trinity}/${specie}_unigene.fasta >> ${assemble_trinity}/assemble_stat.txt
-    grep '>' ${assemble_trinity}/${specie}_unigene.fasta | cut -d ' ' -f 1 | tr -d '>' > ${specie}_all_gene_id.txt
+        >${assemble_trinity}/assemble_stat.txt && log INFO "ok!"
+    seqkit stats ${assemble_trinity}/${specie}_unigene.fasta >>${assemble_trinity}/assemble_stat.txt
+    grep '>' ${assemble_trinity}/${specie}_unigene.fasta | cut -d ' ' -f 1 | tr -d '>' >${specie}_all_gene_id.txt
     log INFO "pinjie 流程已完成"
     cd ${assemble_trinity}
     assemble_report
@@ -163,19 +178,21 @@ assemble_report() {
     Smallest_transcript=$(tail -n 1 assemble_stat.txt | awk -F' ' '{print $6}' | tr -d ',')
     Average_length=$(tail -n 1 assemble_stat.txt | awk -F' ' '{print $7}' | tr -d ',')
     N50=$(grep N50 assemble_stat.txt | head -n 1 | awk -F':' '{print $2}' | tr -d ' ')
-    echo -en "Total_sequence_num\t${Total_sequence_num}\n" >> assemble_stat_report.txt
-    echo -en "Total_sequence_bases\t${Total_sequence_bases}\n" >> assemble_stat_report.txt
-    echo -en "Percent_GC\t${Percent_GC}\n" >> assemble_stat_report.txt
-    echo -en "Largest_transcript\t${Largest_transcript}\n" >> assemble_stat_report.txt
-    echo -en "Smallest_transcript\t${Smallest_transcript}\n" >> assemble_stat_report.txt
-    echo -en "Average_length\t${Average_length}\n" >> assemble_stat_report.txt
-    echo -en "N50\t${N50}" >> assemble_stat_report.txt
+    echo -en "Total_sequence_num\t${Total_sequence_num}\n" >>assemble_stat_report.txt
+    echo -en "Total_sequence_bases\t${Total_sequence_bases}\n" >>assemble_stat_report.txt
+    echo -en "Percent_GC\t${Percent_GC}\n" >>assemble_stat_report.txt
+    echo -en "Largest_transcript\t${Largest_transcript}\n" >>assemble_stat_report.txt
+    echo -en "Smallest_transcript\t${Smallest_transcript}\n" >>assemble_stat_report.txt
+    echo -en "Average_length\t${Average_length}\n" >>assemble_stat_report.txt
+    echo -en "N50\t${N50}" >>assemble_stat_report.txt
 }
 
 ### Annotation
 ## Swiss
 exec_swiss() {
-    mkdir ${annotation} > /dev/null 2>&1
+    if [[ ! -d ${annotation} ]]; then
+        mkdir ${annotation}
+    fi
     log INFO "执行 Annotation - Swiss 步骤"
     /opt/biosoft/ncbi-blast-2.9.0+/bin/blastx \
         -db /home/data/ref_data/Linux_centos_databases/2019_Unprot_databases/swissprot \
@@ -184,7 +201,7 @@ exec_swiss() {
         -max_target_seqs 20 \
         -evalue 1e-5 \
         -num_threads ${num_threads} \
-        -outfmt "6 qacc sacc pident qcovs qcovhsp ppos length mismatch gapopen qstart qend sstart send evalue bitscore stitle" 
+        -outfmt "6 qacc sacc pident qcovs qcovhsp ppos length mismatch gapopen qstart qend sstart send evalue bitscore stitle"
     # 如果 swiss 注释成功，则对 swiss blast 结果进行处理
     if [[ -f ${annotation}/${specie}_unigene_swiss.blast ]]; then
         cd ${annotation}
@@ -198,7 +215,9 @@ exec_swiss() {
 ## nr
 exec_nr() {
     log INFO "执行 Annotation - nr 步骤"
-    mkdir -p ${annotation}/temp > /dev/null 2>&1
+    if [[ ! -d ${annotation}/temp ]]; then
+        mkdir ${annotation}/temp
+    fi
     diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
         --threads ${num_threads} \
         --query ${assemble_trinity}/${specie}_unigene.fasta \
@@ -226,7 +245,9 @@ exec_nr() {
 # emappey.py youhuma 45分钟，运行完需要 conda deactivate
 exec_cog() {
     log INFO "正在执行 cog 步骤"
-    mkdir ${annotation} > /dev/null 2>&1
+    if [[ ! -d ${annotation} ]]; then
+        mkdir ${annotation}
+    fi
     cd ${annotation} || exit
     log INFO "正在切换到 python27 conda 环境"
     source /home/train/miniconda3/bin/activate python27
@@ -252,12 +273,12 @@ exec_kegg() {
         for i in $(ls ${annotation} | grep "${specie}_unigene.fasta_"); do
             log INFO "[KEGG]正在生成 ${i} 的 keg 文件"
             python ${script}/kegg_annotation.py \
-            -f ${annotation}/${i} \
-            -o ${annotation}/${i}_keg \
-            -l "${kegg_org}" >> ${log}/kegg.log
+                -f ${annotation}/${i} \
+                -o ${annotation}/${i}_keg \
+                -l "${kegg_org}" >>${log}/kegg.log
             # 检查文件是否生成
             if [[ -f ${annotation}/${i}_keg ]]; then
-                cat ${annotation}/${i}_keg >> ${annotation}/${specie}_unigene.keg
+                cat ${annotation}/${i}_keg >>${annotation}/${specie}_unigene.keg
             elif [[ ! -f ${annotation}/${i}_keg ]]; then
                 log ERROR "[KEGG]${i} 的 keg 文件生成失败"
             fi
@@ -283,50 +304,54 @@ exec_kegg() {
 
 ### transdecoder
 transdecoder() {
-    log INFO "执行 transdecoder 步骤"
+    log INFO "正在执行 transdecoder 步骤"
     cd ${annotation} || exit
-    mkdir transdecoder >/dev/null 2>&1
+    if [[ ! -d transdecoder ]]; then
+        mkdir transdecoder
+    fi
     cd transdecoder || exit
     TransDecoder.LongOrfs -t ${assemble_trinity}/${specie}_unigene.fasta
     TransDecoder.Predict -t ${assemble_trinity}/${specie}_unigene.fasta
     cd ${work_dir} || exit
 }
 
-
 merge_kns_def() {
-    kegg_gene_def=$(realpath -s  ${annotation}/*KEGG_gene_def.txt)
+    kegg_gene_def=$(realpath -s ${annotation}/*KEGG_gene_def.txt)
     nr_gene_def=$(realpath -s ${annotation}/*nr_gene_def.txt)
     swiss_gene_def=$(realpath -s ${annotation}/*swiss_gene_def.txt)
     python ${script}/kns_def_merge.py \
-        -k ${kegg_gene_def}
-        -n ${nr_gene_def}
-        -s ${swiss_gene_def}
-        -i ${work_dir}/${specie}_all_gene_id.txt
+        -k ${kegg_gene_def} \
+        -n ${nr_gene_def} \
+        -s ${swiss_gene_def} \
+        -i ${work_dir}/${specie}_all_gene_id.txt \
         -o ${annotation}/${specie}_kns_gene_def.txt
     if [[ ! -f ${annotation}/${specie}_kns_gene_def.txt ]]; then
         log INFO "${annotation}/${specie}_kns_gene_def.txt 合并失败"
     fi
 }
 
-
 exec_annotation_report() {
     log INFO "正在准备 annotation_report.r 画图所需文件"
     cd ${annotation} || return 1
-    mkdir annotation_report > /dev/null 2>&1
+    if [[ ! -d annotation_report ]]; then
+        mkdir annotation_report
+    fi
     cp ${work_dir}/${specie}_all_gene_id.txt annotation_report/all_gene_id.txt
     cp ${specie}_unigene_KEGG_clean.txt annotation_report/KEGG_clean.txt
-    cut -f 1 ${specie}_unigene_swiss_idNo_def.txt | sort -u >  annotation_report/GO_ID.list
+    cut -f 1 ${specie}_unigene_swiss_idNo_def.txt | sort -u > annotation_report/GO_ID.list
     cut -f 1 ${specie}_unigene_KEGG_clean.txt | sort -u > annotation_report/KEGG_ID.list
     cut -f 1 ${specie}_unigene.emapper.seed_orthologs | grep -v '^#' | sort -u > annotation_report/COG_ID.list
     tail -n +2 ${specie}_unigene_swiss_gene_def.txt | cut -f 1 | sort -u > annotation_report/Swiss_ID.list
     tail -n +2 ${specie}_unigene_nr_uniq.blast | cut -f 1 | sort -u > annotation_report/NR_ID.list
-    tail -n +2 ${specie}_unigene_nr_uniq.blast | cut -f 3  > annotation_report/identity.txt
+    tail -n +2 ${specie}_unigene_nr_uniq.blast | cut -f 3 > annotation_report/identity.txt
     tail -n +2 ${specie}_unigene_nr_uniq.blast | cut -f 11 > annotation_report/evalue.txt
-    tail -n +2 tiannanxing_unigene_nr_uniq.blast |  awk -F '[][]' '{print $(NF-1)}' | sort | uniq -c | sort -nr |\
-        awk -v OFS='\t' '{print $2, $1}' | head > annotation_report/species_count.txt
+    tail -n +2 ${specie}_unigene_nr_uniq.blast \
+        | awk -F '[][]' '{print $(NF-1)}' | sort | uniq -c | sort -nr \
+        | awk '{ column1 = substr($0, 1, 7); column2 = substr($0, 8); gsub(/^[[:space:]]+|[[:space:]]+$/, "", column1); gsub(/^[[:space:]]+|[[:space:]]+$/, "", column2); print column2"\t"column1 }' \
+        | head > annotation_report/species_count.txt
     python ${script}/cog_count.py -c ${specie}_unigene.emapper.annotations -o annotation_report
     cp *GO*ID.txt annotation_report/
-    
+
     cd ${annotation}/annotation_report/ || return 1
     mmv "${specie}_unigene_*" "#1"
 
@@ -336,7 +361,7 @@ exec_annotation_report() {
         "all_gene_id.txt" "KEGG_clean.txt" "GO_ID.list" "KEGG_ID.list" "COG_ID.list"
         "Swiss_ID.list" "NR_ID.list" "identity.txt" "evalue.txt" "species_count.txt"
         "COG_count.txt" "swiss_GO_BP_ID.txt" "swiss_GO_CC_ID.txt" swiss_GO_MF_ID.txt
-        )
+    )
 
     annotation_report_flag=0
     for file in $(ls); do
@@ -364,7 +389,9 @@ exec_annotation_report() {
 # 执行 Biogrid 流程
 exec_biogrid() {
     log INFO "正在执行 Biogrid 步骤"
-    mkdir ${biogrid}
+    if [[ ! -d ${biogrid} ]]; then
+        mkdir ${biogrid}
+    fi
     cd ${biogrid} || exit
     ${script}/biogrid.py \
         -f ${assemble_trinity}/${specie}_unigene.fasta \
@@ -379,9 +406,10 @@ exec_biogrid() {
     fi
 }
 
-
 exec_annotation() {
-    mkdir ${annotation} > /dev/null 2>&1
+    if [[ ! -d ${annotation} ]]; then
+        mkdir ${annotation}
+    fi
     cp ${assemble_trinity}/${specie}_unigene.fasta ${annotation}
     exec_kegg &
     exec_swiss
@@ -395,13 +423,23 @@ exec_annotation() {
 
 ### rsem
 exec_rsem() {
-    mkdir ${reference}
-    # 建库
-    cd ${reference} || exit
-    log INFO "正在建库 ${assemble_trinity}/${specie}_unigene.fasta ${specie}"
-    rsem-prepare-reference --bowtie2 ${assemble_trinity}/${specie}_unigene.fasta ${specie}
-    cd ${work_dir} || exit
-    mkdir ${mapping}
+    if [[ ! -d ${reference} ]]; then
+        mkdir ${reference}
+    fi
+    if [[ ! -f ${reference}/${specie}.transcripts.fa ]]; then
+        # 建库
+        cd ${reference} || exit
+        log INFO "正在建库 ${assemble_trinity}/${specie}_unigene.fasta ${specie}"
+        rsem-prepare-reference --bowtie2 ${assemble_trinity}/${specie}_unigene.fasta ${specie}
+        cd ${work_dir} || exit
+    else
+        log INFO "检测到已经建库，跳过建库"
+    fi
+
+    if [[ ! -d ${mapping} ]]; then
+        mkdir ${mapping}
+    fi
+
     # 读取 samples_described.txt 循环比对
     tail -n +2 ${work_dir}/samples_described.txt | grep -v '^$' | while read line; do
         sample=$(echo $line | awk '{print $2}')
@@ -420,7 +458,7 @@ exec_rsem() {
     done
 }
 
-process_fpkm_reads(){
+process_fpkm_reads() {
     log INFO "处理 fpkm 和 reads 矩阵中 ..."
     # 使用 base 的 python3 环境运行 python 脚本
     cd ${mapping} || exit
@@ -465,29 +503,63 @@ process_fpkm_reads(){
 ### multi deseq
 ### 需要创建一个 compare.txt 和 samples_described.txt
 exec_multi_deseq() {
-    mkdir ${multideseq} >/dev/null 2>&1
-    cd ${multideseq} || return 1
-    cp ${mapping}/reads_matrix_filtered.txt ${multideseq}/
-    cp ${mapping}/fpkm_matrix_filtered.txt ${multideseq}/
-    cut -f 1,2 ${work_dir}/samples_described.txt > ${multideseq}/samples_described.txt
-    cp ${work_dir}/compare_info.txt ${multideseq}/
+    if [[ ! -d ${multideseq} ]]; then
+        mkdir ${multideseq}
+    fi
 
-    log INFO "正在执行 multi_deseq 流程，Rlog number 为 ${rlog_number}"
-    Rscript ${script}/multiple_samples_DESeq2.r ${rlog_number}
+    # 循环所有 compare_info.txt
+    comp_file_list=($(find ${work_dir} -maxdepth 1 -type f -name 'compare_info*'))
+    for comp_file in "${comp_file_list[@]}"; do
+        if [ ${#comp_file_list[@]} -eq 0 ]; then
+            log ERROR "没有找到 compare_info 文件，不执行此步骤"
+            return 1
+        elif [ ${#comp_file_list[@]} -eq 1 ]; then
+            log INFO "正在执行 multi_deseq 流程，Rlog number 为 ${rlog_number}"
+            mycp "${bam}"/*matrix_filtered.txt "${multideseq}/"
+            cp ${comp_file} ${multideseq}/compare_info.txt
+            cut -f 1,2 "${work_dir}/samples_described.txt" > "${multideseq}/samples_described.txt"
+            cp "${work_dir}/${comp_file}" "${multideseq}/"
+            python ${script}/filter_samples_from_comp.py
+            python "${script}/de_results_add_def.py" \
+                --kns "${annotation}/${specie}_kns_gene_def.txt"
+            cat DEG_summary.txt
+        else
+            comp_group=$(echo "${comp_file}" | sed 's/.*compare_info_//' | sed 's/\.txt//')
+            if [ ! -d "${multideseq}/${comp_group}" ]; then
+                mkdir -p "${multideseq}/${comp_group}"
+            fi
 
-    cd ${multideseq} || return 1
-    python ${script}/de_results_add_def.py \
-        --kns ${annotation}/${specie}_kns_gene_def.txt
-    cat DEG_summary.txt
-    cd ${work_dir} || exit
+            # 复制所需文件
+            cd "${multideseq}/${comp_group}" || return 1
+            mycp "${bam}"/*matrix_filtered.txt "${multideseq}/${comp_group}"
+            cp ${comp_file} ${multideseq}/${comp_group}/compare_info.txt
+            cut -f 1,2 "${work_dir}/samples_described.txt" > "${multideseq}/${comp_group}/samples_described.txt"
+
+            # 挑出指定样本
+            log INFO "从 compare_info 中的组名中挑出 sampels_described.txt、reads 和 fpkm 文件的指定样本"
+            python ${script}/filter_samples_from_comp.py
+            python ${script}/reorder_genetable_with_samplesdes.py \
+                -f fpkm_matrix_filtered.txt -r
+            python ${script}/reorder_genetable_with_samplesdes.py \
+                -f reads_matrix_filtered.txt -r
+
+            # 执行流程
+            log INFO "正在执行 ${comp_group} multi_deseq 流程，Rlog number 为 ${rlog_number}"
+            Rscript "${script}/multiple_samples_DESeq2.r" "${rlog_number}"
+            log INFO "正在给 multideseq 程序生成的文件添加定义"
+            python "${script}/de_results_add_def.py" \
+                --kns "${annotation}/${specie}_kns_gene_def.txt"
+            cat DEG_summary.txt
+        fi
+    done
+    cd "${work_dir}"
 }
-
 
 ### 整理交付目录的文件，比较麻烦
 jiaofu_prepare() {
 
     mkdir -p ${jiaofu}/00_Background_materials \
-        ${jiaofu}/03_PPI_analysis_KEGG_pathways \
+        ${jiaofu}/03_PPI_analysis_KEGG_pathways
 
     log INFO "copy files to 00_Funrich_software_def_files"
     mycp ${annotation}/*GO*ID.txt ${jiaofu}/00_Funrich_software_def_files/
@@ -506,20 +578,41 @@ jiaofu_prepare() {
     log INFO "copy files to 01_Original_expression_data"
     mycp ${mapping}/*_data_def.txt ${jiaofu}/01_Original_expression_data
 
-    log INFO "copy files to 02_DEG_analysis"
-    mycp ${multideseq}/DEG_summary.txt ${jiaofu}/02_DEG_analysis/Analysis/
-    mycp ${multideseq}/*Down_ID.txt ${jiaofu}/02_DEG_analysis/Analysis/
-    mycp ${multideseq}/*Up_ID.txt ${jiaofu}/02_DEG_analysis/Analysis/
-    mycp ${multideseq}/*_DEG_data.txt ${jiaofu}/02_DEG_analysis/Analysis/Expression_data
-    mycp ${multideseq}/*vs*_heatmap.jpeg ${jiaofu}/02_DEG_analysis/Analysis/Expression_data_graphs
-    mycp ${multideseq}/*vs*_volcano.jpeg ${jiaofu}/02_DEG_analysis/Analysis/Expression_data_graphs
+    # 检测多个 compare_info 创建多个组间比较交付目录
+    compare_count=$(ls -i compare_info*.txt | wc -l)
+    if [ $compare_count -gt 1 ]; then
+        for compare_gourp in $(find ${multideseq} -maxdepth1 -type d | tail -n +2); do
+            log INFO "copy ${compare_group} files to 02_DEG_analysis"
+            mycp ${multideseq}/${compare_group}/DEG_summary.txt     ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/
+            mycp ${multideseq}/${compare_group}/*Down_ID.txt        ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/
+            mycp ${multideseq}/${compare_group}/*Up_ID.txt          ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/
+            mycp ${multideseq}/${compare_group}/*_DEG_data.txt      ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/Expression_data
+            mycp ${multideseq}/${compare_group}/*vs*_heatmap.jpeg   ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/Expression_data_graphs
+            mycp ${multideseq}/${compare_group}/*vs*_volcano.jpeg   ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/Expression_data_graphs
 
-    log INFO "复制 5 个图到 Expression_data_evaluation"
-    mycp ${multideseq}/all_gene_heatmap.jpeg ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
-    mycp ${multideseq}/correlation.png ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
-    mycp ${multideseq}/fpkm_boxplot.jpeg ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
-    mycp ${multideseq}/fpkm_density.jpeg ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
-    mycp ${multideseq}/PCA.jpeg ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+            log INFO "复制 ${compare_group} 的 5 个图到 Expression_data_evaluation"
+            mycp ${multideseq}/${compare_group}/all_gene_heatmap.jpeg   ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/
+            mycp ${multideseq}/${compare_group}/correlation.png         ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/
+            mycp ${multideseq}/${compare_group}/fpkm_boxplot.jpeg       ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/
+            mycp ${multideseq}/${compare_group}/fpkm_density.jpeg       ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/
+            mycp ${multideseq}/${compare_group}/PCA.jpeg                ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/ 
+        done
+    else
+        log INFO "copy files to 02_DEG_analysis"
+        mycp ${multideseq}/DEG_summary.txt      ${jiaofu}/02_DEG_analysis/Analysis/
+        mycp ${multideseq}/*Down_ID.txt         ${jiaofu}/02_DEG_analysis/Analysis/
+        mycp ${multideseq}/*Up_ID.txt           ${jiaofu}/02_DEG_analysis/Analysis/
+        mycp ${multideseq}/*_DEG_data.txt       ${jiaofu}/02_DEG_analysis/Analysis/Expression_data
+        mycp ${multideseq}/*vs*_heatmap.jpeg    ${jiaofu}/02_DEG_analysis/Analysis/Expression_data_graphs
+        mycp ${multideseq}/*vs*_volcano.jpeg    ${jiaofu}/02_DEG_analysis/Analysis/Expression_data_graphs
+
+        log INFO "复制 5 个图到 Expression_data_evaluation"
+        mycp ${multideseq}/all_gene_heatmap.jpeg    ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+        mycp ${multideseq}/correlation.png          ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+        mycp ${multideseq}/fpkm_boxplot.jpeg        ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+        mycp ${multideseq}/fpkm_density.jpeg        ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+        mycp ${multideseq}/PCA.jpeg                 ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/ 
+    fi
 
     # Prep_files
     log INFO "\ncopy files to Prep_files"
@@ -536,7 +629,6 @@ jiaofu_prepare() {
     # rm *Down_ID.txt *Up_ID.txt *GO*ID.txt
     cd ${word_dir} || exit
 }
-
 
 run_program() {
     case "$1" in
@@ -631,7 +723,9 @@ rlog_number:${rlog_number}
 ####################################"
 # 切换到 base 环境下，python 程序都是在 base 环境下编写的
 source /home/train/miniconda3/bin/activate base
-mkdir ${log} > /dev/null 2>&1
+if [[ ! -d ${log} ]]; then
+    mkdir ${log}
+fi
 
 # 如果已经有了组间比较文件，则首先检查组间比较文件和样本文件是否正确，以便后续不出错
 if [[ -f ${work_dir}/compare_info.txt && "$run" == "0" ]]; then
