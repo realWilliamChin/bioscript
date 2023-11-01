@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -e -o pipefail
+set -e -o pipefail
 
 GREEN="\e[32m"  # 绿色
 YELLOW="\e[33m" # 黄色
@@ -97,9 +97,9 @@ exec_fastqc() {
 ### 比对
 hisat_compare() {
     mkdir ${bam} ${mapping} > /dev/null 2>&1
-    samplename_list=($(cut -f 2 samples_described.txt | grep -v sample))
-    filename_1_list=($(cut -f 3 samples_described.txt | grep -v filename))
-    filename_2_list=($(cut -f 4 samples_described.txt | grep -v filename))
+    samplename_list=($(tail -n+2 samples_described.txt | grep -v '^$' | cut -f 2))
+    filename_1_list=($(tail -n+2 samples_described.txt | grep -v '^$' | cut -f 3))
+    filename_2_list=($(tail -n+2 samples_described.txt | grep -v '^$' | cut -f 4))
     sample_count=${#filename_1_list[@]}
 
     for ((i=0; i<sample_count; i++)); do
@@ -171,9 +171,11 @@ exec_stringtie() {
 process_fpkm_reads() {
     cd ${bam} || exit
     log INFO "正在生成 fpkm 和 reads 文件"
+    conda deactivate
     python2 ${script}/getFPKM.py -i ballgown
     python2 ${script}/getTPM.py -i ballgown
     prepDE.py
+    conda activate base
     log INFO "对 fpkm 和 reads 文件进行过滤"
     python ${script}/count_filtered.py
     python ${script}/fpkm_filtered.py
@@ -194,6 +196,12 @@ process_fpkm_reads() {
         -f gene_fpkm_matrix.txt
     # 合并 fpkm 和 reads 矩阵
     log INFO "正在合并 fpkm 和 reads 矩阵"
+
+    if [[ ! -f ${annotation}/${specie}_kns_gene_def.txt ]]; then
+        log ERROR "未找到  ${annotation}/${specie}_kns_gene_def.txt 文件，无法进行合并"
+        return 1
+    fi
+
     python ${script}/merge_fpkm_reads_matrix.py \
         -f fpkm_matrix_filtered.txt \
         -r reads_matrix_filtered.txt \
@@ -210,21 +218,56 @@ process_fpkm_reads() {
 ### multi deseq
 ### 需要创建一个 compare.txt 和 samples_described.txt
 exec_multi_deseq() {
-    mkdir ${multideseq} >/dev/null 2>&1
-    cd ${multideseq} || return 1
-    cp ${bam}/reads_matrix_filtered.txt ${multideseq}/
-    cp ${bam}/fpkm_matrix_filtered.txt ${multideseq}/
-    cut -f 1,2 ${work_dir}/samples_described.txt > ${multideseq}/samples_described.txt
-    cp ${work_dir}/compare_info.txt ${multideseq}/
+    if [[ ! -d ${multideseq} ]]; then
+        mkdir ${multideseq}
+    fi
 
-    log INFO "正在执行 multi_deseq 流程，Rlog number 为 ${rlog_number}"
-    Rscript ${script}/multiple_samples_DESeq2.r ${rlog_number}
-    
-    cd ${multideseq} || return 1
-    python ${script}/de_results_add_def.py \
-        --kns ${annotation}/${specie}_kns_gene_def.txt \
-    cat DEG_summary.txt
-    cd ${work_dir} || exit
+    # 循环所有 compare_info.txt
+    comp_file_list=($(find ${work_dir} -maxdepth 1 -type f -name 'compare_info*'))
+    for comp_file in "${comp_file_list[@]}"; do
+        if [ ${#comp_file_list[@]} -eq 0 ]; then
+            log ERROR "没有找到 compare_info 文件，不执行此步骤"
+            return 1
+        elif [ ${#comp_file_list[@]} -eq 1 ]; then
+            log INFO "正在执行 multi_deseq 流程，Rlog number 为 ${rlog_number}"
+            mycp "${bam}"/*matrix_filtered.txt "${multideseq}/"
+            cp ${comp_file} ${multideseq}/compare_info.txt
+            cut -f 1,2 "${work_dir}/samples_described.txt" > "${multideseq}/samples_described.txt"
+            cp "${work_dir}/${comp_file}" "${multideseq}/"
+            python ${script}/filter_samples_from_comp.py
+            python "${script}/de_results_add_def.py" \
+                --kns "${annotation}/${specie}_kns_gene_def.txt"
+            cat DEG_summary.txt
+        else
+            comp_group=$(echo "${comp_file}" | sed 's/.*compare_info_//' | sed 's/\.txt//')
+            if [ ! -d "${multideseq}/${comp_group}" ]; then
+                mkdir -p "${multideseq}/${comp_group}"
+            fi
+
+            # 复制所需文件
+            cd "${multideseq}/${comp_group}" || return 1
+            mycp "${bam}"/*matrix_filtered.txt "${multideseq}/${comp_group}"
+            cp ${comp_file} ${multideseq}/${comp_group}/compare_info.txt
+            cut -f 1,2 "${work_dir}/samples_described.txt" > "${multideseq}/${comp_group}/samples_described.txt"
+
+            # 挑出指定样本
+            log INFO "从 compare_info 中的组名中挑出 sampels_described.txt、reads 和 fpkm 文件的指定样本"
+            python ${script}/filter_samples_from_comp.py
+            python ${script}/reorder_genetable_with_samplesdes.py \
+                -f fpkm_matrix_filtered.txt -r
+            python ${script}/reorder_genetable_with_samplesdes.py \
+                -f reads_matrix_filtered.txt -r
+
+            # 执行流程
+            log INFO "正在执行 ${comp_group} multi_deseq 流程，Rlog number 为 ${rlog_number}"
+            Rscript "${script}/multiple_samples_DESeq2.r" "${rlog_number}"
+            log INFO "正在给 multideseq 程序生成的文件添加定义"
+            python "${script}/de_results_add_def.py" \
+                --kns "${annotation}/${specie}_kns_gene_def.txt"
+            cat DEG_summary.txt
+        fi
+    done
+    cd "${work_dir}"
 }
 
 
@@ -240,20 +283,41 @@ jiaofu_prepare() {
     log INFO "copy files to 01_Original_expression_data"
     mycp ${bam}/*_data_def.txt ${jiaofu}/01_Original_expression_data
 
-    log INFO "copy files to 02_DEG_analysis"
-    mycp ${multideseq}/DEG_summary.txt ${jiaofu}/02_DEG_analysis/Analysis/
-    mycp ${multideseq}/*Down_ID.txt ${jiaofu}/02_DEG_analysis/Analysis/
-    mycp ${multideseq}/*Up_ID.txt ${jiaofu}/02_DEG_analysis/Analysis/
-    mycp ${multideseq}/*_DEG_data.txt ${jiaofu}/02_DEG_analysis/Analysis/Expression_data
-    mycp ${multideseq}/*vs*_heatmap.jpeg ${jiaofu}/02_DEG_analysis/Analysis/Expression_data_graphs
-    mycp ${multideseq}/*vs*_volcano.jpeg ${jiaofu}/02_DEG_analysis/Analysis/Expression_data_graphs
+    # 检测多个 compare_info 创建多个组间比较交付目录
+    compare_count=$(ls -i compare_info*.txt | wc -l)
+    if [ $compare_count -gt 1 ]; then
+        for compare_gourp in $(find ${multideseq} -maxdepth1 -type d | tail -n +2); do
+            log INFO "copy ${compare_group} files to 02_DEG_analysis"
+            mycp ${multideseq}/${compare_group}/DEG_summary.txt     ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/
+            mycp ${multideseq}/${compare_group}/*Down_ID.txt        ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/
+            mycp ${multideseq}/${compare_group}/*Up_ID.txt          ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/
+            mycp ${multideseq}/${compare_group}/*_DEG_data.txt      ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/Expression_data
+            mycp ${multideseq}/${compare_group}/*vs*_heatmap.jpeg   ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/Expression_data_graphs
+            mycp ${multideseq}/${compare_group}/*vs*_volcano.jpeg   ${jiaofu}/02_DEG_analysis_${compare_group}/Analysis/Expression_data_graphs
 
-    log INFO "复制 5 个图到 Expression_data_evaluation"
-    mycp ${multideseq}/all_gene_heatmap.jpeg ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
-    mycp ${multideseq}/correlation.png ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
-    mycp ${multideseq}/fpkm_boxplot.jpeg ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
-    mycp ${multideseq}/fpkm_density.jpeg ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
-    mycp ${multideseq}/PCA.jpeg ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/ 
+            log INFO "复制 ${compare_group} 的 5 个图到 Expression_data_evaluation"
+            mycp ${multideseq}/${compare_group}/all_gene_heatmap.jpeg   ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/
+            mycp ${multideseq}/${compare_group}/correlation.png         ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/
+            mycp ${multideseq}/${compare_group}/fpkm_boxplot.jpeg       ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/
+            mycp ${multideseq}/${compare_group}/fpkm_density.jpeg       ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/
+            mycp ${multideseq}/${compare_group}/PCA.jpeg                ${jiaofu}/02_DEG_analysis_${compare_group}/Expression_data_evaluation/ 
+        done
+    else
+        log INFO "copy files to 02_DEG_analysis"
+        mycp ${multideseq}/DEG_summary.txt      ${jiaofu}/02_DEG_analysis/Analysis/
+        mycp ${multideseq}/*Down_ID.txt         ${jiaofu}/02_DEG_analysis/Analysis/
+        mycp ${multideseq}/*Up_ID.txt           ${jiaofu}/02_DEG_analysis/Analysis/
+        mycp ${multideseq}/*_DEG_data.txt       ${jiaofu}/02_DEG_analysis/Analysis/Expression_data
+        mycp ${multideseq}/*vs*_heatmap.jpeg    ${jiaofu}/02_DEG_analysis/Analysis/Expression_data_graphs
+        mycp ${multideseq}/*vs*_volcano.jpeg    ${jiaofu}/02_DEG_analysis/Analysis/Expression_data_graphs
+
+        log INFO "复制 5 个图到 Expression_data_evaluation"
+        mycp ${multideseq}/all_gene_heatmap.jpeg    ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+        mycp ${multideseq}/correlation.png          ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+        mycp ${multideseq}/fpkm_boxplot.jpeg        ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+        mycp ${multideseq}/fpkm_density.jpeg        ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/
+        mycp ${multideseq}/PCA.jpeg                 ${jiaofu}/02_DEG_analysis/Expression_data_evaluation/ 
+    fi
 
 }
 
@@ -319,7 +383,6 @@ rlog_number:${rlog_number}
 ####################################"
 # 切换到 base 环境下，python 程序都是在 base 环境下编写的
 source /home/train/miniconda3/bin/activate base
-mkdir ${log} > /dev/null 2>&1
 
 # 如果已经有了组间比较文件，则首先检查组间比较文件和样本文件是否正确，以便后续不出错
 if [[ -f ${work_dir}/compare_info.txt && "$run" == "0" ]]; then
