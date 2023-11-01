@@ -20,7 +20,23 @@ bs_neg <- -bs_pos
 read.table("fpkm_matrix_filtered.txt",sep="\t",header=T,row.names=1,check.names=F)->fpkm
 
 all_fpkm<-fpkm[rowSums(fpkm)>0,]
-all.heatmap<-pheatmap(all_fpkm,scale="row",cluster_cols=F,show_rownames=F)
+#all.heatmap<-pheatmap(all_fpkm,scale="row",cluster_cols=F,show_rownames=F)
+# 检查数据行数是否超过 65535
+if (nrow(all_fpkm) > 65535) {
+  # 随机挑选 65535 行的索引
+  sample_indices <- sample(1:nrow(all_fpkm), size = 65535, replace = FALSE)
+  
+  # 按照原始顺序重新排列数据
+  subset_data <- all_fpkm[sample_indices, ]
+  subset_data <- subset_data[order(sample_indices), ]
+  
+  # 创建热图
+  all.heatmap <- pheatmap(subset_data, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
+} else {
+  # 如果数据不超过 65535 行，直接创建热图
+  all.heatmap <- pheatmap(all_fpkm, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
+}
+
 ggsave("all_gene_heatmap.jpeg",all.heatmap,dpi=300,width=10,height=10)
 
 sample_info<-read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
@@ -139,7 +155,7 @@ min(fpkm.cor)
 #fpkm.m<-as.data.frame(fpkm)
 #fpkm.cor<-cor(fpkm.m)
 resfactor = 5
-png("correlation.png",res=72*resfactor,height=960*resfactor,width=960*resfactor)
+png("correlation.png",res=72*resfactor,height=1200*resfactor,width=1200*resfactor)
 corrplot(fpkm.cor,is.corr = F,col= rev(COL2('PiYG')),method="color",addCoef.col = 'black',tl.col="black",col.lim=c(min(fpkm.cor)-0.01,max(fpkm.cor)),cl.ratio=0.1)
 dev.off()
 
