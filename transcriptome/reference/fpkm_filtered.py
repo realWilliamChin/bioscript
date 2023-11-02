@@ -1,13 +1,27 @@
+#!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
 import argparse
+import pandas as pd
 import os
 from shutil import copyfile
 import sys
 import numpy
 
 import sys
-os.system("sed 's/,/\t/g' gene_fpkm_matrix.csv > gene_fpkm_matrix.txt")
+
+gene_fpkm_matrix_df = pd.read_csv('gene_fpkm_matrix.csv')
+gene_fpkm_matrix_df.rename(columns={"gene_id": "GeneID"}, inplace=True)
+
+# 如果 GeneID 中大部分包含 |，则取 | 前面的部分
+if gene_fpkm_matrix_df['GeneID'].str.contains('|').mean() > 0.6:
+    if gene_fpkm_matrix_df['GeneID'].str.contains('gene-LOC').mean() > 0.6:
+        gene_fpkm_matrix_df['GeneID'] = gene_fpkm_matrix_df['GeneID'].str.split('|').str[0].str.split('gene-LOC').str[1]
+    else:
+        gene_fpkm_matrix_df['GeneID'] = gene_fpkm_matrix_df['GeneID'].str.split('|').str[0]
+
+gene_fpkm_matrix_df.to_csv('gene_fpkm_matrix.txt', sep='\t', index=False)
+
 num=0
 num1=0
 num3=0
