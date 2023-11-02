@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+import pandas as pd
 import argparse
 import os
 from shutil import copyfile
@@ -7,10 +9,17 @@ import numpy
 
 import sys
 
+# os.system("sed 's/,/\t/g' gene_count_matrix.csv > gene_count_matrix.txt")
+gene_count_matrix_df = pd.read_csv('gene_count_matrix.csv')
+gene_count_matrix_df.rename(columns={"gene_id": "GeneID"}, inplace=True)
+if gene_count_matrix_df['GeneID'].str.contains('|').mean() > 0.6:
+    if gene_count_matrix_df['GeneID'].str.contains('gene-LOC').mean() > 0.6:
+        gene_count_matrix_df['GeneID'] = gene_count_matrix_df['GeneID'].str.split('|').str[0].str.split('gene-LOC').str[1]
+    else:
+        gene_count_matrix_df['GeneID'] = gene_count_matrix_df['GeneID'].str.split('|').str[0]
 
+gene_count_matrix_df.to_csv('gene_count_matrix.txt', sep='\t', index=False)
 
-
-os.system("sed 's/,/\t/g' gene_count_matrix.csv > gene_count_matrix.txt")
 
 f2=open('reads_matrix_filtered.txt','w')
 num=0
