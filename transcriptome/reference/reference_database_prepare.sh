@@ -137,9 +137,7 @@ exec_nr() {
     # 如果 nr 执行成功，则对 nr 结果进行处理
     if [[ -f ${prep_fs}/nr/${specie}_nr.blast || $? -eq 0 ]]; then
         cd ${prep_fs}/nr || exit
-        python ${script}/nr.py && \
-            python ${script}/nr_gff.py \
-            -g  ${gene_description_file}
+        python ${script}/nr.py 
         if [[ $? -eq 0 ]]; then
             cd ${work_dir} || exit
             log INFO "nr 注释完成"
@@ -264,7 +262,12 @@ exec_gmt() {
 
 
 cp_files() {
-    mkdir ${gene_annotation_fs} ${funrich_def_fs} > /dev/null 2>&1
+    if [[ ! -d ${gene_annotation_fs} ]] ; then
+        mkdir ${gene_annotation_fs}
+    fi
+    if [[ ! -d ${funrich_def_fs} ]] ; then
+        mkdir ${funrich_def_fs}
+    fi
     mycp ${prep_fs}/nr/*def.txt ${gene_annotation_fs}
     mycp ${prep_fs}/swiss/*_gene_def.txt ${gene_annotation_fs}
     mycp ${prep_fs}/kegg/*_gene_def.txt ${gene_annotation_fs}
