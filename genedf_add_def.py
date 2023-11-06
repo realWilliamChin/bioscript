@@ -78,12 +78,17 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
 
 def main():
     args = parse_input()
+    
+    try:
+        args.input_header = int(args.input_header)
+    except ValueError:
+        pass
 
     if type(args.input_header) == str:
         df = pd.read_csv(args.input, sep=args.input_sep)
     elif type(args.input_header) == int:
         df = pd.read_csv(args.input, sep=args.input_sep, header=None)
-        args.input_col = int(args.input_col)
+        args.input_col = args.input_header
     else:
         print('输入的 input_header 有误，请检查')
         exit(1)
