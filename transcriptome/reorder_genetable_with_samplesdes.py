@@ -31,10 +31,18 @@ def check_columns_name(lst, df_columns):
 def reindex(lst, file, replace_or_not):
     df = pd.read_csv(file, sep='\t', dtype=str)
     lst.insert(0, df.columns[0])
-    if replace_or_not:
-        df.reindex(columns=lst).to_csv(file, sep='\t', index=False)
+    df = df.reindex(columns=lst)
+    
+    if len(df.columns) == len(lst):
+        print('输入的 title list 和输出的表 title 数量匹配正确')
     else:
-        df.reindex(columns=lst).to_csv(file.replace('.txt', '_realign.txt'), sep='\t', index=False)
+        print('输入的 title list 和输出的表 title 数量不匹配，请检查')
+        exit(1)
+
+    if replace_or_not:
+        df.to_csv(file, sep='\t', index=False)
+    else:
+        df.to_csv(file.replace('.txt', '_realign.txt'), sep='\t', index=False)
 
 
 def main():
