@@ -24,12 +24,16 @@ def timelapse(fpkm_file, samples_file, output_name):
     fpkm_df = pd.read_csv(fpkm_file, sep="\t")
     samples_df = pd.read_csv(samples_file, sep="\t", usecols=[0, 1])
     samples_lst = samples_df['sample'].values.tolist()
+    group_lst = samples_df.copy().drop_duplicates(subset='group', keep='first')
+    group_lst = group_lst['group'].values.tolist()
+    
     # print(samples_lst)
     result_df = fpkm_df[['GeneID'] + samples_lst].copy()
     samples_df = samples_df.groupby('group')['sample'].apply(list).to_dict()
     for key, values in samples_df.items():
         result_df[key] = result_df[values].mean(axis=1)
     result_df.drop(columns=samples_lst, inplace=True)
+    result_df = result_df.reindex(columns=[result_df.columns[0],] + group_lst)
     result_df.to_csv(output_name, sep='\t', index=False)
 
 
