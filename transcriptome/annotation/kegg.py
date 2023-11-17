@@ -13,7 +13,7 @@ def parse_input():
     """
     parser = argparse.ArgumentParser(description='指定 keg 文件，对 keg 文件清理，处理拆分')
     parser.add_argument('-k', '--keg', type=str, help='指定 keg 文件，默认当前文件夹 keg 结尾的文件')
-    parser.add_argument('-t', '--type', type=str, required=True, choices=['plant', 'animal'],
+    parser.add_argument('-t', '--type', type=str, choices=['plant', 'animal'],
                         help='指定物种类型，植物=plant，动物=animal')
     parser.add_argument('-i', '--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
     args = parser.parse_args()
