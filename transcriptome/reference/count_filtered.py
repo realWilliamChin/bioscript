@@ -18,6 +18,10 @@ if gene_count_matrix_df['GeneID'].str.contains('|').mean() > 0.6:
     else:
         gene_count_matrix_df['GeneID'] = gene_count_matrix_df['GeneID'].str.split('|').str[0]
 
+if gene_count_matrix_df['GeneID'].str.contains('gene:').mean() > 0.6:
+    gene_count_matrix_df['GeneID'] = gene_count_matrix_df['GeneID'].str.split('gene:').str[1]
+
+
 gene_count_matrix_df.to_csv('gene_count_matrix.txt', sep='\t', index=False)
 
 
