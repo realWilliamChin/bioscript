@@ -4,3 +4,10 @@ examples/
 *.ipynb
 *.temp
 *.tmp
+*.rar
+*.bak
+*.zip
+*.Rhistory
+*.RData
+ceshi*/
+practice/git
