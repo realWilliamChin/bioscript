@@ -1,0 +1,37 @@
+GO:0000003_reproduction	11	biological_process
+GO:0002376_immune system process	79	biological_process
+GO:0007610_behavior	53	biological_process
+GO:0008152_metabolic process	660	biological_process
+GO:0009987_cellular process	2280	biological_process
+GO:0019740_nitrogen utilization	12	biological_process
+GO:0022414_reproductive process	539	biological_process
+GO:0022610_biological adhesion	65	biological_process
+GO:0023052_signaling	16	biological_process
+GO:0032501_multicellular organismal process	879	biological_process
+GO:0032502_developmental process	101	biological_process
+GO:0040007_growth	22	biological_process
+GO:0040011_locomotion	13	biological_process
+GO:0043473_pigmentation	1	biological_process
+GO:0044419_interspecies interaction between organisms	146	biological_process
+GO:0048511_rhythmic process	171	biological_process
+GO:0050896_response to stimulus	102	biological_process
+GO:0051179_localization	1	biological_process
+GO:0051703_intraspecies interaction between organisms	50	biological_process
+GO:0065007_biological regulation	4	biological_process
+GO:0098754_detoxification	25	biological_process
+GO:0032991_protein-containing complex	1344	cellular_component
+GO:0044217_other organism part	2	cellular_component
+GO:0044423_virion part	24	cellular_component
+GO:0110165_cellular anatomical entity	14161	cellular_component
+GO:0003824_catalytic activity	1076	molecular_function
+GO:0005198_structural molecule activity	671	molecular_function
+GO:0005215_transporter activity	382	molecular_function
+GO:0005488_binding	838	molecular_function
+GO:0016209_antioxidant activity	193	molecular_function
+GO:0038024_cargo receptor activity	3	molecular_function
+GO:0045182_translation regulator activity	8	molecular_function
+GO:0060089_molecular transducer activity	161	molecular_function
+GO:0098772_molecular function regulator	75	molecular_function
+GO:0140104_molecular carrier activity	14	molecular_function
+GO:0140110_transcription regulator activity	1526	molecular_function
+GO:0140299_small molecule sensor activity	75	molecular_function
