@@ -23,20 +23,24 @@ def parse_input():
     return args.parse_args()
 
 
-def nr(nr_blast_file, gene_basicinfo_file=None):
+def nr(nr_blast_file, gene_basicinfo_file):
     columns = ['qseqid', 'sseqid', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend','sstart','send','evalue','bitscore','stitle']
 
     data_frame = pd.read_csv(nr_blast_file, sep='\t', names=columns, dtype=str)
 
     data_frame = data_frame.sort_values(by=['qseqid', 'pident'], ascending=[True, False])
     data_frame = data_frame.drop_duplicates(subset=['qseqid'], keep='first')
+    data_frame.to_csv(nr_blast_file.replace('.blast', '_uniq.blast'))
     nr_gene_def_df = data_frame[['qseqid', 'sseqid', 'stitle']].copy()
     nr_gene_def_df.columns = ['GeneID', 'NCBI_ID', 'NR_Def']
     nr_gene_def_df['NR_Def'] = nr_gene_def_df['NR_Def'].str.split(n=1).str[1]
     print(f'注释上的基因数量是 {nr_gene_def_df.shape[0]} 个')
+    
     # 有参基因中没有注释上的 gene 的 biotype 类型，如果是无参不需要此步骤
-    if gene_basicinfo_file:
+    if gene_basicinfo_file and os.path.exists(gene_basicinfo_file):
         nr_gene_def_df = nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file)
+    else:
+        print('没有检测到 gene_basicinfo 文件，或文件输入有误，如没有输入 -b 参数，忽略此条消息')
         
     nr_gene_def_df.to_csv(nr_blast_file.replace('.blast', '_gene_def.txt'), sep='\t', index=False)
     
