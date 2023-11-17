@@ -1,0 +1,14 @@
+group	total	count
+Relapse_Group2_group4	103	0.2
+Relapse_Group2_group3	102	0.2
+Relapse_Group2_group6	84	0.16
+Relapse_Group2_group2	70	0.13
+Relapse_Group2_group5	96	0.18
+Relapse_Group2_group1	67	0.13
+Relief_Group_group3	766	0.18
+Relief_Group_group2	486	0.11
+Relief_Group_group1	746	0.17
+Relief_Group_group6	570	0.13
+Relief_Group_group7	667	0.15
+Relief_Group_group5	538	0.12
+Relief_Group_group4	547	0.13

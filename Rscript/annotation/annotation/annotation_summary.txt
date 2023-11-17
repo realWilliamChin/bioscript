@@ -1,0 +1,5 @@
+Database	Total	Annotated	Percentage
+KEGG	51513	10319	20%
+GO	51513	29024	56.3%
+NR	51513	40212	78.1%
+Swiss Protein	51513	30475	59.2%
