@@ -88,17 +88,16 @@ def main():
         df = pd.read_csv(args.input, sep=args.input_sep)
     elif type(args.input_header) == int:
         df = pd.read_csv(args.input, sep=args.input_sep, header=None)
-        args.input_col = args.input_header
     else:
         print('输入的 input_header 有误，请检查')
         exit(1)
     # source_key_col_name = str(df.columns[args.input_col])
-    df.rename(columns={args.input_col: 'GeneID'}, inplace=True)
+    df.rename(columns={args.input_header: 'GeneID'}, inplace=True)
     df['GeneID'] = df["GeneID"].astype(str)
     result_df = add_kns_def(df, args.kegg, args.nr, args.swiss, args.kns)
     
     if type(args.input_header) == str:
-        result_df = result_df.rename(columns={'GeneID': args.input_col})
+        result_df = result_df.rename(columns={'GeneID': args.input_header})
         result_df.to_csv(args.output, sep='\t', index=False)
     elif type(args.input_header) == int:
         result_df.to_csv(args.output, sep='\t', index=False, header=False)
