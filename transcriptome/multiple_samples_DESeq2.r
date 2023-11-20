@@ -169,7 +169,7 @@ dev.off()
 #as.data.frame(matrix(stat.deg,nrow=nrow(comp_info),ncol=4,byrow=T),colnames=c("Groups","Total_DEGs","UP"))
 #stat.deg
 colnames(stat.deg)=c("Groups","Total DEGs","Up regulated","Down regulated")
-write.table(stat.deg,file="DEG_summary.txt",sep="\t",quote=F,row.names=F)
+write.table(stat.deg,file=paste0("DEG_summary_",bs_pos,".txt"),sep="\t",quote=F,row.names=F)
 
 
 ##############################################################################################################
