@@ -14,26 +14,25 @@ def parse_input():
     parser.add_argument('-o', '--output', default='output.txt', help='生成的文件名，默认在当前文件夹下生成 output.txt')
     args = parser.parse_args()
     return args
-
-
-def check_columns_name(lst, df_columns):
+    
+    
+def reindex(lst, input_file, output_file):
+    df = pd.read_csv(input_file, sep='\t', dtype=str)
+    df_columns = df.columns.values[1:]
     error_lst = []
-    for i in df_columns:
-        if i == df_columns[0]:
-            continue
-        if i not in lst:
-            error_lst.append(i)
-    if error_lst:
-        message = f"{', '.join(error_lst)} 未包含，将忽略"
-        print(message)
     
+    # 合并检查和退出逻辑
+    if any(i not in df.columns[1:] for i in lst): 
+        print(f"数据表不包含此列：{', '.join(i for i in lst if i not in df.columns[1:])}")
+        exit(1)
+
+    # 合并打印错误列表逻辑
+    error_lst = [i for i in df_columns if i not in lst]
+    if error_lst: print(f"{', '.join(error_lst)} 未包含，将忽略")
+        
     
-def reindex(lst, file, output_file):
-    df = pd.read_csv(file, sep='\t', dtype=str)
-    lst.insert(0, df.columns[0])
-    df = df.reindex(columns=lst)
-    
-    if len(df.columns) == len(lst):
+    df = df.reindex(columns=[df.columns[0],] + lst)
+    if len(set(df.columns) - set(lst)) - 1 == 0:
         print('输入的 title list 和输出的表 title 数量匹配正确')
     else:
         print('输入的 title list 和输出的表 title 数量不匹配，请检查')
@@ -46,7 +45,6 @@ def main():
     args = parse_input()
     
     sample_arr = list(pd.read_csv(args.sample, sep='\t')['sample'])
-    check_columns_name(sample_arr, pd.read_csv(args.file, sep='\t').columns.values)
     reindex(sample_arr, args.file, args.output)
 
     print('\nDone!\n')
