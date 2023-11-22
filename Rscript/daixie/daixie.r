@@ -1,4 +1,4 @@
-setwd("C:/Users/Analysis/OneDrive/Work/zhiwusuo/01_Work/01_Ref/2023_10_16_小麦/代谢/02_代谢物定量图及数据")
+setwd("L:/work/05_daixie/2023_11_21_xuelaoshifaguolaide")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -135,19 +135,28 @@ reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.la
 write.table(reads_data_with_def, file="Metabolite_quantitation_VIP.txt", sep='\t', row.names = FALSE, col.names = TRUE, quote=FALSE)
 
 
-# 组间分析
+# 自动生成组间分析
 group_levels <- unique(sample_info$group)
 comparisons <- combn(group_levels, 2, simplify = FALSE)
 
+# 指定组间分析
+comp_info<-read.table("compare_info.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
+comprisons <- list()
+for(i in seq_along(1:nrow(comp_info))){
+  comprisons <- append(comprisons, list(as.character(comp_info[i,])))
+}
 
 plot_types <- c('correlation', 'outlier', 'overview', 'permutation', 
                 'predict-train', 'x-loading', 'x-score', 
                 'x-variance', 'xy-score')
 
 
+
 dir.create('组间分析')
 
 deg_data <- data.frame(group = character(0), All=numeric(0), Up = numeric(0), Down = numeric(0))
+
+# 循环中注意可能需要修改 corssvalI 值
 for (i in seq_along(comparisons)) {
   
   key_name <- paste(comparisons[[i]], collapse = "_vs_")
@@ -203,7 +212,7 @@ for (i in seq_along(comparisons)) {
   
   baseMeanA <- rowMeans(current_expression_data[, groupA_cols])
   baseMeanB <- rowMeans(current_expression_data[, groupB_cols])
-  FoldChange <- ifelse(baseMeanA > 0, abs(baseMeanB / baseMeanA), 0)
+  FoldChange <- ifelse(baseMeanB > 0, abs(baseMeanA / baseMeanB), 0)
   
   # 定义一个函数进行成对t检验
   paired_t_test <- function(x, y) {
