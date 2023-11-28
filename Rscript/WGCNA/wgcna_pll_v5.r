@@ -1,10 +1,10 @@
-setwd("L:/work/01_Refenrence/2023_10_16_xiaomai/2023_11_16_WGCNA/WGCNA_7")
+setwd("L:/work/01_Refenrence/2023_10_16_xiaomai/2023_11_16_WGCNA/WGCNA_8")
 library(DESeq2)
 library(WGCNA)
 library(genefilter)
 library(tidyr)
 library(tidyverse)
-allowWGCNAThreads(10)
+allowWGCNAThreads(8)
 options(stringsAsFactors = FALSE)
 getwd()
 rm(list=ls())
@@ -253,11 +253,11 @@ METree = hclust(as.dist(MEDiss), method = "average");
 #sizeGrWindow(7, 6)
 #png("Clustering_of_module_eigengenes1.png",width = 800,height = 600)
 
-png("Analysis_results/Clustering_of_module_eigengenes1_0.37.png",width = 800,height = 600)
+png("Analysis_results/Clustering_of_module_eigengenes1_0.26.png",width = 800,height = 600)
 plot(METree, main = "Clustering of module eigengenes",     xlab = "", sub = "")
 #######################这个地方需要手动选择理想的cutoff,这个值越大，模块数越少##################################
 ##################MEDissThres值的选择根据Clustering_of_module_eigengenes1.png图来决定，值越大，模块数越少
-MEDissThres = 0.37
+MEDissThres = 0.26
 
 # Plot the cut line into the dendrogram
 abline(h=MEDissThres, col = "red")
@@ -265,9 +265,8 @@ dev.off()
 
 
 
-
 # Call an automatic merging function MEDissThres=0.1
-MEDissThres = 0.37
+MEDissThres = 0.26
 merge = mergeCloseModules(datExpr, dynamicColors, cutHeight = MEDissThres, verbose = 3)
 str(merge)
 # The merged module colors
@@ -423,11 +422,12 @@ for (sub_edge_file in edge_files) {
 }
 #########################################################################################################
 #head(node_freq)
-dir.create("Color_Module")
-all_gene_kme<-read.table("All_Gene_KME.txt",sep="\t",header=F,stringsAsFactors = F,check.names = F,quote='')
+color_module_dir<-"Analysis_color_module_barplot/Color_module"
+dir.create(color_module_dir)
+all_gene_kme<-read.table("Cytoscape_all/All_Gene_KME.txt",sep="\t",header=F,stringsAsFactors = F,check.names = F,quote='')
 colors <- unique(all_gene_kme$V3)
 for (each_color in colors) {
-  color_module_file_name = paste0("Color_Module/gene_", each_color, '.txt')
+  color_module_file_name = paste0(color_module_dir, "/gene_", each_color, '.txt')
   color_module_tmp <- all_gene_kme[all_gene_kme$V3==each_color,]
   write.table(color_module_tmp,file = color_module_file_name,row.names=F,quote=F,col.names=F,sep="\t")
   
