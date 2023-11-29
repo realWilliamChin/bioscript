@@ -1,4 +1,4 @@
-setwd("L:/work/05_daixie/2023_11_21_xuelaoshifaguolaide")
+setwd("C:/Users/Analysis/OneDrive/Work/zhiwusuo/01_Work/04_daixie/2023_01_27_大鼠/2023_11_28_蛋白分析/shizhuofei")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -15,13 +15,16 @@ rm(list=ls())
 # 读取文件
 reads_data<-read.table("All_sample_data.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F)
 sample_info<-read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
+# 如果需要合并定义则读取单独定义文件，没有则跳过
+definition_df<-read.table("def.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F,quote="")
+definition_df$Metabolite <- rownames(definition_df)
 
 fpkm<-as.data.frame(t(apply(reads_data,1,function(x){(x-mean(x))/(sd(x)**0.5)})))
 
 
 # heatmap
 # 化合物多于 100 的 ，show_rownames=F
-all.heatmap<-pheatmap(fpkm,scale="row",cluster_cols=F,show_rownames=T)
+all.heatmap<-pheatmap(fpkm,scale="row",cluster_cols=F,show_rownames=F)
 ggsave("All_metabolites_heatmap.jpeg",all.heatmap,dpi=300,width=10,height=10,limitsize=FALSE)
 
 
@@ -30,7 +33,10 @@ reads_data<-na.omit(reads_data)
 reads_data<-reads_data + 0.000000001
 fpkm.m<-as.matrix(fpkm)
 fpkm.cor<-cor(fpkm.m)
-write.table(fpkm.cor,"Metabolite_correlation.txt",sep="\t",quote=F)
+correlation_df<-as.data.frame(fpkm.cor)
+correlation_df$ID<-rownames(correlation_df)
+correlation_df <- correlation_df[, c("ID", setdiff(names(correlation_df), "ID"))]
+write.table(correlation_df,"Metabolite_correlation.txt",sep="\t",quote=F,row.names=F)
 min(fpkm.cor)
 resfactor = 5
 png("Metabolite_correlation_graph.png",res=72*resfactor,height=1200*resfactor,width=1200*resfactor)
@@ -80,11 +86,12 @@ colnames(scree_df)[1]="value"
 df<-data.frame(x=letters[1:6],y=seq(10,60,10))
 # 创建 scree plot 图
 scree_plot <- ggplot(scree_df, aes(x = comp, y = value)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
+#  geom_bar(stat = "identity", fill = "steelblue") +
   labs(x = "Principal Component", y = "Explained Variance") +
   ggtitle("Scree Plot") +
   theme_minimal()+
-  geom_line(aes(group = 1), color = "red")
+  geom_line(aes(group = 1), color = "red")+
+  geom_point()
 
 ggsave('多组分析/Metabolite_quantitation_scree_plot.jpeg', scree_plot)
 
@@ -131,8 +138,12 @@ reads_data_with_def <- cbind(reads_data, VIP = df.vip$vip_values)
 reads_data_with_def$Metabolite <- rownames(reads_data_with_def)
 reads_data_with_def <- reads_data_with_def[, c("Metabolite", setdiff(names(reads_data_with_def), "Metabolite"))]
 
+if (exists("definition_df")) {
+  reads_data_with_def<-merge(reads_data_with_def, definition_df, by = "Metabolite", all.x=TRUE)
+}
 reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.last = TRUE), ]
-write.table(reads_data_with_def, file="Metabolite_quantitation_VIP.txt", sep='\t', row.names = FALSE, col.names = TRUE, quote=FALSE)
+
+write.table(reads_data_with_def, file="多组分析/Metabolite_quantitation_VIP.txt", sep='\t', row.names = FALSE, col.names = TRUE, quote=FALSE)
 
 
 # 自动生成组间分析
@@ -141,9 +152,9 @@ comparisons <- combn(group_levels, 2, simplify = FALSE)
 
 # 指定组间分析
 comp_info<-read.table("compare_info.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
-comprisons <- list()
+comparisons <- list()
 for(i in seq_along(1:nrow(comp_info))){
-  comprisons <- append(comprisons, list(as.character(comp_info[i,])))
+  comparisons <- append(comparisons, list(as.character(comp_info[i,])))
 }
 
 plot_types <- c('correlation', 'outlier', 'overview', 'permutation', 
@@ -190,7 +201,7 @@ for (i in seq_along(comparisons)) {
   transposed_expression_data <- t(current_expression_fpkm_data)
   
   opls_model <- try(
-    # crossvalI 默认是 7, crossvalI 需要大于等于两组样本的数量
+    # crossvalI 默认是 7, crossvalI 需要小于等于两组样本的数量
     opls(x = transposed_expression_data, y = y_factor, predI = 1, orthoI = 2, crossvalI = 5),
     silent = TRUE
     )
@@ -209,7 +220,6 @@ for (i in seq_along(comparisons)) {
   })
   
   # 计算FoldChange
-  
   baseMeanA <- rowMeans(current_expression_data[, groupA_cols])
   baseMeanB <- rowMeans(current_expression_data[, groupB_cols])
   FoldChange <- ifelse(baseMeanB > 0, abs(baseMeanA / baseMeanB), 0)
@@ -250,13 +260,28 @@ for (i in seq_along(comparisons)) {
   current_expression_data_def <- current_expression_data_def[order(current_expression_data_def$pvalues, na.last = TRUE), ]
   current_expression_data_def$Metabolite <- rownames(current_expression_data_def)
   current_expression_data_def <- current_expression_data_def[, c("Metabolite", setdiff(names(current_expression_data_def), "Metabolite"))]
-  
   current_expression_data_def$padj <- p.adjust(current_expression_data_def$pvalues, "BH")
+  
+  if (exists("definition_df")) {
+    current_expression_data_def<-merge(current_expression_data_def, definition_df, by = "Metabolite", all.x=TRUE)
+  }
   
   current_expression_data_def <- current_expression_data_def[order(-current_expression_data_def$VIP, na.last = TRUE), ]
   current_expression_data_def[is.na(current_expression_data_def)] <- 0
+  
   # 将更新后的数据框保存为文本文件
   write.table(current_expression_data_def, file = paste0('组间分析/', key_name, '/', key_name, '_VIP.txt'), sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+  
+  # class 分组计数
+  class_count <- ""
+  if (exists("definition_df")) {
+    greater_than_one_data_def <- current_expression_data_def[current_expression_data_def$VIP > 1,]
+    class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$class), length)
+    class_count <- class_count[class_count$Group.1 != '',]
+    class_count <- class_count[order(-class_count$x),]
+    write.table(class_count, file=paste0('组间分析/',key_name,'/Significant_compound_count_by_class.txt'),
+                sep="\t", row.names=FALSE,col.names=FALSE, quote = FALSE)
+  }
   
   # 计算 deg
   deg_df <- current_expression_data_def[current_expression_data_def$VIP > 1,]
@@ -281,4 +306,5 @@ for (i in seq_along(comparisons)) {
   }
 }
 write.table(deg_data, file='DEG_summary.txt', sep='\t', row.names=FALSE, col.names=TRUE, quote=FALSE)
+
 
