@@ -129,7 +129,10 @@ fpkm.cor<-cor(fpkm.m)
 #cor.p<-corrplot(res, method = "number", col = RColorBrewer::brewer.pal(n=11, name = "RdYlGn"),title = "")
 #?corrplot
 #?ggcorrplot
-write.table(fpkm.cor,"sample_cor.txt",sep="\t",quote=F)
+correlation_df<-as.data.frame(fpkm.cor)
+correlation_df$ID<-rownames(correlation_df)
+correlation_df <- correlation_df[, c("ID", setdiff(names(correlation_df), "ID"))]
+write.table(correlation_df,"Metabolite_correlation.txt",sep="\t",quote=F,row.names=F)
 #ggsave("correlation.jpeg",cor.p,dpi=300)
 min(fpkm.cor)
 #fpkm.m<-as.data.frame(fpkm)
