@@ -28,9 +28,8 @@ def detect_gff_type(gff_file):
         elif embl_type_count == 0 and ncbi_type_count > 0:
             return "ncbi"
         else:
-            print(embl_type_count, ncbi_type_count)
-            print("nr_gff.py 注释检测 gff 类型失败！")
-            exit(1)
+            print("nr_gff.py 注释检测 gff 类型失败！将尝试对 gff 进行解析")
+            return "other"
 
 
 def get_all_id(gene_basicinfo_file, key_name):
@@ -54,11 +53,10 @@ def get_basic_info(gff_file, output_file, gff_type):
                 ncbi_chromosome = re.search('chromosome=(.*?);', line).group(1)
             if line.startswith('#'):
                 continue
-            if not 'ID=gene' in line:
+            if 'gene' not in line.split('\t')[2].lower():
                 continue
             
             columns = line.split('\t')
-            
             # 根据 embl 和 ncbi 分形式提取
             if gff_type == 'embl':
                 chromosome = columns[0]
@@ -68,6 +66,14 @@ def get_basic_info(gff_file, output_file, gff_type):
                 chromosome = ncbi_chromosome
                 gene_id = re.search('GeneID:(.*?);', line).group(1).split(',')[0]
                 biotype = line.split('gene_biotype=')[1].strip().split(';')[0]
+            elif gff_type == 'other':
+                chromosome = columns[0]
+                try:
+                    biotype = re.search('biotype=(.*?);', line).group(1)
+                except AttributeError:
+                    biotype = 'NA'
+                gene_id = line.split("\t")[8].split(';')[0].split('=')[1]
+                
             
             start_pos = int(columns[3])
             end_pos = int(columns[4])
@@ -87,13 +93,15 @@ def main():
 
     if args.gfftype == 'auto_detect':
         args.gfftype = detect_gff_type(gff_file)
-        
+
     gene_basicinfo_name = args.prefix + '_gene_basicinfo.txt'
     
     # 生成 gene_basicinfo 文件
     get_basic_info(gff_file, gene_basicinfo_name, args.gfftype)
     # 生成 gene_id 的文件
     get_all_id(gene_basicinfo_name, args.prefix)
+    
+    print('Done!')
 
 
 if __name__ == '__main__':
