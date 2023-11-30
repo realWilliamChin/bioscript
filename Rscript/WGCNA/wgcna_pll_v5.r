@@ -253,11 +253,11 @@ METree = hclust(as.dist(MEDiss), method = "average");
 #sizeGrWindow(7, 6)
 #png("Clustering_of_module_eigengenes1.png",width = 800,height = 600)
 
-png("Analysis_results/Clustering_of_module_eigengenes1_0.26.png",width = 800,height = 600)
+png("Analysis_results/Clustering_of_module_eigengenes1_0.35.png",width = 800,height = 600)
 plot(METree, main = "Clustering of module eigengenes",     xlab = "", sub = "")
 #######################这个地方需要手动选择理想的cutoff,这个值越大，模块数越少##################################
 ##################MEDissThres值的选择根据Clustering_of_module_eigengenes1.png图来决定，值越大，模块数越少
-MEDissThres = 0.26
+MEDissThres = 0.35
 
 # Plot the cut line into the dendrogram
 abline(h=MEDissThres, col = "red")
@@ -344,14 +344,15 @@ for(module in substring(colnames(MEs),3)){
   write.table(datKME,quote = F,row.names = T,append = T,file = "Cytoscape_all/All_Gene_KME.txt",col.names = F,sep="\t")
 }
 
+text_space_for_barplot <- nchar(rownames(datExpr)[nrow(datExpr)])
 for(module in substring(colnames(MEs),3)){
   #if(module == "grey") next
   ME=MEs[,paste("ME",module,sep="")]
-  png(paste("Analysis_color_module_barplot/","wgcna.", module, ".express.barplot.png", sep=""),height = 700,width = 900)
+  png(paste("Analysis_color_module_barplot/","wgcna.", module, ".express.barplot.png", sep=""),height = 1000,width = 1400)
   par(mfrow=c(2,1),mar=c(0.3,5.5,3,2))
   plotMat(t(scale(datExpr[,moduleColors==module])),rlabels=F,main=module,cex.main=2,clabels=F)
   names(ME)<-rownames(MEs)
-  par(mar=c(5,4.2,0,0.7))
+  par(mar=c(text_space_for_barplot,4.2,0,0.7))
   barplot(ME,col=module,main="",cex.main=2,ylab="eigengene expression",xlab="",las=2)
   dev.off()
 }
