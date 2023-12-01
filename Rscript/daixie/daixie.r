@@ -95,6 +95,7 @@ colnames(scree_df)[1]="value"
 
 df<-data.frame(x=letters[1:6],y=seq(10,60,10))
 # 创建 scree plot 图
+scree_df$comp <- factor(scree_df$comp, levels=scree_df$comp)
 scree_plot <- ggplot(scree_df, aes(x = comp, y = value)) +
 #  geom_bar(stat = "identity", fill = "steelblue") +
   labs(x = "Principal Component", y = "Explained Variance") +
@@ -104,6 +105,11 @@ scree_plot <- ggplot(scree_df, aes(x = comp, y = value)) +
   geom_point()
 
 ggsave('多组分析/Metabolite_quantitation_scree_plot.jpeg', scree_plot, width = ncomp * 0.5, height = 4)
+
+comp_load_df <- as.data.frame(df_plsda$loadings$X)
+comp_load_df <- cbind(rownames(comp_load_df), comp_load_df)
+colnames(comp_load_df)[1] = "compound_name"
+write.table(comp_load_df, file="多组分析/pc_loading_value.txt", sep='\t', row.names=FALSE,col.names = TRUE,quote = FALSE)
 
 df <- unclass(df_plsda)
 
