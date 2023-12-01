@@ -1,4 +1,5 @@
-setwd("C:/Users/Analysis/OneDrive/Work/zhiwusuo/01_Work/04_daixie/2023_01_27_大鼠/2023_11_28_蛋白分析/shizhuofei")
+setwd("L:/script/Rscript/daixie/ceshi")
+setwd("C:/Users/Analysis/OneDrive/Work/zhiwusuo/01_Work/04_daixie/2023_11_30_毛头牛蒡/Metabolite_2")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -24,7 +25,7 @@ fpkm<-as.data.frame(t(apply(reads_data,1,function(x){(x-mean(x))/(sd(x)**0.5)}))
 
 # heatmap
 # 化合物多于 100 的 ，show_rownames=F
-all.heatmap<-pheatmap(fpkm,scale="row",cluster_cols=F,show_rownames=F)
+all.heatmap<-pheatmap(fpkm,scale="row",cluster_cols=F,show_rownames=T)
 ggsave("All_metabolites_heatmap.jpeg",all.heatmap,dpi=300,width=10,height=10,limitsize=FALSE)
 
 
@@ -76,7 +77,16 @@ fpkm_t<-t(fpkm)
 metabolites<-as.matrix(fpkm_t)
 groups=sample_info$group
 
-df_plsda <- plsda(fpkm_t, groups, ncomp = 4)
+# 如果代谢物的数量小于 10 用 4，10-20 用 6，20 以上用 10
+if (ncol(metabolites) < 10) {
+  ncomp = 4
+} else if (ncol(metabolites) < 20) {
+  ncomp = 6
+} else {
+  ncomp = 10
+}
+
+df_plsda <- plsda(fpkm_t, groups, ncomp = ncomp)
 
 # scree plot
 scree_df <- as.data.frame(df_plsda$prop_expl_var$X)
@@ -93,7 +103,7 @@ scree_plot <- ggplot(scree_df, aes(x = comp, y = value)) +
   geom_line(aes(group = 1), color = "red")+
   geom_point()
 
-ggsave('多组分析/Metabolite_quantitation_scree_plot.jpeg', scree_plot)
+ggsave('多组分析/Metabolite_quantitation_scree_plot.jpeg', scree_plot, width = ncomp * 0.5, height = 4)
 
 df <- unclass(df_plsda)
 
@@ -138,9 +148,17 @@ reads_data_with_def <- cbind(reads_data, VIP = df.vip$vip_values)
 reads_data_with_def$Metabolite <- rownames(reads_data_with_def)
 reads_data_with_def <- reads_data_with_def[, c("Metabolite", setdiff(names(reads_data_with_def), "Metabolite"))]
 
+class_count <- ""
 if (exists("definition_df")) {
   reads_data_with_def<-merge(reads_data_with_def, definition_df, by = "Metabolite", all.x=TRUE)
+  greater_than_one_data_def <- reads_data_with_def[reads_data_with_def$VIP > 1,]
+  class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$Class), length)
+  class_count <- class_count[class_count$Group.1 != '',]
+  class_count <- class_count[order(-class_count$x),]
+  write.table(class_count, file='多组分析/Significant_compound_count_by_class.txt',
+              sep="\t", row.names=FALSE,col.names=FALSE, quote = FALSE)
 }
+
 reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.last = TRUE), ]
 
 write.table(reads_data_with_def, file="多组分析/Metabolite_quantitation_VIP.txt", sep='\t', row.names = FALSE, col.names = TRUE, quote=FALSE)
@@ -276,7 +294,7 @@ for (i in seq_along(comparisons)) {
   class_count <- ""
   if (exists("definition_df")) {
     greater_than_one_data_def <- current_expression_data_def[current_expression_data_def$VIP > 1,]
-    class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$class), length)
+    class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$Class), length)
     class_count <- class_count[class_count$Group.1 != '',]
     class_count <- class_count[order(-class_count$x),]
     write.table(class_count, file=paste0('组间分析/',key_name,'/Significant_compound_count_by_class.txt'),
@@ -305,6 +323,6 @@ for (i in seq_along(comparisons)) {
     }
   }
 }
-write.table(deg_data, file='DEG_summary.txt', sep='\t', row.names=FALSE, col.names=TRUE, quote=FALSE)
+write.table(deg_data, file='组间分析/DEG_summary.txt', sep='\t', row.names=FALSE, col.names=TRUE, quote=FALSE)
 
 
