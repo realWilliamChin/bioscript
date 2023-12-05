@@ -199,7 +199,7 @@ exec_kegg() {
 }
 
 merge_kns_def() {
-    if [[ ! -f ${prep_fs}/${specie}_all_gene_id.txt ]]; then
+    if [[ ! -f ${reference_genome_fs}/${specie}_all_gene_id.txt ]]; then
         log ERROR "未找到 ${prep_fs}/${specie}_all_gene_id.txt 文件，无法进行合并"
         return 1
     fi
@@ -207,7 +207,7 @@ merge_kns_def() {
     nr_gene_def=$(realpath -s ${prep_fs}/nr/*nr_gene_def.txt)
     swiss_gene_def=$(realpath -s ${prep_fs}/swiss/*swiss_gene_def.txt)
     log INFO "正在合并 kegg swiss nr 基因注释，使用${kegg_gene_def}, ${nr_gene_def}, ${swiss_gene_def}"
-    python ${script}/genedf_add_df.py \
+    python ${script}/kns_def_merge.py \
         -k ${kegg_gene_def} \
         -n ${nr_gene_def} \
         -s ${swiss_gene_def} \
@@ -217,7 +217,7 @@ merge_kns_def() {
         log ERROR "${prep_fs}/${specie}_kns_gene_def.txt 合并失败"
         return 1
     else
-        log INFO "合并成功，${prep_fs}/${specie}_kegg_gene_def.txt"
+        log INFO "合并成功，${prep_fs}/${specie}_kns_gene_def.txt"
         return 0
     fi
 }
