@@ -1,5 +1,5 @@
 setwd("L:/script/Rscript/daixie/ceshi")
-setwd("C:/Users/Analysis/OneDrive/Work/zhiwusuo/01_Work/04_daixie/2023_11_30_毛头牛蒡/Metabolite_2")
+setwd("C:/Users/Analysis/OneDrive/Work/zhiwusuo/01_Work/00_NoRef/2023_07_13_duoniansheng_niubang_redo/2023_11_29/07_牛蒡植物激素结果/daixie")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -25,7 +25,11 @@ fpkm<-as.data.frame(t(apply(reads_data,1,function(x){(x-mean(x))/(sd(x)**0.5)}))
 
 # heatmap
 # 化合物多于 100 的 ，show_rownames=F
-all.heatmap<-pheatmap(fpkm,scale="row",cluster_cols=F,show_rownames=T)
+if (nrow(reads_data) > 100) {
+  all.heatmap<-pheatmap(fpkm,scale="row",cluster_cols=F,show_rownames=F)
+} else {
+  all.heatmap<-pheatmap(fpkm,scale="row",cluster_cols=F,show_rownames=T)
+}
 ggsave("All_metabolites_heatmap.jpeg",all.heatmap,dpi=300,width=10,height=10,limitsize=FALSE)
 
 
@@ -39,11 +43,14 @@ correlation_df$ID<-rownames(correlation_df)
 correlation_df <- correlation_df[, c("ID", setdiff(names(correlation_df), "ID"))]
 write.table(correlation_df,"Metabolite_correlation.txt",sep="\t",quote=F,row.names=F)
 min(fpkm.cor)
-resfactor = 5
-png("Metabolite_correlation_graph.png",res=72*resfactor,height=1200*resfactor,width=1200*resfactor)
+# 根据样本数量，设置图的大小
+sample_num <- ncol(fpkm.cor)
+correlation_plot_width <- 5 + sample_num * 0.5
+correlation_plot_height <- 4 + sample_num * 0.5
+png("Metabolite_correlation_graph.png", width = correlation_plot_width, height = correlation_plot_height, units = 'in', res = 300)
 corrplot(fpkm.cor,is.corr = F,col= rev(COL2('PiYG')),method="color",addCoef.col = 'black',tl.col="black",col.lim=c(min(fpkm.cor)-0.01,max(fpkm.cor)),cl.ratio=0.1)
 dev.off()
-pdf("Metabolite_correlation_graph.pdf",width = 15,height = 15)
+pdf("Metabolite_correlation_graph.pdf", width = correlation_plot_width, height = correlation_plot_height)
 corrplot(fpkm.cor,is.corr = F,col= rev(COL2('PiYG')),method="color",addCoef.col = 'black',tl.col="black",col.lim=c(min(fpkm.cor)-0.01,max(fpkm.cor)),cl.ratio=0.1)
 dev.off()
 
@@ -72,10 +79,22 @@ ggsave("Metabolite_PCA_analysis.jpeg",p,dpi=300,width=10,height=10)
 
 
 # 代谢的图
+
 dir.create("多组分析")
+# >>>>>> 多组分析中有多个组的
+select_sample_info <- read.table("multigroup4_samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
+select_fpkm <- fpkm[, select_sample_info$sample, drop = FALSE]
+
+fpkm_t<-t(select_fpkm)
+groups=select_sample_info$group
+select_reads_data <- reads_data[, select_sample_info$sample, drop = FALSE]
+# <<<<<<
+
+# 选择上面不需要执行这两句
 fpkm_t<-t(fpkm)
-metabolites<-as.matrix(fpkm_t)
 groups=sample_info$group
+
+metabolites<-as.matrix(fpkm_t)
 
 # 如果代谢物的数量小于 10 用 4，10-20 用 6，20 以上用 10
 if (ncol(metabolites) < 10) {
@@ -104,7 +123,7 @@ scree_plot <- ggplot(scree_df, aes(x = comp, y = value)) +
   geom_line(aes(group = 1), color = "red")+
   geom_point()
 
-ggsave('多组分析/Metabolite_quantitation_scree_plot.jpeg', scree_plot, width = ncomp * 0.5, height = 4)
+ggsave('多组分析/Metabolite_quantitation_scree_plot.jpeg', scree_plot, width = ncomp * 0.7, height = 4)
 
 comp_load_df <- as.data.frame(df_plsda$loadings$X)
 comp_load_df <- cbind(rownames(comp_load_df), comp_load_df)
@@ -114,7 +133,8 @@ write.table(comp_load_df, file="多组分析/pc_loading_value.txt", sep='\t', ro
 df <- unclass(df_plsda)
 
 df1 = as.data.frame(df$variates$X)
-df1$group = sample_info$group
+# df1$group = sample_info$group
+df1$group = groups
 df1$samples = rownames(df1)
 
 explain = df$prop_expl_var$X
@@ -129,7 +149,7 @@ p1 <- ggplot(df1, aes(x = comp1, y = comp2, color = group, shape = group)) +
   theme_bw() +
   geom_point(size = 1.8) +
   theme(panel.grid = element_blank()) +  # 设置高度
-  geom_text(aes(label = samples, y = comp2 + 0.4, x = comp1 + 0.5, vjust = 0), size = 3.5) +
+  geom_text(aes(label = samples, y = comp2 + 0.02, x = comp1 + 0.05, vjust = 0), size = 2) +
   labs(x = paste0("P1 (", x_lable * 100, "%)"), y = paste0("P2 (", y_lable * 100, "%)")) +
   stat_ellipse(data = df1, geom = "polygon", level = 0.95,
                linetype = 2, linewidth = 0.5, aes(fill = group),
@@ -149,11 +169,16 @@ ggsave("多组分析/Multigroup_PCA_Distribution_Graph.jpeg", p1, width = plot_w
 plsda_model <- opls(x = metabolites, y = groups, predI = 1)
 vip_values <- plsda_model@vipVn
 df.vip<-as.data.frame(vip_values)
+
+# 整个多组
 reads_data_with_def <- cbind(reads_data, VIP = df.vip$vip_values)
+# 多个多组
+reads_data_with_def <- cbind(select_reads_data, VIP = df.vip$vip_values)
 
 reads_data_with_def$Metabolite <- rownames(reads_data_with_def)
 reads_data_with_def <- reads_data_with_def[, c("Metabolite", setdiff(names(reads_data_with_def), "Metabolite"))]
 
+# 没有定义跳过
 class_count <- ""
 if (exists("definition_df")) {
   reads_data_with_def<-merge(reads_data_with_def, definition_df, by = "Metabolite", all.x=TRUE)
