@@ -17,6 +17,12 @@ bs_pos <- as.numeric(args[1])
 bs_pos
 #bs_pos<-2
 bs_neg <- -bs_pos
+
+dir.create("Analysis")
+dir.create("Analysis/Expression_data")
+dir.create("Analysis/Expression_data_graphs")
+dir.create("Expression_data_evaluation")
+
 read.table("fpkm_matrix_filtered.txt",sep="\t",header=T,row.names=1,check.names=F)->fpkm
 
 all_fpkm<-fpkm[rowSums(fpkm)>0,]
@@ -37,7 +43,7 @@ if (nrow(all_fpkm) > 65535) {
   all.heatmap <- pheatmap(all_fpkm, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
 }
 
-ggsave("all_gene_heatmap.jpeg",all.heatmap,dpi=300,width=10,height=10)
+ggsave("Expression_data_evaluation/all_gene_heatmap.jpeg",all.heatmap,dpi=300,width=10,height=10)
 
 sample_info<-read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
 #sample_info[sample_info$group=="CK",]
@@ -52,6 +58,7 @@ i<-''
 total.deg<-''
 stat.deg<-data.frame()
 for(i in seq_along(1:nrow(comp_info))){
+  group_vs_group_name<-paste(comp_info[i,1],comp_info[i,2],sep="_vs_")
   #print(i)
   data.treat<-reads_data[,sample_info[sample_info$group == comp_info[i,1],]$sample]
   data.control<-reads_data[,sample_info[sample_info$group == comp_info[i,2],]$sample]
@@ -77,8 +84,8 @@ for(i in seq_along(1:nrow(comp_info))){
   res = cbind(sampleA=comp_info[i,1], sampleB=comp_info[i,2], as.data.frame(res))
   res$padj[is.na(res$padj)]  <- 1
   res = as.data.frame(res[order(res$pvalue),])
-  outfile=paste(comp_info[i,1],"vs",comp_info[i,2],"DE","results",sep="_")
-  outfile.ma=paste(comp_info[i,1],"vs",comp_info[i,2],"DE","results","readCounts.matrix",sep="_")
+  outfile=paste0(group_vs_group_name,"_DE_results")
+  outfile.ma=paste0(group_vs_group_name,"_DE_results_readCounts.matrix")
   rnaseqMatrix<-cbind(as.data.frame(rownames(rnaseqMatrix)),rnaseqMatrix)
   colnames(rnaseqMatrix)[1]<-"GeneID"
   write.table(rnaseqMatrix, file=outfile.ma, sep='	', quote=FALSE,row.names=F)
@@ -104,18 +111,18 @@ for(i in seq_along(1:nrow(comp_info))){
     scale_color_manual(values=c("green", "grey","red")) +
     geom_vline(xintercept=c(bs_neg,bs_pos),lty=4,col="black",lwd=0.8) +
     geom_hline(yintercept = -log10(0.05),lty=4,col="black",lwd=0.8)+theme_base()
-  outfile.volcano=paste(comp_info[i,1],"vs",comp_info[i,2],"volcano.jpeg",sep="_")
+  outfile.volcano=paste0("Analysis/Expression_data_graphs/",group_vs_group_name,"_volcano.jpeg")
   ggsave(outfile.volcano,p.volcano,dpi=300,width=10,height=10)
   tmp.deg<-as.character(rownames(volcano)[volcano$regulation=="Up" | volcano$regulation=="Down" ])
   fpkm_tmp<-na.omit(fpkm.deg[tmp.deg,])
   fpkm_tmp<-log2(fpkm_tmp[rowSums(fpkm_tmp)>0,]+1)
   p.tmpdeg.heatmap<-pheatmap(fpkm_tmp,scale="row",cluster_cols=F,show_rownames=F)
-  outfile.tmpdeg.heatmap=paste(comp_info[i,1],"vs",comp_info[i,2],"heatmap.jpeg",sep="_")
+  outfile.tmpdeg.heatmap=paste0("Analysis/Expression_data_graphs/",group_vs_group_name,"_heatmap.jpeg")
   ggsave(outfile.tmpdeg.heatmap,p.tmpdeg.heatmap,dpi=300,width=10,height=10)
-  outfile.Up_ID<-paste(comp_info[i,1],"vs",comp_info[i,2],"Up_ID.txt",sep="_")
+  outfile.Up_ID<-paste0("Analysis/", group_vs_group_name,"_Up_ID.txt")
   UP_ID.dt<-data.frame(GeneID=as.character(rownames(volcano)[volcano$regulation=="Up"]))
   write.table(UP_ID.dt, file=outfile.Up_ID, sep='	', quote=FALSE,row.names=F, col.names=FALSE)
-  outfile.Down_ID<-paste(comp_info[i,1],"vs",comp_info[i,2],"Down_ID.txt",sep="_")
+  outfile.Down_ID<-paste0("Analysis/",group_vs_group_name,"_Down_ID.txt")
   Down_ID.dt<-data.frame(GeneID=as.character(rownames(volcano)[volcano$regulation=="Down"]))
   write.table(Down_ID.dt, file=outfile.Down_ID, sep='	', quote=FALSE,row.names = F, col.names=FALSE)
 }
@@ -136,9 +143,9 @@ data.m[data.m[,2]>0,]->data.m
 p<-ggplot(data.m,aes(x=sample,y=log2(fpkm),fill=sample))+
   geom_boxplot()+theme_base()+ylab("log2(FPKM)")+xlab("Sample")+
   theme(axis.title.x=element_text(size=20),axis.title.y=element_text(size=20),axis.text.x=element_text(size=rel(1.5),angle=90,hjus=1,vjust=.5))
-ggsave(filename="fpkm_boxplot.jpeg",plot=p,height=10,width=16.8,dpi=300)
+ggsave(filename="Expression_data_evaluation/fpkm_boxplot.jpeg",plot=p,height=10,width=16.8,dpi=300)
 d<-ggplot(data.m,aes(x=log10(fpkm),col=sample))+geom_density(aes(fill=sample),colour=NA,alpha=.2)+geom_line(stat="density",size=1.5)+xlab("log2(FPKM)")+theme_base()+theme(axis.title.x=element_text(size=20),axis.title.y=element_text(size=20),axis.text.x=element_text(size=rel(3)),axis.text.y=element_text(size=rel(3)))
-ggsave(filename="fpkm_density.jpeg",plot=d,height=10,width=16.8,dpi=300)
+ggsave(filename="Expression_data_evaluation/fpkm_density.jpeg",plot=d,height=10,width=16.8,dpi=300)
 
 #install.packages("ggcorrplot")
 fpkm.m<-as.matrix(fpkm)
@@ -155,7 +162,7 @@ min(fpkm.cor)
 #fpkm.m<-as.data.frame(fpkm)
 #fpkm.cor<-cor(fpkm.m)
 resfactor = 5
-png("correlation.png",res=72*resfactor,height=1200*resfactor,width=1200*resfactor)
+png("Expression_data_evaluation/correlation.png",res=72*resfactor,height=1200*resfactor,width=1200*resfactor)
 corrplot(fpkm.cor,is.corr = F,col= rev(COL2('PiYG')),method="color",addCoef.col = 'black',tl.col="black",col.lim=c(min(fpkm.cor)-0.01,max(fpkm.cor)),cl.ratio=0.1)
 dev.off()
 
@@ -169,7 +176,7 @@ dev.off()
 #as.data.frame(matrix(stat.deg,nrow=nrow(comp_info),ncol=4,byrow=T),colnames=c("Groups","Total_DEGs","UP"))
 #stat.deg
 colnames(stat.deg)=c("Groups","Total DEGs","Up regulated","Down regulated")
-write.table(stat.deg,file=paste0("DEG_summary_",bs_pos,".txt"),sep="\t",quote=F,row.names=F)
+write.table(stat.deg,file="Analysis/DEG_summary.txt",sep="\t",quote=F,row.names=F)
 
 
 ##############################################################################################################
@@ -284,7 +291,7 @@ p<-p+geom_text_repel(data=pca_sample,aes(Dim.1, Dim.2, label=rownames(pca_sample
 library(plyr)
 cluster_border <- ddply(pca_sample, 'group', function(df) df[chull(df[[1]], df[[2]]), ])
 p<-p + geom_polygon(data = cluster_border, aes(color = group),fill=NA, show.legend = FALSE)
-ggsave("PCA.jpeg",p,dpi=300,width=10,height=10)
+ggsave("Expression_data_evaluation/PCA.jpeg",p,dpi=300,width=10,height=10)
 
 #????ͼ5
 #????????Ӱ
