@@ -17,16 +17,17 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='FASTA file formatter')
     parser.add_argument('-i', '--input', required=True, help='Input FASTA file')
     parser.add_argument('-o', '--output', required=True, help='Output FASTA file')
+    parser.add_argument('-p', '--prefix', default='.', help='')
     return parser.parse_args()
 
 
-def filter_duplicates(fasta_file):
+def filter_duplicates(fasta_file, prefix):
     sequences = {}
 
     # 读取 FASTA 文件，并将序列保存到字典中
     for record in SeqIO.parse(fasta_file, "fasta"):
         # sequence_id = record.id
-        sequence_id = record.id.rsplit('.', 1)[0]
+        sequence_id = record.id.rsplit(prefix, 1)[0]
         sequence = str(record.seq)
         length = len(sequence)
         
@@ -51,7 +52,7 @@ def write_sequences(output_file, sequences):
 
 def main():
     args = parse_arguments()
-    longest_sequences = filter_duplicates(args.input)
+    longest_sequences = filter_duplicates(args.input, args.prefix)
     write_sequences(args.output, longest_sequences)
 
 if __name__ == '__main__':
