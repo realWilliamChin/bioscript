@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 import argparse
+import numpy as np
 import pandas as pd
 import os
 from shutil import copyfile
@@ -15,12 +16,28 @@ gene_fpkm_matrix_df.rename(columns={"gene_id": "GeneID"}, inplace=True)
 
 # 如果 GeneID 中大部分包含 |，则取 | 前面的部分
 if gene_fpkm_matrix_df['GeneID'].str.contains('|').mean() > 0.6:
-    if gene_fpkm_matrix_df['GeneID'].str.contains('gene-LOC').mean() > 0.6:
-        gene_fpkm_matrix_df['GeneID'] = gene_fpkm_matrix_df['GeneID'].str.split('|').str[0].str.split('gene-LOC').str[1]
-    else:
-        gene_fpkm_matrix_df['GeneID'] = gene_fpkm_matrix_df['GeneID'].str.split('|').str[0]
+    if gene_fpkm_matrix_df['GeneID'].str.startswith('gene-').mean() > 0.6:
+        gene_fpkm_matrix_df['GeneID'] = np.where(
+            gene_fpkm_matrix_df['GeneID'].str.startswith('gene-'),
+            gene_fpkm_matrix_df['GeneID'].str.extract('gene-(\S+)|')[0],
+            gene_fpkm_matrix_df['GeneID']
+        )
+        gene_fpkm_matrix_df['GeneID'] = np.where(
+            gene_fpkm_matrix_df['GeneID'].str.startswith('LOC'),
+            gene_fpkm_matrix_df['GeneID'].str.replace('LOC', ''),
+            gene_fpkm_matrix_df['GeneID']
+        )
+    gene_fpkm_matrix_df['GeneID'] = np.where(
+        gene_fpkm_matrix_df['GeneID'].str.contains('|'),
+        gene_fpkm_matrix_df['GeneID'].str.split('|').str[0],
+        gene_fpkm_matrix_df['GeneID']
+    )
 if gene_fpkm_matrix_df['GeneID'].str.contains('gene:').mean() > 0.6:
-    gene_fpkm_matrix_df['GeneID'] = gene_fpkm_matrix_df['GeneID'].str.split('gene:').str[1]
+    gene_fpkm_matrix_df['GeneID'] = np.where(
+        gene_fpkm_matrix_df['GeneID'].str.contains('gene:'),
+        gene_fpkm_matrix_df['GeneID'].str.split('gene:').str[1],
+        gene_fpkm_matrix_df['GeneID']
+    )
 
 gene_fpkm_matrix_df.to_csv('gene_fpkm_matrix.txt', sep='\t', index=False)
 
