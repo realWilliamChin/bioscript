@@ -125,7 +125,7 @@ def upload_fasta_to_kegg(fasta_file, org_lst, eamil_address):
         'sec-ch-ua-mobile': '?0',
         'Origin': 'https://www.genome.jp',
         'Content-Type': f'multipart/form-data; boundary={boundary}',
-        'User-Agent': UserAgent().random,
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Sec-Fetch-Site': 'same-origin',
         'Sec-Fetch-Mode': 'navigate',
@@ -217,7 +217,7 @@ def upload_fasta_to_kegg(fasta_file, org_lst, eamil_address):
 def email_link_click(link):
     headers = {
         'Host': 'www.genome.jp',
-        'User-Agent': UserAgent().random,
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
     }
     max_retry = 0
     while max_retry <= 5:
