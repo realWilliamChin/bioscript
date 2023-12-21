@@ -50,7 +50,7 @@ def main():
     for up_down_id_file in os.listdir("Analysis"):
         up_down_id_file = os.path.join("Analysis", up_down_id_file)
         if up_down_id_file.endswith('Down_ID.txt') or up_down_id_file.endswith('Up_ID.txt'):
-            up_down_id_df = pd.read_csv(up_down_id_file, sep='\t', names=['GeneID'])
+            up_down_id_df = pd.read_csv(up_down_id_file, sep='\t', names=['GeneID'], dtype={"GeneID": str})
             result_df = add_kns_def(up_down_id_df, args.kegg, args.nr, args.swiss, args.kns)
             result_df.to_csv(up_down_id_file.replace('.txt', '_def.txt'), sep='\t', index=False)
 
