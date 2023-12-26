@@ -49,8 +49,22 @@ count.kegg$V3<-gsub("\\d+:","",count.kegg$V3,perl=TRUE)
 
 colnames(count.kegg)<-c("LevelB","LevelA","Count")
 colnames(count.kegg)
-kegg.p<-ggplot(count.kegg, aes(y = LevelB, x = Count, fill= LevelA))+geom_bar(stat="identity")+theme_base()+scale_y_discrete(limits=count.kegg$LevelB)
-ggsave("kegg_count.jpeg",kegg.p,dpi=300,width=15)
+n_levels <- length(unique(count.kegg$LevelB))
+
+# 设置图片的高度，可以根据需要调整乘数以获得合适的尺寸
+height <- n_levels * 0.2 # 例如，每个级别0.5英寸的高度
+
+# 绘制图表
+kegg.p <- ggplot(count.kegg, aes(y = LevelB, x = Count, fill= LevelA)) +
+          geom_bar(stat="identity") +
+          theme_base() +
+          scale_y_discrete(limits=count.kegg$LevelB)
+
+# 打印图表
+print(kegg.p)
+
+# 保存图表，使用动态计算的高度
+ggsave("kegg_count.jpeg", kegg.p, dpi=300, width=15, height=height)
 ##########GO stat and drawing pictures ############
 #data.go<-read.table("go_stat.txt",sep="\t",header=F,stringsAsFactors = F)
 #colnames(data.go)<-c("Term_name","Count","GO")
