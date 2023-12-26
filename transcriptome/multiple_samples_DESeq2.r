@@ -1,17 +1,20 @@
 #######################################################
 # version: 7.0.0
 #######################################################
+suppressPackageStartupMessages(library(ggthemes))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(pheatmap))
+suppressPackageStartupMessages(library(reshape2))
+suppressPackageStartupMessages(library(ggcorrplot))
+suppressPackageStartupMessages(library(corrplot))
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(edgeR))
+suppressPackageStartupMessages(library(FactoMineR))
+suppressPackageStartupMessages(library(ggrepel))
+suppressPackageStartupMessages(library(plyr))
 
-library(ggthemes)
-library(ggplot2)
-library(pheatmap)
-library(reshape2)
-library(ggcorrplot)
-library(corrplot)
 rm(list=ls())
 getwd()
-library(DESeq2)
-library(edgeR)
 args=commandArgs(T)
 bs_pos <- as.numeric(args[1])
 bs_pos
@@ -236,7 +239,7 @@ gene<-log2(gene+1)
 gene <- t(gene)
 
 #????ʹ?? FactoMineR ???еķ?????ʵ?? PCA ?????;???????
-library(FactoMineR)
+
 
 #?????л???????ֵ?? PCA ????
 gene.pca <- PCA(gene, ncp = 2, scale.unit = TRUE, graph = FALSE)
@@ -255,7 +258,6 @@ group <- read.delim('samples_described.txt', row.names = 2, sep = '\t', check.na
 group <- group[rownames(pca_sample), ]
 
 #ggplot2 ???ƶ?άɢ??ͼ
-library(ggplot2)
 p <- ggplot(data = pca_sample, aes(x = Dim.1, y = Dim.2)) +
   geom_point(aes(color = group), size = 5) +  #???????????????????????????????????????
   #scale_color_manual(values = c('orange', 'purple','blue','black')) +  #???????????????
@@ -267,7 +269,7 @@ p <- ggplot(data = pca_sample, aes(x = Dim.1, y = Dim.2)) +
 #????ͼ1
 #??ʶ???????ƣ?ʹ?? ggplot2 ????չ?? ggrepel ��????
 #?????????Ʊ?ǩ
-library(ggrepel)
+
 #pca_sample
 #group
 p<-p+geom_text_repel(data=pca_sample,aes(Dim.1, Dim.2, label=rownames(pca_sample)))
@@ -288,7 +290,7 @@ p<-p+geom_text_repel(data=pca_sample,aes(Dim.1, Dim.2, label=rownames(pca_sample
 #????ͼ4
 #??????��??ͬ?????????߽?????ʽ???????ڸ????????????? 3 ????????
 #??????????
-library(plyr)
+
 cluster_border <- ddply(pca_sample, 'group', function(df) df[chull(df[[1]], df[[2]]), ])
 p<-p + geom_polygon(data = cluster_border, aes(color = group),fill=NA, show.legend = FALSE)
 ggsave("Expression_data_evaluation/PCA.jpeg",p,dpi=300,width=10,height=10)
