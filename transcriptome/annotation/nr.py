@@ -30,7 +30,7 @@ def nr(nr_blast_file, gene_basicinfo_file):
 
     data_frame = data_frame.sort_values(by=['qseqid', 'pident'], ascending=[True, False])
     data_frame = data_frame.drop_duplicates(subset=['qseqid'], keep='first')
-    data_frame.to_csv(nr_blast_file.replace('.blast', '_uniq.blast'))
+    data_frame.to_csv(nr_blast_file.replace('.blast', '_uniq.blast'), sep='\t', index=False)
     nr_gene_def_df = data_frame[['qseqid', 'sseqid', 'stitle']].copy()
     nr_gene_def_df.columns = ['GeneID', 'NCBI_ID', 'NR_Def']
     nr_gene_def_df['NR_Def'] = nr_gene_def_df['NR_Def'].str.split(n=1).str[1]
