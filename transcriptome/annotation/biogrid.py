@@ -10,7 +10,7 @@ import argparse
 def parse_arguments():
     parser = argparse.ArgumentParser(description="biogrid, 使用 cds fasta 文件")
     parser.add_argument('-f', '--fasta', required=True, help='输入要比对的 cds_fasta 文件')
-    parser.add_argument('-d', '--database', choices=['plant', 'animal', 'fungus'],
+    parser.add_argument('-d', '--database', choices=['plant', 'animal', 'fungus', 'insect'],
                         help='输入比对的数据库')
     parser.add_argument('--custom-database', help='自定义数据库')
     parser.add_argument('-r', '--ref', help='自定义输入参考文件')
@@ -32,6 +32,10 @@ def parse_arguments():
         fungus_dir = os.path.join(biogrid_database, 'Fungus_Biogrid_Saccharomyces_cerevisiae')
         args.database = os.path.join(fungus_dir, '00_Database', 'Saccharomyces_cerevisiae')
         args.ref = os.path.join(fungus_dir, 'BIOGRID-Saccharomyces_cerevisiae_embl_2.txt')
+    elif args.database.lower() == 'insect':
+        drosaphila_dir = os.path.join(biogrid_database, 'Biogrid_Drosophila_melanogaster')
+        args.database = os.path.join(drosaphila_dir, '00_Database', 'Drosophila_melanogaster')
+        args.ref = os.path.join(drosaphila_dir, 'BIOGRID-Drosophila_melanogaster-embl.txt')
 
     return args
 
