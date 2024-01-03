@@ -13,8 +13,7 @@ def parse_input():
     """
     parser = argparse.ArgumentParser(description='指定 keg 文件，对 keg 文件清理，处理拆分')
     parser.add_argument('-k', '--keg', type=str, help='指定 keg 文件，默认当前文件夹 keg 结尾的文件')
-    parser.add_argument('-t', '--type', type=str, choices=['plant', 'animal'],
-                        help='指定物种类型，植物=plant，动物=animal')
+    parser.add_argument('-t', '--type', type=str, help='指定物种类型，植物=plant，动物=animal')
     parser.add_argument('-i', '--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
     args = parser.parse_args()
     if args.keg:
@@ -25,14 +24,21 @@ def parse_input():
     return keg_file, args.type, args.allid
 
 
-def process_keg():
-    parseinput = parse_input()
-    keg_file, specie_type, all_id_file = parseinput[0], parseinput[1], parseinput[2]
+def process_keg(input_f, output_f):
+    pass
+
+
+def main():
+    args = parse_input()
+    keg_file, specie_type, all_id_file = args[0], args[1], args[2]
     key_name = keg_file.replace('.keg', '')
     kegg_file = keg_file.replace('.keg','_KEGG_original.txt')
     # 初始处理 keg 文件
     command = 'perl /home/colddata/chen/03_transcript/annotation/kegg/kaas_parse_keg_file.pl -i {} -o {}'.format(keg_file, kegg_file)
     os.system(command)
+    
+    # 使用 python 处理 keg 文件
+    # process_keg(keg_file, kegg_file)
     
     with open(kegg_file,'r') as f1:
         kegg_clean_file = key_name + '_KEGG_clean.txt'
@@ -96,4 +102,4 @@ def process_keg():
     
     
 if __name__ == '__main__':
-    process_keg()
+    main()
