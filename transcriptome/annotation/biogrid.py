@@ -14,13 +14,16 @@ def parse_arguments():
                         help='输入比对的数据库')
     parser.add_argument('--custom-database', help='自定义数据库')
     parser.add_argument('-r', '--ref', help='自定义输入参考文件')
-    parser.add_argument('-c', '--cpu', help='输入线程数', default=32)
+    parser.add_argument('-c', '--cpu', help='输入线程数，默认 20 线程', default=20)
     parser.add_argument('-p', '--prefix', required=True, help='输入输出文件的前缀')
+    parser.add_argument('--biogrid', action='store_true', help='不进行 blast 直接生成 biogrid 结果文件')
     args = parser.parse_args()
     
     # 添加已做好的 biogrid 数据库
     biogrid_database = '/home/colddata/qinqiang/02_Biogrid'
-    if args.database.lower() == 'plant':
+    if not args.database:
+        pass
+    elif args.database.lower() == 'plant':
         plant_dir = os.path.join(biogrid_database, 'Plant_Biogrid_Arabidopsis_thalinan')
         args.database = os.path.join(plant_dir, '00_Database', 'Arabidopsis_thaliana')
         args.ref = os.path.join(plant_dir, 'BIOGRID-Arabidopsis_thaliana-embl.txt')
@@ -36,6 +39,12 @@ def parse_arguments():
         drosaphila_dir = os.path.join(biogrid_database, 'Biogrid_Drosophila_melanogaster')
         args.database = os.path.join(drosaphila_dir, '00_Database', 'Drosophila_melanogaster')
         args.ref = os.path.join(drosaphila_dir, 'BIOGRID-Drosophila_melanogaster-embl.txt')
+    elif args.database.lower() == 'mus':
+        mus_dir = os.path.join(biogrid_database, 'Biogrid_Mus_musculus')
+        args.database = os.path.join(mus_dir, '00_Database', 'Mus_musculus')
+        args.ref = os.path.join(mus_dir, 'BIOGRID-Mus_musculus-embl.txt')
+    else:
+        pass
 
     return args
 
@@ -133,6 +142,9 @@ def biogrid(in_blast_file, ref_file, out_file):
 
 def main():
     args = parse_arguments()
+    if args.biogrid:
+        biogrid(args.fasta, args.ref, 'Biogrid_PPI_relation_from_' + args.prefix + '.txt')
+        return
     # 比对
     blast_file = exec_blast(args.fasta, args.cpu, args.database, args.prefix)
     # 结果文件名
