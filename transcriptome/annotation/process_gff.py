@@ -11,9 +11,14 @@ def parse_input():
     argparser = argparse.ArgumentParser(description='处理一些 gff3 文件，生成 chromesome geneid startpos endpos strand')
     argparser.add_argument('-g', '--gff', help='gff3 file，默认是当前文件夹下的 gff3 或者 gff 文件')
     argparser.add_argument('-p', '--prefix', required=True, help='输出文件的前缀')
-    argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'auto_detect'], default='auto_detect',
+    argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'auto_detect', 'other'], default='auto_detect',
                            help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
+    argparser.add_argument('-r', '--re_pattern', default='gene-(.*?);', help='指定正则表达式，用来提取 geneid')
     args = argparser.parse_args()
+    
+    if args.gfftype == 'other':
+        if not args.re_pattern:
+            argparser.error('指定 other 类型时，必须指定 re_pattern')
     
     return args
 
@@ -39,7 +44,7 @@ def get_all_id(gene_basicinfo_file, key_name):
     os.system(command)
     
 
-def get_basic_info(gff_file, output_file, gff_type):
+def get_basic_info(gff_file, output_file, gff_type, re_pattern):
     # ncbi 的 chromosome
     ncbi_chromosome = None
     
@@ -66,13 +71,17 @@ def get_basic_info(gff_file, output_file, gff_type):
                 chromosome = ncbi_chromosome
                 gene_id = re.search('GeneID:(.*?);', line).group(1).split(',')[0]
                 biotype = line.split('gene_biotype=')[1].strip().split(';')[0]
-            elif gff_type == 'other':
+            else:
                 chromosome = columns[0]
                 try:
                     biotype = re.search('biotype=(.*?);', line).group(1)
                 except AttributeError:
                     biotype = 'NA'
-                gene_id = line.split("\t")[8].split(';')[0].split('=')[1]
+                try:
+                    gene_id = re.search(re_pattern, line).group(1).split(',')[0]
+                except Exception:
+                    print('GeneID not found, save to not_fount.txt')
+                    open('not_found.txt', 'a').write(line + '\n')
                 
             
             start_pos = int(columns[3])
@@ -97,7 +106,7 @@ def main():
     gene_basicinfo_name = args.prefix + '_gene_basicinfo.txt'
     
     # 生成 gene_basicinfo 文件
-    get_basic_info(gff_file, gene_basicinfo_name, args.gfftype)
+    get_basic_info(gff_file, gene_basicinfo_name, args.gfftype, args.re_pattern)
     # 生成 gene_id 的文件
     get_all_id(gene_basicinfo_name, args.prefix)
     
