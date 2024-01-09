@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 # Created Time  : 2023/5/29 19:43
 # Author        : WilliamGoGo
@@ -50,6 +51,8 @@ def main():
         result_df.to_csv(args.output, sep='\t', index=False)
     else:
         result_df.to_csv('fpkm_and_reads_matrix_filtered_data_def.txt', sep='\t', index=False)
+        
+    print('\nDone!\n')
 
 
 if __name__ == '__main__':
