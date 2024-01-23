@@ -11,9 +11,9 @@ def parse_input():
     argparser = argparse.ArgumentParser(description='处理一些 gff3 文件，生成 chromesome geneid startpos endpos strand')
     argparser.add_argument('-g', '--gff', help='gff3 file，默认是当前文件夹下的 gff3 或者 gff 文件')
     argparser.add_argument('-p', '--prefix', required=True, help='输出文件的前缀')
-    argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'auto_detect', 'other'], default='auto_detect',
+    argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'other'],
                            help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
-    argparser.add_argument('-r', '--re_pattern', default='gene-(.*?);', help='指定正则表达式，用来提取 geneid')
+    argparser.add_argument('--re_pattern', default='gene-(.*?);', help='指定正则表达式，用来提取 geneid')
     args = argparser.parse_args()
     
     if args.gfftype == 'other':
@@ -65,12 +65,24 @@ def get_basic_info(gff_file, output_file, gff_type, re_pattern):
             # 根据 embl 和 ncbi 分形式提取
             if gff_type == 'embl':
                 chromosome = columns[0]
-                gene_id = re.search('ID=gene:(.*?);', line).group(1)
-                biotype = re.search('biotype=(.*?);', line).group(1)
+                try:
+                    gene_id = re.search('ID=gene:(.*?);', line).group(1)
+                except Exception:
+                    continue
+                try:
+                    biotype = re.search('biotype=(.*?);', line).group(1)
+                except Exception:
+                    biotype = 'NA'
             elif gff_type == 'ncbi':
                 chromosome = ncbi_chromosome
-                gene_id = re.search('GeneID:(.*?);', line).group(1).split(',')[0]
-                biotype = line.split('gene_biotype=')[1].strip().split(';')[0]
+                try:
+                    gene_id = re.search('GeneID:(.*?);', line).group(1).split(',')[0]
+                except Exception:
+                    continue
+                try:
+                    biotype = line.split('gene_biotype=')[1].strip().split(';')[0]
+                except Exception:
+                    biotype = 'NA'
             else:
                 chromosome = columns[0]
                 try:

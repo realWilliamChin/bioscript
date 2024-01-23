@@ -62,7 +62,7 @@ def main():
     swiss_file = args.blast if args.blast else [x for x in os.listdir() if '_swiss.blast' in x][0]
     key_name = args.prefix + '_swiss' if args.prefix else swiss_file.replace('.blast', '')
     # 读取 swiss 参考文件和 blast 文件，并初始化
-    swiss_df = pd.read_csv(swiss_file, sep='\t', usecols=[0, 1, 15], names=['GeneID', 'GOID', 'bitscore', 'Swiss_Def'], low_memory=False)
+    swiss_df = pd.read_csv(swiss_file, sep='\t', usecols=[0, 1, 14, 15], names=['GeneID', 'GOID', 'bitscore', 'Swiss_Def'], low_memory=False)
     swiss_df = swiss_df.sort_values(by=['GeneID', 'bitscore'], ascending=['True', 'False'])
     swiss_df = swiss_df.drop(columns=['bitscore'])
     swiss_df = swiss_df.drop_duplicates(subset='GeneID', keep='first')
@@ -100,6 +100,8 @@ def main():
     result_df[0].to_csv(key_name + '_GO_BP_ID.txt', sep='\t', index=False, header=False)
     result_df[1].to_csv(key_name + '_GO_CC_ID.txt', sep='\t', index=False, header=False)
     result_df[2].to_csv(key_name + '_GO_MF_ID.txt', sep='\t', index=False, header=False)
+    
+    print('\nDone\n')
 
 
 if __name__ == '__main__':

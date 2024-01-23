@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created Time  : 2023/06/14 17:05
 # Author        : William GoGo
@@ -8,9 +8,7 @@ nr 注释程序
 """
 import argparse
 import os
-from unittest import result
 import pandas as pd
-from sympy import use
 
 
 def parse_input():
@@ -19,18 +17,29 @@ def parse_input():
                       help='nr.blast file')
     args.add_argument('-b', '--basicinfo', type=str, dest='basicinfo',
                            help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
+    args.add_argument('-p', '--prefix', help='输出文件的前缀')
+    
+    args = args.parse_args()
 
-    return args.parse_args()
+    if not args.input_file:
+        args.input_file = [x for x in os.listdir() if x.endswith('nr.blast')][0]
+        print(f"未指定 nr 输入文件，默认使用 {args.input_file}")
+
+    if not args.prefix:
+        args.prefix = args.input_file.split('_nr.blast')[0]
+        print(f'未指定输出文件前缀，默认使用 {args.prefix}')
+        
+    return args
 
 
-def nr(nr_blast_file, gene_basicinfo_file):
+def nr(nr_blast_file, gene_basicinfo_file, output_name):
     columns = ['qseqid', 'sseqid', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend','sstart','send','evalue','bitscore','stitle']
 
     data_frame = pd.read_csv(nr_blast_file, sep='\t', names=columns, dtype=str)
 
     data_frame = data_frame.sort_values(by=['qseqid', 'bitscore'], ascending=[True, False])
     data_frame = data_frame.drop_duplicates(subset=['qseqid'], keep='first')
-    data_frame.to_csv(nr_blast_file.replace('.blast', '_uniq.blast'), sep='\t', index=False)
+    data_frame.to_csv(output_name +  '_nr_uniq.blast', sep='\t', index=False)
     nr_gene_def_df = data_frame[['qseqid', 'sseqid', 'stitle']].copy()
     nr_gene_def_df.columns = ['GeneID', 'NCBI_ID', 'NR_Def']
     nr_gene_def_df['NR_Def'] = nr_gene_def_df['NR_Def'].str.split(n=1).str[1]
@@ -42,11 +51,11 @@ def nr(nr_blast_file, gene_basicinfo_file):
     else:
         print('没有检测到 gene_basicinfo 文件，或文件输入有误，如没有输入 -b 参数，忽略此条消息')
         
-    nr_gene_def_df.to_csv(nr_blast_file.replace('.blast', '_gene_def.txt'), sep='\t', index=False)
+    nr_gene_def_df.to_csv(output_name + '_nr_gene_def.txt', sep='\t', index=False)
     
     nr_TF_def_df = nr_gene_def_df[nr_gene_def_df['NR_Def'].str.contains('transcription')]
     nr_TF_def_df = nr_TF_def_df.sort_values(by='NR_Def', key=lambda x: x.str.lower())
-    nr_TF_def_df.to_csv(nr_blast_file.replace('.blast', '_TF_def.txt'), sep='\t', index=False)
+    nr_TF_def_df.to_csv(output_name + '_nr_TF_def.txt', sep='\t', index=False)
 
 
 def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
@@ -78,7 +87,7 @@ def main():
     args = parse_input()
     if not args.input_file:
         args.input_file = [x for x in os.listdir() if x.endswith('nr.blast')][0]
-    nr(args.input_file, args.basicinfo)
+    nr(args.input_file, args.basicinfo, args.prefix)
     print('\nDone!\n')
 
 
