@@ -1,0 +1,1426 @@
+KEGG_ID	Taxonomy_type	Class_I	Class_II	Description
+K09027	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Jun	XBP1; X box-binding protein 1
+K04448	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Jun	JUN; transcription factor AP-1
+K09028	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Jun	JUNB; transcription factor jun-B
+K04449	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Jun	JUND; transcription factor jun-D
+K04379	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	FOS; proto-oncogene protein c-fos
+K09029	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	FOSB; protein FosB
+K04502	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	FOSL1; fos-like antigen 1
+K09030	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	FOSL2; fos-like antigen 2
+K09031	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	FOSLN; fos-like antigen, invertebrate
+K09032	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	ATF3, LRF1; activating transcription factor 3
+K21406	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	ATF3, A3-3; activating transcription factor 3
+K09033	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	JDP2; jun dimerization protein 2
+K09034	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fos	BATF; ATF-like basic leucine zipper transcriptional factor
+K09035	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Maf	CMAF, MAF; transcription factor Maf
+K07595	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Maf	MAFA; transcription factor MAFA
+K09036	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Maf	MAFB; transcription factor MAFB
+K09037	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Maf	MAFF_G_K; transcription factor MAFF/G/K
+K09038	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Maf	NRL; neural retina-specific leucine zipper protein
+K09039	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, NF-E2	NFE2; nuclear factor erythroid 2
+K09040	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, NF-E2	NFE2L1_3; nuclear factor erythroid 2-related factor 1/3
+K05638	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, NF-E2	NFE2L2, NRF2; nuclear factor erythroid 2-related factor 2
+K09041	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, NF-E2	NFE2N, CNC; nuclear factor erythroid 2, invertebrate
+K09042	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, NF-E2	BACH; transcription regulator BACH
+K09464	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fungal regulators	GCN4; general control protein GCN4
+K09043	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, Fungal regulators	YAP; AP-1-like transcription factor
+K04450	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, CRE-BP/ATF	ATF2, CREBP1; cyclic AMP-dependent transcription factor ATF-2
+K09032	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, CRE-BP/ATF	ATF3, LRF1; activating transcription factor 3
+K04374	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, CRE-BP/ATF	ATF4, CREB2; cyclic AMP-dependent transcription factor ATF-4
+K09044	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, CRE-BP/ATF	ATF5; activating transcription factor 5
+K09045	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, CRE-BP/ATF	ATF7, ATFA; activating transcription factor 7
+K09047	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, CRE-BP/ATF	CREB5, CREBPA; cyclic AMP-responsive element-binding protein 5
+K21548	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, CRE-BP/ATF	CREBZF; ATF/CREB family transcription factor
+K09051	Eukaryotic type	Basic leucine zipper (bZIP)	AP-1(-like) components, CRE-BP/ATF	SKO1, ATF1, PCR1; ATF/CREB family transcription factor
+K05870	Eukaryotic type	Basic leucine zipper (bZIP)	CREB	CREB1; cyclic AMP-responsive element-binding protein 1
+K09048	Eukaryotic type	Basic leucine zipper (bZIP)	CREB	CREB3; cyclic AMP-responsive element-binding protein 3
+K09049	Eukaryotic type	Basic leucine zipper (bZIP)	CREB	ATF6B, CREBL1; cyclic AMP-dependent transcription factor ATF-6 beta
+K09052	Eukaryotic type	Basic leucine zipper (bZIP)	CREB	CREM; cAMP response element modulator
+K09053	Eukaryotic type	Basic leucine zipper (bZIP)	CREB	ATF1; activating transcription factor 1
+K09054	Eukaryotic type	Basic leucine zipper (bZIP)	CREB	ATF6A; cyclic AMP-dependent transcription factor ATF-6 alpha
+K16230	Eukaryotic type	Basic leucine zipper (bZIP)	CREB	HAC1; transcriptional activator HAC1
+K09055	Eukaryotic type	Basic leucine zipper (bZIP)	C/EBP-like factors	CEBPA; CCAAT/enhancer binding protein (C/EBP), alpha
+K10048	Eukaryotic type	Basic leucine zipper (bZIP)	C/EBP-like factors	CEBPB; CCAAT/enhancer binding protein (C/EBP), beta
+K10049	Eukaryotic type	Basic leucine zipper (bZIP)	C/EBP-like factors	CEBPG; CCAAT/enhancer binding protein (C/EBP), gamma
+K10050	Eukaryotic type	Basic leucine zipper (bZIP)	C/EBP-like factors	CEBPD; CCAAT/enhancer binding protein (C/EBP), delta
+K10051	Eukaryotic type	Basic leucine zipper (bZIP)	C/EBP-like factors	CEBPE; CCAAT/enhancer binding protein (C/EBP), epsilon
+K10052	Eukaryotic type	Basic leucine zipper (bZIP)	C/EBP-like factors	CEBPN; CCAAT/enhancer binding protein (C/EBP), invertebrate
+K23479	Eukaryotic type	Basic leucine zipper (bZIP)	C/EBP-like factors	CCAAT/enhancer binding protein (C/EBP), other
+K04452	Eukaryotic type	Basic leucine zipper (bZIP)	C/EBP-like factors	DDIT3, GADD153; DNA damage-inducible transcript 3
+K09056	Eukaryotic type	Basic leucine zipper (bZIP)	bZIP/PAR	DBP; albumin D box-binding protein
+K09057	Eukaryotic type	Basic leucine zipper (bZIP)	bZIP/PAR	HLF; hepatic leukemia factor
+K09058	Eukaryotic type	Basic leucine zipper (bZIP)	bZIP/PAR	TEF; thyrotrophic embryonic factor
+K09059	Eukaryotic type	Basic leucine zipper (bZIP)	bZIP/PAR	NFIL3, E4BP4; nuclear factor, interleukin 3 regulated
+K14432	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	ABF; ABA responsive element binding factor
+K14431	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	TGA; transcription factor TGA
+K09060	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	GBF; plant G-box-binding factor
+K16241	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	HY5; transcription factor HY5
+K20557	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	VIP1; transcription factor VIP1
+K25786	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	BZIP1S; bZIP transcription factor 1/2/11/44/53
+K25784	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	BZIP9_10_25_63; bZIP transcription factor 9/10/25/63
+K25783	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	BZIP17_28_49; bZIP transcription factor 17/28/49
+K25785	Eukaryotic type	Basic leucine zipper (bZIP)	Plant bZIP factors	BZIP19_23_24; bZIP transcription factor 19/23/24
+K09061	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	GCF, C2orf3; GC-rich sequence DNA-binding factor
+K12114	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	VRI; vrille
+K09062	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	GT; protein giant
+K06649	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	SWI4; regulatory protein SWI4
+K06648	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	SWI6; regulatory protein SWI6
+K21642	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	OPI1; transcriptional repressor OPI1
+K21646	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	GCR1; glycolytic genes transcriptional activator GCR1
+K21671	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	GCR2; glycolytic genes transcriptional activator GCR2
+K21451	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	XLNR; xylanolytic transcriptional activator XlnR
+K21452	Eukaryotic type	Basic leucine zipper (bZIP)	ZIP only	MBZ1; bZIP-type transcription factor MBZ1
+K09063	Eukaryotic type	Basic helix-loop-helix (bHLH)	Ubiquitous (class A) factors	TCF3, E2A; transcription factor E2-alpha
+K15603	Eukaryotic type	Basic helix-loop-helix (bHLH)	Ubiquitous (class A) factors	TCF4_12; transcription factor 4/12
+K09064	Eukaryotic type	Basic helix-loop-helix (bHLH)	Myogenic transcription factors	MYOD1, MYF3; myogenic factor 3
+K18483	Eukaryotic type	Basic helix-loop-helix (bHLH)	Myogenic transcription factors	MYF4, MYOG; myogenic factor 4 (myogenin)
+K18484	Eukaryotic type	Basic helix-loop-helix (bHLH)	Myogenic transcription factors	MYF5; myogenic factor 5
+K18485	Eukaryotic type	Basic helix-loop-helix (bHLH)	Myogenic transcription factors	MYF6, MRF4; myogenic factor 6
+K09066	Eukaryotic type	Basic helix-loop-helix (bHLH)	Myogenic transcription factors	FIGLA; factor in the germline alpha
+K09067	Eukaryotic type	Basic helix-loop-helix (bHLH)	Achaete-Scute	ASCL; achaete-scute complex protein
+K09068	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Lymphoid factors	TAL; T-cell acute lymphocytic leukemia protein
+K15604	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Lymphoid factors	LYL1; protein lyl-1
+K09069	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesodermal Twist-like factors	TWIST; twist
+K09070	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesodermal Twist-like factors	TCF15, PARAXIS; transcription factor 15
+K09071	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesodermal Twist-like factors	HAND1; heart-and neural crest derivatives-expressed protein 1
+K18486	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesodermal Twist-like factors	HAND2; heart-and neural crest derivatives-expressed protein 2
+K09072	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesodermal Twist-like factors	MSC; musculin (activated B-cell factor-1)
+K09073	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesodermal Twist-like factors	PTF1A; pancreas-specific transcription factor 1a
+K22400	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesodermal Twist-like factors	FERD3L; Fer3-like protein
+K09074	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesodermal Twist-like factors	TYE7; fungal twist-like factor
+K09075	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, HEN	NHLH, HEN, NSCL; nescient helix-loop-helix protein
+K09076	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesp	MESP; mesoderm posterior
+K09077	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Mesp	MSGN1; mesogenin 1
+K08033	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	NEUROD1; neurogenic differentiation factor 1
+K09078	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	NEUROD2; neurogenic differentiation factor 2
+K09079	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	NEUROD4, ATOH3, MATH3; neurogenic differentiation factor 4
+K09080	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	NEUROD6, ATOH2, MATH2; neurogenic differentiation factor 6
+K09081	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	NEUROG1; neurogenin 1
+K09082	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	NEUROG2; neurogenin 2
+K08028	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	NEUROG3; neurogenin 3
+K09083	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	ATOH1_7; atonal protein 1/7
+K09084	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	ATOH8; atonal protein 8
+K24145	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	BHLHA9; class A basic helix-loop-helix protein 9
+K09085	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	BHLHB1_6_7; class B basic helix-loop-helix protein 1/6/7
+K08040	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Atonal	BHLHB8, MIST1; class B basic helix-loop-helix protein 8
+K09086	Eukaryotic type	Basic helix-loop-helix (bHLH)	Tal/Twist/Atonal/Hen, Pancreatic factors	BHLHB4_5, BETA; class B basic helix-loop-helix protein 4/5
+K06054	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	HES1; hairy and enhancer of split 1
+K09087	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	HES2_6_7; hairy and enhancer of split 2/6/7
+K09088	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	HES3; hairy and enhancer of split 3
+K09089	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	HES4; hairy and enhancer of split 4
+K06055	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	HES5; hairy and enhancer of split 5
+K09090	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	HESN; hairy and enhancer of split, invertebrate
+K09091	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	HEY; hairy and enhancer of split related with YRPW motif
+K03729	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	BHLHB2, DEC1; class B basic helix-loop-helix protein 2
+K03730	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	BHLHB3, DEC2; class B basic helix-loop-helix protein 3
+K09092	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Hairy/E(SPL)	TCFL5, CHA; transcription factor-like 5
+K06658	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Fungal regulators	PHO4; phosphate system positive regulatory protein PHO4
+K06654	Eukaryotic type	Basic helix-loop-helix (bHLH)	Hairy, Fungal regulators	PHO80; phosphate system cyclin PHO80
+K09093	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	AHR; aryl hydrocarbon receptor
+K09094	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	AHRR, AHH; aryl hydrocarbon receptor repressor
+K08268	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	HIF1A; hypoxia-inducible factor 1 alpha
+K09095	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	HIF2A, EPAS1; hypoxia-inducible factor 2 alpha
+K09096	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	HIF3A; hypoxia-inducible factor 3 alpha
+K09097	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	ARNT; aryl hydrocarbon receptor nuclear translocator
+K15589	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	ARNT2; aryl hydrocarbon receptor nuclear translocator 2
+K09098	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	NPAS1_3; neuronal PAS domain-containing protein 1/3
+K09026	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	NPAS2; neuronal PAS domain-containing protein 2
+K26457	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	NPAS4; neuronal PAS domain-containing protein 4
+K02223	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	CLOCK, KAT13D; circadian locomoter output cycles kaput protein [EC:2.3.1.48]
+K02296	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	ARNTL, BMAL1, CYC; aryl hydrocarbon receptor nuclear translocator-like protein 1
+K09099	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	ARNTL2, BMAL2; aryl hydrocarbon receptor nuclear translocator-like protein 2
+K09100	Eukaryotic type	Basic helix-loop-helix (bHLH)	Factors with PAS domain	SIM; single-minded
+K25796	Eukaryotic type	Basic helix-loop-helix (bHLH)	Yabby	YAB; plant-specific transcription factor YABBY family protein
+K09102	Eukaryotic type	Basic helix-loop-helix (bHLH)	INO	INO; heteromeric Ino2p/Ino4p transcription factor
+K04680	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	ID1; DNA-binding protein inhibitor ID1
+K17693	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	ID2; DNA-binding protein inhibitor ID2
+K17694	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	ID3; DNA-binding protein inhibitor ID3
+K17695	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	ID4; DNA-binding protein inhibitor ID4
+K17696	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	EMC; DNA-binding protein inhibitor ID, other
+K09103	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	EBF, COE; early B-cell factor
+K21626	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	CCNDBP1, DIP1, GCIP; cyclin-D1-binding protein 1
+K22495	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	SOHLH1; spermatogenesis- and oogenesis-specific basic helix-loop-helix-containing protein 1
+K12126	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	PIF3; phytochrome-interacting factor 3
+K16189	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	PIF4; phytochrome-interacting factor 4
+K13422	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	MYC2; transcription factor MYC2
+K20558	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	SPCH; transcription factor SPEECHLESS
+K26213	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	FAMA; transcription factor FAMA
+K26214	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	FIT; transcription factor FER-LIKE IRON
+K09104	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	TX; delilah
+K22484	Eukaryotic type	Basic helix-loop-helix (bHLH)	HLH domain only	CBF1; transcriptional regulator CBF1
+K09105	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Ubiquitous bHLH-ZIP factors	TFE3; transcription factor E3
+K15590	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Ubiquitous bHLH-ZIP factors	TFEB; transcription factor EB
+K15591	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Ubiquitous bHLH-ZIP factors	TFEC; transcription factor EC
+K09455	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Ubiquitous bHLH-ZIP factors	MITF; microphthalmia-associated transcription factor
+K09106	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Ubiquitous bHLH-ZIP factors	USF; upstream stimulatory factor
+K07197	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Ubiquitous bHLH-ZIP factors	SREBP1, SREBF1; sterol regulatory element-binding transcription factor 1
+K09107	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Ubiquitous bHLH-ZIP factors	SREBP2, SREBF2; sterol regulatory element-binding transcription factor 2
+K09108	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Ubiquitous bHLH-ZIP factors	TFAP4; transcription factor AP-4
+K04377	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Myc	MYC; Myc proto-oncogene protein
+K09109	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Myc	NMYC, MYCN; N-myc proto-oncogene protein
+K09110	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Myc	LMYC, MYCL; L-myc proto-oncogene protein
+K09111	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Myc	BMYC, MYCB; brain expressed myelocytomatosis oncogene
+K09112	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Myc	SMYC, MYCS; myc-like oncogene
+K04453	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Mad/Max	MAX; Max protein
+K09113	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Mad/Max	MLX; MAX-like protein X
+K09114	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Mad/Max	MXD, MAD; MAX dimerization protein
+K09115	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Cell cycle controlling factors, Mad/Max	MNT, ROX; MAX-binding protein
+K17482	Eukaryotic type	Basic helix-loop-helix/leucine zipper (bHLH-ZIP)	Other bHLH-ZIP factors	SPZ1; spermatogenic leucine zipper protein 1
+K09168	Eukaryotic type	Other basic domains	NF-1	NFIA; nuclear factor I/A
+K09169	Eukaryotic type	Other basic domains	NF-1	NFIB; nuclear factor I/B
+K09170	Eukaryotic type	Other basic domains	NF-1	NFIC; nuclear factor I/C
+K09171	Eukaryotic type	Other basic domains	NF-1	NFIX; nuclear factor I/X
+K09172	Eukaryotic type	Other basic domains	NF-1	NFIN; nuclear factor I, invertebrate
+K09173	Eukaryotic type	Other basic domains	RF-X	RFX1_2_3; regulatory factor X 1/2/3
+K09174	Eukaryotic type	Other basic domains	RF-X	RFX4; regulatory factor X 4
+K08061	Eukaryotic type	Other basic domains	RF-X	RFX5; regulatory factor X 5
+K19521	Eukaryotic type	Other basic domains	RF-X	RFX6; regulatory factor X 6
+K09175	Eukaryotic type	Other basic domains	RF-X	RFX7; DNA-binding protein RFX7
+K09176	Eukaryotic type	Other basic domains	AP-2 (bHSH)	TFAP2A_B; transcription factor AP-2 alpha/beta
+K09177	Eukaryotic type	Other basic domains	AP-2 (bHSH)	TFAP2C; transcription factor AP-2 gamma
+K09178	Eukaryotic type	Other basic domains	AP-2 (bHSH)	TFAP2D; transcription factor AP-2 delta
+K09179	Eukaryotic type	Other basic domains	AP-2 (bHSH)	TFAP2E; transcription factor AP-2 epsilon
+K09180	Eukaryotic type	Other basic domains	AP-2 (bHSH)	TFAP2N; transcription factor AP-2, invertebrate
+K05547	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	THRA, NR1A1; thyroid hormone receptor alpha
+K08362	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	THRB, NR1A2; thyroid hormone receptor beta
+K08527	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	RARA, NR1B1; retinoic acid receptor alpha
+K08528	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	RARB, NR1B2; retinoic acid receptor beta
+K08529	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	RARG, NR1B3; retinoic acid receptor gamma
+K07294	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1C1, PPARA; peroxisome proliferator-activated receptor alpha
+K04504	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1C2, PPARD; peroxisome proliferator-activated receptor delta
+K08530	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1C3, PPARG; peroxisome proliferator-activated receptor gamma
+K03728	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1D1; nuclear receptor subfamily 1 group D member 1
+K08531	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1D2; nuclear receptor subfamily 1 group D member 2
+K08701	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1D3; nuclear receptor subfamily 1 group D member 3
+K08532	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1F1, RORA; RAR-related orphan receptor alpha
+K08533	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1F2, RORB; RAR-related orphan receptor beta
+K08534	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1F3, RORC; RAR-related orphan receptor gamma
+K14033	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1F4; nuclear receptor subfamily 1 group F member 4
+K08536	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1H3, LXRA; liver X receptor alpha
+K08535	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1H2, LXRB; liver X receptor beta
+K08537	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1H4, FXR; farnesoid X receptor
+K08538	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1H5, FXRB; farnesoid X receptor beta
+K14034	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1H1, EcR; ecdysone receptor
+K08539	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	VDR, NR1I1; vitamin D3 receptor
+K08540	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1I2, PXR; pregnane X receptor
+K08541	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1I3, CAR; constitutive androstane receptor
+K14035	Eukaryotic type	Zinc finger	Cys4 thyroid hormone receptor-like	NR1IN; nuclear receptor subfamily 1 group I
+K07292	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2A1, HNF4A; hepatocyte nuclear factor 4-alpha
+K08037	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2A2, HNF4G; hepatocyte nuclear factor 4-gamma
+K08542	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2A3, HNF4B; hepatocyte nuclear factor 4-beta
+K08704	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2A4, Hnf4; hepatocyte nuclear factor 4
+K07295	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2AN, dsf; nuclear receptor subfamily 2 group A
+K08524	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	RXRA, NR2B1; retinoid X receptor alpha
+K08525	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	RXRB, NR2B2; retinoid X receptor beta
+K08526	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	RXRG, NR2B3; retinoid X receptor gamma
+K14030	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2B4, usp; nuclear receptor subfamily 2 group B member 4
+K08543	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2C1, TR2; testicular receptor 2
+K08544	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2C2, TR4; testicular receptor 4
+K14031	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2CN; nuclear receptor subfamily 2 group C
+K08545	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2E1, TLX, tll; nuclear receptor subfamily 2 group E member 1
+K08546	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2E3, PNR; nuclear receptor subfamily 2 group E member 3
+K08547	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2F1, TFCOUP1; COUP transcription factor 1
+K08548	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2F2, TFCOUP2; COUP transcription factor 2
+K14032	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2F3, svp; nuclear receptor subfamily 2 group F member 3
+K08702	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2F5, SVP46; nuclear receptor subfamily 2 group F member 5
+K08549	Eukaryotic type	Zinc finger	Cys4 hepatocyte nuclear factor 4-like	NR2F6, EAR2; nuclear receptor subfamily 2 group F member 6
+K08550	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	ESR1, NR3A1; estrogen receptor alpha
+K08551	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	ESR2, NR3A2; estrogen receptor beta
+K08552	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	NR3B1, ESRRA; estrogen-related receptor alpha
+K08553	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	NR3B2, ESRRB; estrogen-related receptor beta
+K08554	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	NR3B3, ESRRG; estrogen-related receptor gamma
+K08703	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	NR3BN, ERR; estrogen-related receptor ERR
+K05771	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	NR3C1, GR; glucocorticoid receptor
+K08555	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	NR3C2, MR; mineralocorticoid receptor
+K08556	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	PGR, NR3C3; progesterone receptor
+K08557	Eukaryotic type	Zinc finger	Cys4 estrogen receptor-like	AR, NR3C4; androgen receptor
+K04465	Eukaryotic type	Zinc finger	Cys4 nerve growth factor IB-like	NR4A1, HMR; nuclear receptor subfamily 4 group A member 1
+K08558	Eukaryotic type	Zinc finger	Cys4 nerve growth factor IB-like	NR4A2, NURR1; nuclear receptor subfamily 4 group A member 2
+K08559	Eukaryotic type	Zinc finger	Cys4 nerve growth factor IB-like	NR4A3, NOR1; nuclear receptor subfamily 4 group A member 3
+K08560	Eukaryotic type	Zinc finger	Cys4 Fushi tarazu-F1-like	NR5A1, SF1; steroidogenic factor 1
+K08027	Eukaryotic type	Zinc finger	Cys4 Fushi tarazu-F1-like	NR5A2, FTF; nuclear receptor subfamily 5 group A member 2
+K08705	Eukaryotic type	Zinc finger	Cys4 Fushi tarazu-F1-like	NR5A3, ftz-f1; nuclear receptor subfamily 5 group A member 3
+K08561	Eukaryotic type	Zinc finger	Cys4 germ cell nuclear factor	NR6A1, GCNF; germ cell nuclear factor
+K09185	Eukaryotic type	Zinc finger	Cys4 germ cell nuclear factor	NR6AN; nuclear receptor subfamily 6 group A
+K08706	Eukaryotic type	Zinc finger	Cys4 Knirps/DAX1-like	NR0AN, kni; nuclear receptor subfamily 0 group A
+K08562	Eukaryotic type	Zinc finger	Cys4 Knirps/DAX1-like	NR0B1, DAX1; nuclear receptor subfamily 0 group B member 1
+K08563	Eukaryotic type	Zinc finger	Cys4 Knirps/DAX1-like	NR0B2, SHP; nuclear receptor subfamily 0 group B member 2
+K09182	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATA1; GATA-binding protein 1
+K17894	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATA2; GATA-binding protein 2
+K17895	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATA3; GATA-binding protein 3
+K09183	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATA4; GATA-binding protein 4
+K17896	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATA5; GATA-binding protein 5
+K17897	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATA6; GATA-binding protein 6
+K09184	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATAF; GATA-binding protein, other eukaryote
+K21630	Eukaryotic type	Zinc finger	Cys4 GATA-factors	ZGLP1; GATA-type zinc finger protein 1
+K22040	Eukaryotic type	Zinc finger	Cys4 GATA-factors	TRPS1; atypical GATA-binding protein TRPS1
+K23407	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATAD1; GATA zinc finger domain-containing protein 1
+K23194	Eukaryotic type	Zinc finger	Cys4 GATA-factors	GATAD2; transcriptional repressor p66
+K05628	Eukaryotic type	Zinc finger	Cys4 GATA-factors	RERE; arginine-glutamic acid dipeptide repeats protein
+K11660	Eukaryotic type	Zinc finger	Cys4 GATA-factors	MTA; metastasis-associated protein MTA
+K17398	Eukaryotic type	Zinc finger	Cys4 GATA-factors	DNMT3A; DNA (cytosine-5)-methyltransferase 3A [EC:2.1.1.37]
+K17399	Eukaryotic type	Zinc finger	Cys4 GATA-factors	DNMT3B; DNA (cytosine-5)-methyltransferase 3B [EC:2.1.1.37]
+K17400	Eukaryotic type	Zinc finger	Cys4 GATA-factors	DNMT3L; DNA (cytosine-5)-methyltransferase 3-like
+K10779	Eukaryotic type	Zinc finger	Cys4 GATA-factors	ATRX; transcriptional regulator ATRX
+K18658	Eukaryotic type	Zinc finger	Cys4 GATA-factors	ASH1; transcriptional regulatory protein ASH1
+K04684	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP1; transcription factor Sp1
+K09192	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP2; transcription factor Sp2
+K09193	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP3; transcription factor Sp3
+K09194	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP4; transcription factor Sp4
+K09195	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP5; transcription factor Sp5
+K09196	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP6; transcription factor Sp6
+K09197	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP7; transcription factor Sp7
+K09198	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP8; transcription factor Sp8
+K09199	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP9; transcription factor Sp9
+K09200	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SP-N; transcription factor Sp, invertebrate
+K09204	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF1; krueppel-like factor 1
+K17845	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF2; krueppel-like factor 2
+K15605	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF3; krueppel-like factor 3
+K17846	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF4; krueppel-like factor 4
+K09206	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF5; krueppel-like factor 5
+K09207	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF6_7; krueppel-like factor 6/7
+K09205	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF8_12; krueppel-like factor 8/12
+K09208	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF9S, BTEB; krueppel-like factor 9/13/14/16
+K09209	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF10_11, TIEG; krueppel-like factor 10/11
+K09210	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF15; krueppel-like factor 15
+K09211	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	KLF17; krueppel-like factor 17
+K09203	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	EGR1; early growth response protein 1
+K12496	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	EGR2; early growth response protein 2
+K12497	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	EGR3; early growth response protein 3
+K12498	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	EGR4; early growth response protein 4
+K09202	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	SWI5; regulatory protein SWI5
+K09234	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	WT1; Wilms tumor protein 1
+K12379	Eukaryotic type	Zinc finger	Cys2His2 SP/KLF family and related proteins	HKB; huckebein
+K16797	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	GLI1; zinc finger protein GLI1
+K16798	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	GLI2; zinc finger protein GLI2
+K06230	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	GLI3; zinc finger protein GLI3
+K09232	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	GLIS1_3; zinc finger protein GLIS1/3
+K09233	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	GLIS2; zinc finger protein GLIS2
+K09224	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	ZIC1; zinc finger protein ZIC 1
+K06235	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	ZIC2; zinc finger protein ZIC 2
+K18487	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	ZIC3; zinc finger protein ZIC 3
+K09225	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	ZIC4; zinc finger protein ZIC 4
+K09226	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	ZIC5; zinc finger protein ZIC 5
+K09227	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	ZICN; zinc finger protein ZIC, invertebrate
+K16799	Eukaryotic type	Zinc finger	Cys2His2 GLI-like	CI; transcriptional activator cubitus interruptus
+K05707	Eukaryotic type	Zinc finger	Cys2His2 Snail	SNAI1; snail 1
+K05706	Eukaryotic type	Zinc finger	Cys2His2 Snail	SNAI2, SLUG; snail 2
+K09217	Eukaryotic type	Zinc finger	Cys2His2 Snail	SNAI3; snail 3
+K09219	Eukaryotic type	Zinc finger	Cys2His2 Snail	SCRT; scratch
+K25795	Eukaryotic type	Zinc finger	Cys2His2 Snail	INSM; insulinoma-associated protein
+K10488	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB1; zinc finger and BTB domain-containing protein 1
+K10489	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB2; zinc finger and BTB domain-containing protein 2
+K10490	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB3; zinc finger and BTB domain-containing protein 3
+K10491	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB4; zinc finger and BTB domain-containing protein 4
+K10492	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB5; zinc finger and BTB domain-containing protein 5
+K10493	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB6; zinc finger and BTB domain-containing protein 6
+K10494	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB7; zinc finger and BTB domain-containing protein 7
+K10495	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB8; zinc finger and BTB domain-containing protein 8
+K10496	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB9; zinc finger and BTB domain-containing protein 9
+K10497	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB10, RINZF; zinc finger and BTB domain-containing protein 10
+K10498	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB11; zinc finger and BTB domain-containing protein 11
+K10499	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB12; zinc finger and BTB domain-containing protein 12
+K24804	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB14; zinc finger and BTB domain-containing protein 14
+K10055	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB16, PLZF; zinc finger and BTB domain-containing protein 16
+K10500	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB17, MIZ1; zinc finger and BTB domain-containing protein 17
+K10501	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB20, HOF, DPZF; zinc finger and BTB domain-containing protein 20
+K24805	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB21; zinc finger and BTB domain-containing protein 21
+K10502	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB22, BING1; zinc finger and BTB domain-containing protein 22
+K10503	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB24, BIF1; zinc finger and BTB domain-containing protein 24
+K10504	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB25; zinc finger and BTB domain-containing protein 25
+K10505	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB26; zinc finger and BTB domain-containing protein 26
+K10506	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB32, TZFP; zinc finger and BTB domain-containing protein 32
+K10507	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB33, KAISO; zinc finger and BTB domain-containing protein 33
+K10508	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB34; zinc finger and BTB domain-containing protein 34
+K24806	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB35, ZNF131; zinc finger and BTB domain-containing protein 35
+K10509	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB37; zinc finger and BTB domain-containing protein 37
+K10510	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB38; zinc finger and BTB domain-containing protein 38
+K10511	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB39; zinc finger and BTB domain-containing protein 39
+K10512	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB40; zinc finger and BTB domain-containing protein 40
+K10513	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB41; zinc finger and BTB domain-containing protein 41
+K10514	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB43; zinc finger and BTB domain-containing protein 43
+K10515	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB44, BTBD15; zinc finger and BTB domain-containing protein 44
+K10516	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB45; zinc finger and BTB domain-containing protein 45
+K10517	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB46, BTBD4; zinc finger and BTB domain-containing protein 46
+K10518	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB47; zinc finger and BTB domain-containing protein 47
+K10519	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB48, HKR3; zinc finger and BTB domain-containing protein 48
+K24807	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB49; zinc finger and BTB domain-containing protein 49
+K23196	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	ZBTB18_42; zinc finger and BTB domain-containing protein 18/42
+K22402	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	GZF1; GDNF-inducible zinc finger protein 1
+K15618	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	BCL6; B-cell lymphoma 6 protein
+K22648	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	BCL6B; B-cell CLL/lymphoma 6 member B protein
+K24383	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	PATZ1; POZ-AT hook zinc finger protein 1
+K26610	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	VEZF1; vascular endothelial zinc finger 1
+K24384	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	HIC; hypermethylated in cancer protein
+K24385	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	MYNN; myoneurin
+K09237	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	TTK; tramtrack
+K02174	Eukaryotic type	Zinc finger	Cys2His2 BTB-ZF factors	BR-C; broad-complex core protein
+K24637	Eukaryotic type	Zinc finger	Cys2His2 BED	ZBED1; zinc finger BED domain-containing protein 1 (E3 SUMO-protein ligase ZBED1) [EC:2.3.2.-]
+K24638	Eukaryotic type	Zinc finger	Cys2His2 BED	ZBED2; zinc finger BED domain-containing protein 2
+K24639	Eukaryotic type	Zinc finger	Cys2His2 BED	ZBED3; zinc finger BED domain-containing protein 3
+K24640	Eukaryotic type	Zinc finger	Cys2His2 BED	ZBED4; zinc finger BED domain-containing protein 4
+K24641	Eukaryotic type	Zinc finger	Cys2His2 BED	ZBED6; zinc finger BED domain-containing protein 6
+K24501	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM1; PR domain zinc finger protein 1 [EC:2.1.1.-]
+K11432	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM2, RIZ; [histone H3]-lysine9 N-trimethyltransferase PRDM2 [EC:2.1.1.355]
+K04462	Eukaryotic type	Zinc finger	Cys2His2 PRDM	MECOM, EVI1, PRDM3; [histone H3]-lysine9 N-methyltransferase (ecotropic virus integration site 1 protein) [EC:2.1.1.367]
+K12463	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM4; PR domain zinc finger protein 4 [EC:2.1.1.-]
+K22534	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM5; PR domain zinc finger protein 5 [EC:2.1.1.-]
+K20795	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM6; [histone H4]-lysine20 N-methyltransferase PRDM6 [EC:2.1.1.361]
+K20796	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM7_9; [histone H3]-lysine4 N-trimethyltransferase PRDM7/9 [EC:2.1.1.354]
+K20797	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM8; PR domain zinc finger protein 8 [EC:2.1.1.-]
+K24643	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM10; PR domain zinc finger protein 10 [EC:2.1.1.-]
+K24644	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM11; PR domain zinc finger protein 11 [EC:2.1.1.-]
+K24645	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM13; PR domain zinc finger protein 13 [EC:2.1.1.-]
+K24646	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM14; PR domain zinc finger protein 14 [EC:2.1.1.-]
+K24647	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM15; PR domain zinc finger protein 15 [EC:2.1.1.-]
+K22410	Eukaryotic type	Zinc finger	Cys2His2 PRDM	PRDM16; [histone H3]-lysine9 N-methyltransferase [EC:2.1.1.367]
+K09238	Eukaryotic type	Zinc finger	Cys2His2 metabolic regulators in fungi	ACE2; metallothionein expression activator
+K09466	Eukaryotic type	Zinc finger	Cys2His2 metabolic regulators in fungi	ADR1; zinc finger protein ADR1
+K09467	Eukaryotic type	Zinc finger	Cys2His2 metabolic regulators in fungi	MIG; zinc-finger protein CreA/MIG
+K09468	Eukaryotic type	Zinc finger	Cys2His2 metabolic regulators in fungi	MSN2_4; zinc finger protein MSN2/4
+K19798	Eukaryotic type	Zinc finger	Cys2His2 metabolic regulators in fungi	GIS1; transcriptional activator/repressor GIS1
+K19799	Eukaryotic type	Zinc finger	Cys2His2 metabolic regulators in fungi	RPH1; DNA damage-responsive transcriptional repressor / [histone H3]-trimethyl-L-lysine36 demethylase [EC:1.14.11.69]
+K09215	Eukaryotic type	Zinc finger	Cys2His2 others	OSR, ODD; odd-skipped
+K09216	Eukaryotic type	Zinc finger	Cys2His2 others	OVOL; ovo
+K09220	Eukaryotic type	Zinc finger	Cys2His2 others	IKZF, ZNFN1A; IKAROS family zinc finger protein
+K09221	Eukaryotic type	Zinc finger	Cys2His2 others	MZF1; myeloid zinc finger protein 1
+K09222	Eukaryotic type	Zinc finger	Cys2His2 others	REST; RE1-silencing transcription factor
+K09223	Eukaryotic type	Zinc finger	Cys2His2 others	GFI1; growth factor independent 1
+K09236	Eukaryotic type	Zinc finger	Cys2His2 others	TSHZ; teashirt
+K09239	Eukaryotic type	Zinc finger	Cys2His2 others	HIVEP; human immunodeficiency virus type I enhancer-binding protein
+K17452	Eukaryotic type	Zinc finger	Cys2His2 others	AEBP2; zinc finger protein AEBP2
+K19484	Eukaryotic type	Zinc finger	Cys2His2 others	PLAG1; zinc finger protein PLAG1
+K19485	Eukaryotic type	Zinc finger	Cys2His2 others	PLAGL1; zinc finger protein PLAGL1
+K19486	Eukaryotic type	Zinc finger	Cys2His2 others	PLAGL2; zinc finger protein PLAGL2
+K20210	Eukaryotic type	Zinc finger	Cys2His2 others	RREB1; ras-responsive element-binding protein 1
+K22045	Eukaryotic type	Zinc finger	Cys2His2 others	BCL11A; B-cell lymphoma/leukemia 11A
+K22046	Eukaryotic type	Zinc finger	Cys2His2 others	BCL11B; B-cell lymphoma/leukemia 11B
+K22401	Eukaryotic type	Zinc finger	Cys2His2 others	E4F1; transcription factor E4F1 / E3 ubiquitin-protein ligase [EC:2.3.2.27]
+K23195	Eukaryotic type	Zinc finger	Cys2His2 others	CTCF, CTCFL; transcriptional repressor CTCF
+K23317	Eukaryotic type	Zinc finger	Cys2His2 others	MTF1; metal regulatory transcription factor 1
+K24146	Eukaryotic type	Zinc finger	Cys2His2 others	BNC; zinc finger protein basonuclin
+K09191	Eukaryotic type	Zinc finger	Cys2His2 others	GTF3A; general transcription factor IIIA
+K09201	Eukaryotic type	Zinc finger	Cys2His2 others	YY; transcription factor YY
+K07466	Eukaryotic type	Zinc finger	Cys2His2 others	RFA1, RPA1, rpa; replication factor A1
+K26101	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF16, HZF1; zinc finger protein 16
+K24851	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF142; zinc finger protein 142
+K24370	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF148; zinc finger protein 148
+K12458	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF274; zinc finger protein 274
+K26728	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF292; zinc finger protein 292
+K24371	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF335; zinc finger protein 335
+K24852	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF341; zinc finger protein 341
+K23480	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF362_384, LIN-29; zinc finger protein 362/384
+K26729	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF407; Zinc finger protein 407
+K24372	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF408; zinc finger protein 408
+K25858	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF410; zinc finger protein 410
+K22870	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF423; zinc finger protein 423
+K24853	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF462; zinc finger protein 462
+K24373	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF513; zinc finger protein 513
+K22411	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF516; zinc finger protein 516
+K24916	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF521, EVI3; zinc finger protein 521
+K26978	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF526_574; zinc finger protein 526/574
+K24692	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF638; zinc finger protein 638
+K24374	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF644; zinc finger protein 644
+K27106	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF668; zinc finger protein 668
+K24375	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF687; zinc finger protein 687
+K24376	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF711; zinc finger protein 711
+K24377	Eukaryotic type	Zinc finger	Cys2His2 others	ZNF750; zinc finger protein 750
+K09228	Eukaryotic type	Zinc finger	Cys2His2 others	KRAB; KRAB domain-containing zinc finger protein
+K09229	Eukaryotic type	Zinc finger	Cys2His2 others	ZKSCAN; KRAB and SCAN domains-containing zinc finger protein
+K09230	Eukaryotic type	Zinc finger	Cys2His2 others	SCAN; SCAN domain-containing zinc finger protein
+K24502	Eukaryotic type	Zinc finger	Cys2His2 others	FEZF; Fez family zinc finger protein
+K25209	Eukaryotic type	Zinc finger	Cys2His2 others	CASZ1; zinc finger protein castor
+K25794	Eukaryotic type	Zinc finger	Cys2His2 others	HINFP; histone H4 transcription factor
+K09231	Eukaryotic type	Zinc finger	Cys2His2 others	KR; krueppel
+K13943	Eukaryotic type	Zinc finger	Cys2His2 others	CBT; cabut
+K09213	Eukaryotic type	Zinc finger	Cys2His2 others	HB; hunchback
+K09214	Eukaryotic type	Zinc finger	Cys2His2 others	GL; glass
+K02215	Eukaryotic type	Zinc finger	Cys2His2 others	CF2; chorion factor 2
+K22535	Eukaryotic type	Zinc finger	Cys2His2 others	DRM; drumstick
+K25869	Eukaryotic type	Zinc finger	Cys2His2 others	IDD1_2; zinc finger protein IDD1/2
+K25870	Eukaryotic type	Zinc finger	Cys2His2 others	IDD3S; zinc finger protein IDD3/4/5/6/7/8/9/10/11/12/13
+K25871	Eukaryotic type	Zinc finger	Cys2His2 others	IDD14_15_16; zinc finger protein IDD14/15/16
+K09235	Eukaryotic type	Zinc finger	Cys2His2 others	RME1; zinc finger protein RME1
+K09465	Eukaryotic type	Zinc finger	Cys2His2 others	BRLA; zinc finger protein BrlA
+K19487	Eukaryotic type	Zinc finger	Cys2His2 others	SFP1; transcription factor SFP1
+K22412	Eukaryotic type	Zinc finger	Cys2His2 others	SDC-1; zinc finger protein Sdc-1
+K21455	Eukaryotic type	Zinc finger	Cys2His2 others	CON7; transcription factor CON7
+K21543	Eukaryotic type	Zinc finger	Cys2His2 others	CRZ1, CRZA; transcription factor CRZ1
+K21544	Eukaryotic type	Zinc finger	Cys2His2 others	NSF1, BCR1, DVRA; C2H2 transcription facotor
+K21545	Eukaryotic type	Zinc finger	Cys2His2 others	MNL1, SEB1, SEBA, COM2; C2H2 transcription facotor
+K21597	Eukaryotic type	Zinc finger	Cys2His2 others	CAS5; cell wall integrity transcriptional regulator CAS5
+K23192	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	MYT1; myelin transcription factor 1
+K23193	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	MYT1L; myelin transcription factor 1-like protein
+K24386	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	ST18; suppression of tumorigenicity 18 protein
+K17441	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	ZFPM1, FOG1; zinc finger protein ZFPM1
+K17442	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	ZFPM2, FOG2; zinc finger protein ZFPM2
+K11308	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	MYST1, MOF, KAT8; histone acetyltransferase MYST1 [EC:2.3.1.48]
+K11307	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	MYST2, HBO1, KAT7; histone acetyltransferase MYST2 [EC:2.3.1.48]
+K11305	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	MYST3, KAT6A; histone acetyltransferase MYST3 [EC:2.3.1.48]
+K11306	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	MYST4, KAT6B; histone acetyltransferase MYST4 [EC:2.3.1.48]
+K11304	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	TIP60, KAT5, ESA1; histone acetyltransferase HTATIP [EC:2.3.1.48]
+K24387	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	L3MBTL; lethal(3)malignant brain tumor-like protein
+K15263	Eukaryotic type	Zinc finger	Cys2HisCys zinc factors	LYER; cell growth-regulating nucleolar protein
+K24388	Eukaryotic type	Zinc finger	Cys3His zinc factors	ZC3H8; zinc finger CCCH domain-containing protein 8
+K15690	Eukaryotic type	Zinc finger	Cys3His zinc factors	RC3H; RING finger and CCCH-type zinc finger domain-containing protein
+K10643	Eukaryotic type	Zinc finger	Cys3His zinc factors	CNOT4, NOT4, MOT2; CCR4-NOT transcription complex subunit 4 [EC:2.3.2.27]
+K23203	Eukaryotic type	Zinc finger	Cys2CysHis zinc factors	THAP1_3; THAP domain-containing protein 1/3
+K23206	Eukaryotic type	Zinc finger	Cys2CysHis zinc factors	THAP5_8; THAP domain-containing protein 5/8
+K23208	Eukaryotic type	Zinc finger	Cys2CysHis zinc factors	THAP7; THAP domain-containing protein 7
+K23210	Eukaryotic type	Zinc finger	Cys2CysHis zinc factors	THAP10; THAP domain-containing protein 10
+K23211	Eukaryotic type	Zinc finger	Cys2CysHis zinc factors	THAP11; THAP domain-containing protein 11
+K09186	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	MLL1; [histone H3]-lysine4 N-trimethyltransferase MLL1 [EC:2.1.1.354]
+K14959	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	MLL4; [histone H3]-lysine4 N-trimethyltransferase MLL4 [EC:2.1.1.354]
+K14960	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	CXXC1, SPP1, CPS40; COMPASS component SPP1
+K22760	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	CXXC5; CXXC-type zinc finger protein 5
+K13097	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	TET1; methylcytosine dioxygenase [EC:1.14.11.80]
+K24309	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	TET2_3; methylcytosine dioxygenase TET2/3 [EC:1.14.11.80]
+K00558	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	DNMT1, dcm; DNA (cytosine-5)-methyltransferase 1 [EC:2.1.1.37]
+K10276	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	FBXL10_11, KDM2; F-box and leucine-rich repeat protein 10/11 [EC:1.14.11.27]
+K10285	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	FBXL19; F-box and leucine-rich repeat protein 19
+K11589	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	MBD1; methyl-CpG-binding domain protein 1
+K03344	Eukaryotic type	Zinc finger	CXXC CpG-binding proteins	IDAX; Dvl-binding protein IDAX
+K09240	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	CAT8; transcriptional regulatory protein CAT8
+K09241	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	GAL4; transcriptional regulatory protein GAL4
+K09242	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	LEU3; transcriptional regulatory protein LEU3
+K09243	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	UME6; transcriptional regulatory protein UME6
+K09244	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	AMDR; transcriptional regulatory protein AMDR
+K09245	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	UGA3; transcriptional activator protein UGA3
+K09246	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	ARG81, ARGR2; arginine metabolism regulation protein II
+K09247	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	CYP1, HAP1; heme activator protein 1
+K09248	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	PUT3; proline utilization trans-activator
+K21641	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	RGT1; glucose transport transcription regulator RGT1
+K21546	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	GLIZ; C6 transcription factor GliZ
+K21450	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	ARAR; arabinolytic transcriptional activator AraR
+K23629	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	ASAR; C6 transcription factor AsaR
+K21547	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	PRO1, NOSA; C6 transcription factor Pro1
+K21632	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	WOR2; white-opaque regulator 2
+K21633	Eukaryotic type	Zinc finger	Cys6 metabolic regulators in fungi	CZF1; zinc cluster transcription factor CZF1
+K11467	Eukaryotic type	Zinc finger	Other zinc fingers	PHF1, PCL1; PHD finger protein 1
+K23310	Eukaryotic type	Zinc finger	Other zinc fingers	PHF6; PHD finger protein 6
+K11486	Eukaryotic type	Zinc finger	Other zinc fingers	PHF19, PCL3; PHD finger protein 19
+K26271	Eukaryotic type	Zinc finger	Other zinc fingers	MS1, MMD1; PHD finger protein MS1/MMD1
+K26274	Eukaryotic type	Zinc finger	Other zinc fingers	AL; PHD finger protein ALFIN-LIKE
+K11485	Eukaryotic type	Zinc finger	Other zinc fingers	MTF2, PCL2; metal regulatory transcription factor 2
+K12236	Eukaryotic type	Zinc finger	Other zinc fingers	NFX1; transcriptional repressor NF-X1
+K19749	Eukaryotic type	Zinc finger	Other zinc fingers	RAI1; retinoic acid-induced protein 1
+K09250	Eukaryotic type	Zinc finger	Other zinc fingers	CNBP; cellular nucleic acid-binding protein
+K24369	Eukaryotic type	Zinc finger	Other zinc fingers	ZC4H2; zinc finger C4H2 domain-contaning protein
+K24769	Eukaryotic type	Zinc finger	Other zinc fingers	TCF20; transcription factor 20
+K09249	Eukaryotic type	Zinc finger	Other zinc fingers	ABF1, BAF1; ARS-binding factor 1
+K21950	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOXA9; homeobox protein Hox-A9
+K09294	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_9; homeobox protein HoxB/C/D9
+K17443	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOXA10; homrobox protein Hox-A10
+K17444	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOXC10; homrobox protein Hox-C10
+K09295	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOXD10; homrobox protein Hox-D10
+K21951	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOXA11; homeobox protein Hox-A11
+K09296	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_11; homeobox protein HoxC/D11
+K09297	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_12; homeobox protein HoxC/D12
+K09298	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_13; homeobox protein HoxA/B/C/D13
+K09301	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_1; homeobox protein HoxA/B/D1
+K09302	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_2; homeobox protein HoxA/B2
+K09303	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_3; homeobox protein HoxA/B/D3
+K09304	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_4; homeobox protein HoxA/B/C/D4
+K09305	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_5; homeobox protein HoxA/B/C5
+K09306	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_6; homeobox protein HoxA/B/C6
+K09307	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_7; homeobox protein HoxA/B7
+K09308	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HOX_8; homeobox protein HoxB/C/D8
+K09310	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	GSH; homeobox protein GSH
+K07594	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	IPF1, PDX1; insulin promoter factor 1
+K09312	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	CDX1_4; homeobox protein CDX1/4
+K22234	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	CDX2; homeobox protein CDX2
+K09320	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	EVX; homeobox even-skipped homolog protein
+K09321	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	GBX; homeobox protein GBX
+K08025	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	HLXB9, HB9; homeobox protein HB9
+K09322	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	MEOX, MOX; homeobox protein MOX
+K09300	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	ABDB; homeobox protein abdominal-B and related proteins
+K18659	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: HOXL	BCD; homeotic protein bicoid
+K09309	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX1; homeobox protein Nkx-1
+K09342	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX2-1, TITF1; homeobox protein Nkx-2.1
+K08029	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX2-2; homeobox protein Nkx-2.2
+K09343	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX2-3; homeobox protein Nkx-2.3
+K09344	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX2-4; homeobox protein Nkx-2.4
+K09345	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX2-5; homeobox protein Nkx-2.5
+K09346	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX2-6; homeobox protein Nkx-2.6
+K09347	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX2-8; homeobox protein Nkx-2.8
+K09348	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX3-1; homeobox protein Nkx-3.1
+K09995	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX3-2, BAPX1; homeobox protein Nkx-3.2
+K09349	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX5, HMX; homeobox protein Nkx-5
+K08030	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX6-1; homeobox protein Nkx-6.1
+K09350	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX6-2; homeobox protein Nkx-6.2
+K09351	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKX6-3; homeobox protein Nkx-6.3
+K09352	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NKXN; homeobox protein Nkx, invertebrate
+K09314	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	DLX1_4_6; homeobox protein DLX1/4/6
+K18488	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	DLX2; homeobox protein DLX2
+K09315	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	DLX3; homeobox protein DLX3
+K18489	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	DLX5; homeobox protein DLX5
+K09340	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	TLX1, HOX11; T-cell leukemia homeobox protein 1
+K15606	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	TLX2, HOX11L1; T-cell leukemia homeobox protein 2
+K15607	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	TLX3, HOX11L2; T-cell leukemia homeobox protein 3
+K09339	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	HLX1; homeobox protein HLX1
+K09317	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	EMX; homeobox protein EMX
+K09318	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	VAX; homeobox protein ventral anterior
+K09319	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	EN; homeobox protein engrailed
+K09341	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	MSX; homeobox protein MSX
+K09353	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	LBX; homeobox protein LBX
+K08024	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	HHEX, HEX, PRH; homeobox protein HEX
+K09360	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	BARHL; BarH-like
+K09361	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	BARX; BarH-like homeobox
+K10164	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NANOG; homeobox protein Nanog
+K24874	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	BSX; brain-specific homeobox protein
+K24875	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	DBX; homeobox protein DBX
+K24876	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	NOTO; homeobox protein notochord
+K24877	Eukaryotic type	Helix-turn-helix	Homeo domain ANTP: NKL	VENTX; homeobox protein VENTX
+K09452	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	ARX; homeobox protein aristaless-related
+K09323	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	ALX3; homeobox protein aristaless-like 3
+K09451	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	ALX4; homeobox protein aristaless-like 4
+K09324	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	GSC; homeobox protein goosecoid
+K09325	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	GSCL; homeobox protein goosecoid-like
+K09326	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	OTX1; homeobox protein OTX1
+K18490	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	OTX2; homeobox protein OTX2
+K09327	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PROP1; homeobox protein prophet of Pit-1
+K09328	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	UNC4; homeobox protein Unc-4
+K09329	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PRRX, PMX; paired mesoderm homeobox protein
+K09330	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PHOX2, PMX2; paired mesoderm homeobox protein 2
+K09331	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	SHOX; short stature homeobox protein
+K09332	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	RAX, RX; retina and anterior neural fold homeobox protein
+K09333	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	RAXL; retina and anterior neural fold homeobox-like protein
+K09334	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	ALX1, CART1; ALX homeobox protein 1
+K09335	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	VSX1; visual system homeobox protein 1
+K09336	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	VSX2, CHX10; visual system homeobox protein 2
+K09337	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	CRX; cone-rod homeobox protein
+K18491	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	ESX1; homeobox protein ESX1
+K24199	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	NOBOX; homeobox protein NOBOX
+K09356	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PITX1; paired-like homeodomain transcription factor 1
+K04686	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PITX2; paired-like homeodomain transcription factor 2
+K09357	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PITX3; paired-like homeodomain transcription factor 3
+K09354	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	HESX1; homeobox protein expressed in ES cells 1
+K24892	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	ARGFX; arginine-fifty homeobox
+K24893	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	DMBX1; diencephalon/mesencephalon homeobox protein 1
+K24894	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	DPRX; divergent paired-related homeobox
+K24895	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	DRGX, PRRXL1; dorsal root ganglia homeobox protein
+K24896	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	DUX; double homeobox protein
+K24897	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	HOPX; homeodomain-only protein
+K24898	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	ISX; intestine-specific homeobox
+K24899	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	LEUTX; leucine-twenty homeobox
+K24900	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	MIXL1; homeobox protein MIXL1
+K24901	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	OTP; homeobox protein orthopedia
+K24902	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	RHOXF1; rhox homeobox family member 1
+K24903	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	RHOXF2; rhox homeobox family member 2
+K24904	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	SEBOX; homeobox protein SEBOX
+K24905	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	TPRX1; tetra-peptide repeat homeobox protein 1
+K09382	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PAX1_9; paired box protein 1/9
+K15608	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PAX2; paired box protein 2
+K09381	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PAX3_7; paired box protein 3/7
+K08032	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PAX4; paired box protein 4
+K09383	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PAX5; paired box protein 5
+K08031	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PAX6; paired box protein 6
+K09293	Eukaryotic type	Helix-turn-helix	Homeo domain Paired-related	PAX8; paired box protein 8
+K09370	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	ISL1; insulin gene enhancer protein ISL-1
+K18492	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	ISL2; insulin gene enhancer protein ISL-2
+K09371	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	LMX1; LIM homeobox transcription factor 1
+K09372	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	LHX1; LIM homeobox protein 1
+K09373	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	LHX2_9; LIM homeobox protein 2/9
+K09374	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	LHX3_4; LIM homeobox protein 3/4
+K18493	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	LHX5; LIM homeobox protein 5
+K09375	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	LHX6_8; LIM homeobox protein 6/8
+K09377	Eukaryotic type	Helix-turn-helix	Homeo domain LIM	CSRP; cysteine and glycine-rich protein
+K09363	Eukaryotic type	Helix-turn-helix	Homeo domain POU	POU1F, PIT1; POU domain transcription factor, class 1
+K09364	Eukaryotic type	Helix-turn-helix	Homeo domain POU	POU2F, OTF; POU domain transcription factor, class 2
+K09365	Eukaryotic type	Helix-turn-helix	Homeo domain POU	POU3F, OTF; POU domain transcription factor, class 3
+K09366	Eukaryotic type	Helix-turn-helix	Homeo domain POU	POU4F, BRN3; POU domain transcription factor, class 4
+K09367	Eukaryotic type	Helix-turn-helix	Homeo domain POU	POU5F; POU domain transcription factor, class 5
+K09368	Eukaryotic type	Helix-turn-helix	Homeo domain POU	POU6F; POU domain transcription factor, class 6
+K24884	Eukaryotic type	Helix-turn-helix	Homeo domain POU	HDX; highly divergent homeobox
+K08036	Eukaryotic type	Helix-turn-helix	Homeo domain POU	TCF1, HNF1A; transcription factor 1, hepatocyte nuclear factor 1-alpha
+K08034	Eukaryotic type	Helix-turn-helix	Homeo domain POU	TCF2, HNF1B; transcription factor 2, hepatocyte nuclear factor 1-beta
+K24885	Eukaryotic type	Helix-turn-helix	Homeo domain POU	HMBOX1; homeobox-containing protein 1
+K15614	Eukaryotic type	Helix-turn-helix	Homeo domain SINE	SIX1; homeobox protein SIX1
+K19472	Eukaryotic type	Helix-turn-helix	Homeo domain SINE	SIX2; homeobox protein SIX2
+K19473	Eukaryotic type	Helix-turn-helix	Homeo domain SINE	SIX3_6, OPTIX; homeobox protein SIX3/6
+K15615	Eukaryotic type	Helix-turn-helix	Homeo domain SINE	SIX4; homeobox protein SIX4
+K19474	Eukaryotic type	Helix-turn-helix	Homeo domain SINE	SIX5; homeobox protein SIX5
+K09379	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ZFHX2; zinc finger homeobox protein 2
+K09378	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ZFHX3, ATBF1; zinc finger homeobox protein 3
+K09380	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ZFHX4; zinc finger homeobox protein 4
+K09299	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ZEB1; zinc finger homeobox protein 1
+K23560	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ZEB2; zinc finger homeobox protein 2
+K22591	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ADNP; activity-dependent neuroprotector homeobox protein
+K24878	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ADNP2; activity-dependent neuroprotector homeobox protein 2
+K24879	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ZHX1; zinc fingers and homeoboxes protein 1
+K24880	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ZHX2; zinc fingers and homeoboxes protein 2
+K24881	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	ZHX3; zinc fingers and homeoboxes protein 3
+K24883	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	HOMEZ; homeobox and leucine zipper protein Homez
+K24882	Eukaryotic type	Helix-turn-helix	Homeo domain ZF	NANOGNB; NANOG neighbor homeobox
+K09313	Eukaryotic type	Helix-turn-helix	Homeo domain CUT	CUTL; homeobox protein cut-like
+K08026	Eukaryotic type	Helix-turn-helix	Homeo domain CUT	ONECUT1, HNF6; one cut domain, family member 1 (hepatocyte nuclear factor 6)
+K24170	Eukaryotic type	Helix-turn-helix	Homeo domain CUT	ONECUT2; one cut domain family member 2
+K24171	Eukaryotic type	Helix-turn-helix	Homeo domain CUT	ONECUT3; one cut domain family member 3
+K23225	Eukaryotic type	Helix-turn-helix	Homeo domain CUT	SATB1; DNA-binding protein SATB1
+K23226	Eukaryotic type	Helix-turn-helix	Homeo domain CUT	SATB2; DNA-binding protein SATB2
+K20211	Eukaryotic type	Helix-turn-helix	Homeo domain PROS	PROX1; prospero homeobox 1
+K20212	Eukaryotic type	Helix-turn-helix	Homeo domain PROS	PROX2; prospero homeobox 2
+K09355	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	PBX1; pre-B-cell leukemia transcription factor 1
+K15609	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	PBX2; pre-B-cell leukemia transcription factor 2
+K15610	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	PBX3; pre-B-cell leukemia transcription factor 3
+K15611	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	PBX4; pre-B-cell leukemia transcription factor 4
+K15613	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	MEIS1; homeobox protein Meis1
+K16670	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	MEIS2; homeobox protein Meis2
+K16671	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	MEIS3; homeobox protein Meis3
+K19383	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	TGIF1; homeobox protein TGIF1
+K19553	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	TGIF2; homeobox protein TGIF2
+K19554	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	TGIF2L, TGIFL; homeobox protein TGIF2L
+K24889	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	IRX; iroquois-class homeodomain protein IRX
+K24890	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	MKX; homeobox protein Mohawk
+K24891	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	PKNOX; homeobox protein PKNOX
+K16672	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	HTH; homeobox protein homothorax
+K09359	Eukaryotic type	Helix-turn-helix	Homeo domain TALE	MATA2; mating-type protein A2
+K22536	Eukaryotic type	Helix-turn-helix	Homeo domain other	DAN, DANR; distal antenna
+K09338	Eukaryotic type	Helix-turn-helix	Homeo domain other	HD-ZIP; homeobox-leucine zipper protein
+K09358	Eukaryotic type	Helix-turn-helix	Homeo domain other	MATA1; mating-type protein A1
+K02646	Eukaryotic type	Helix-turn-helix	Homeo domain other	PHO2; regulatory protein PHO2
+K12411	Eukaryotic type	Helix-turn-helix	Homeo domain other	YOX1, YHP1; homeobox protein YOX1/YHP1
+K09362	Eukaryotic type	Helix-turn-helix	Homeo domain other	K09362; homeo domain only family, other
+K08035	Eukaryotic type	Helix-turn-helix	Fork head/winged helix developmental regulators	FOXA2, HNF3B; forkhead box protein A2, hepatocyte nuclear factor 3-beta
+K09396	Eukaryotic type	Helix-turn-helix	Fork head/winged helix developmental regulators	FOXC; forkhead box protein C
+K09385	Eukaryotic type	Helix-turn-helix	Fork head/winged helix developmental regulators	FOXG; forkhead box protein G
+K09407	Eukaryotic type	Helix-turn-helix	Fork head/winged helix developmental regulators	FOXN; forkhead box protein N
+K09387	Eukaryotic type	Helix-turn-helix	Fork head/winged helix tissue-specific regulators	FOXA1, HNF3A; forkhead box protein A1, hepatocyte nuclear factor 3-alpha
+K08038	Eukaryotic type	Helix-turn-helix	Fork head/winged helix tissue-specific regulators	FOXA3, HNF3G; forkhead box protein A3, hepatocyte nuclear factor 3-gamma
+K09402	Eukaryotic type	Helix-turn-helix	Fork head/winged helix tissue-specific regulators	FOXJ1; forkhead box protein J1
+K17454	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, E2F	E2F1; transcription factor E2F1
+K09389	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, E2F	E2F2; transcription factor E2F2
+K06620	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, E2F	E2F3; transcription factor E2F3
+K04682	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, E2F	E2F4_5; transcription factor E2F4/5
+K09390	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, E2F	E2F6; transcription factor E2F6
+K09391	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, E2F	E2F7_8; transcription factor E2F7/8
+K04683	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, DP	TFDP1; transcription factor Dp-1
+K09392	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, DP	TFDP2; transcription factor Dp-2
+K09393	Eukaryotic type	Helix-turn-helix	Fork head/winged helix cell cycle-controlling factors, DP	TFDP3; transcription factor Dp-3
+K09395	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXB; forkhead box protein B
+K09397	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXD; forkhead box protein D
+K09398	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXE; forkhead box protein E
+K09399	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXF; forkhead box protein F
+K09400	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXH; forkhead box protein H
+K09401	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXI; forkhead box protein I
+K09403	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXJ2_3; forkhead box protein J2/3
+K09404	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXK; forkhead box protein K
+K09405	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXL; forkhead box protein L
+K09406	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXM; forkhead box protein M
+K07201	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXO1; forkhead box protein O1
+K09408	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXO3; forkhead box protein O3
+K12358	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXO4; forkhead box protein O4
+K17847	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXO6; forkhead box protein O6
+K23582	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXP1; forkhead box protein P1
+K09409	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXP2_4; forkhead box protein P2/4
+K10163	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXP3, IPEX; forkhead box P3
+K09410	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXQ, HFH1; forkhead box protein Q
+K26215	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXR; forkhead box protein R
+K09412	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXS; forkhead box protein S
+K09411	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FOXX; forkhead box protein, other
+K09413	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	HCM1; forkhead transcription factor HCM1
+K24664	Eukaryotic type	Helix-turn-helix	Fork head/winged helix other regulators	FKH; forkhead protein FKH
+K09414	Eukaryotic type	Helix-turn-helix	Heat shock factors	HSF1; heat shock transcription factor 1
+K09415	Eukaryotic type	Helix-turn-helix	Heat shock factors	HSF2; heat shock transcription factor 2
+K09416	Eukaryotic type	Helix-turn-helix	Heat shock factors	HSF3; heat shock transcription factor 3
+K09417	Eukaryotic type	Helix-turn-helix	Heat shock factors	HSF4; heat shock transcription factor 4
+K09419	Eukaryotic type	Helix-turn-helix	Heat shock factors	HSFF; heat shock transcription factor, other eukaryote
+K09420	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-factors	MYB, C-MYB; transcriptional activator Myb
+K09421	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-factors	MYBL1, A-MYB; myb-related protein A
+K21769	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-factors	MYBL2, B-MYB; myb-related protein B
+K09422	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-factors	MYBP; transcription factor MYB, plant
+K23865	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-factors	MYB30; transcription factor MYB30
+K16166	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-factors	PAP1, MYB75; transcription factor MYB75
+K12133	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-factors	LHY; MYB-related transcription factor LHY
+K12134	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-factors	CCA1; circadian clock associated 1
+K09453	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-like factors	SNAPC4; snRNA-activating protein complex subunit 4
+K21625	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-like factors	DMTF1, DMP1; cyclin-D-binding Myb-like transcription factor 1
+K09423	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-like factors	BAS1; Myb-like DNA-binding protein BAS1
+K09424	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-like factors	REB1; Myb-like DNA-binding protein REB1
+K09425	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-like factors	K09425; Myb-like DNA-binding protein FlbD
+K09426	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-like factors	RAP1; Myb-like DNA-binding protein RAP1
+K09427	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Myb, Myb-like factors	ADF1; Adh transcription factor 1
+K09428	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ELF1_2_4; E74-like factor 1/2/4
+K09429	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	K09429, ELF3; E74-like factor 3
+K17101	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ELF5; E74-like factor 5
+K17102	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	EHF; ETS homologous factor
+K04375	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ELK1; ETS domain-containing protein Elk-1
+K09430	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ELK3; ETS domain-containing protein Elk-3 (SRF accessory protein 2)
+K04376	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ELK4, SAP1; ETS domain-containing protein Elk-4
+K09431	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ETV1; ets translocation variant 1
+K09432	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ETV2, ER71; ETS translocation variant 2
+K09433	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ETV3; ETS translocation variant 3
+K15592	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ETV4; ets translocation variant 4
+K15593	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ETV5; ets translocation variant 5
+K03211	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ETV6_7, yan; ETS translocation variant 6/7
+K09434	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ERF; ETS domain-containing transcription factor ERF
+K02678	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ETS1, pnt; C-ets-1
+K21932	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ETS2; C-ets-2
+K09435	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	ERG; transcriptional regulator ERG
+K09436	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	FLI1; friend leukemia integration 1 transcription factor
+K09437	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	FEV; ETS oncogene family protein FEV
+K09438	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	SPI1; transcription factor PU.1
+K09439	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	SPIB; transcription factor Spi-B
+K09440	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	SPIC; transcription factor Spi-C
+K09441	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	GABPA; GA-binding protein transcription factor, alpha
+K09442	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	SPDEF; SAM pointed domain-containing ETS transcription factor
+K09443	Eukaryotic type	Helix-turn-helix	Tryptophan clusters Ets-type	K09443; ETS-type family, other
+K09444	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF1; interferon regulatory factor 1
+K10153	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF2; interferon regulatory factor 2
+K05411	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF3; interferon regulatory factor 3
+K09445	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF4; interferon regulatory factor 4
+K09446	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF5; interferon regulatory factor 5
+K10154	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF6; interferon regulatory factor 6
+K09447	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF7; interferon regulatory factor 7
+K10155	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF8; interferon regulatory factor 8
+K04693	Eukaryotic type	Helix-turn-helix	Tryptophan clusters interferon-regulating factors	IRF9, ISGF3G, P48; interferon regulatory factor 9
+K09448	Eukaryotic type	Helix-turn-helix	TEA domain	TEAD; transcriptional enhancer factor
+K11653	Eukaryotic type	Helix-turn-helix	ARID	ARID1; AT-rich interactive domain-containing protein 1
+K11765	Eukaryotic type	Helix-turn-helix	ARID	ARID2; AT-rich interactive domain-containing protein 2
+K25856	Eukaryotic type	Helix-turn-helix	ARID	ARID3; AT-rich interactive domain-containing protein 3
+K19194	Eukaryotic type	Helix-turn-helix	ARID	ARID4A, RBP1; AT-rich interactive domain-containing protein 4A
+K19195	Eukaryotic type	Helix-turn-helix	ARID	ARID4B; AT-rich interactive domain-containing protein 4B
+K25857	Eukaryotic type	Helix-turn-helix	ARID	ARID5; AT-rich interactive domain-containing protein 5
+K02580	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Rel/Ankyrin	NFKB1; nuclear factor NF-kappa-B p105 subunit
+K04469	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Rel/Ankyrin	NFKB2; nuclear factor of kappa light polypeptide gene enhancer in B-cells 2
+K04735	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Rel/Ankyrin	RELA; transcription factor p65
+K09253	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Rel/Ankyrin	RELB; transcription factor RelB
+K09254	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Rel/Ankyrin	REL; c-Rel proto-oncogene protein
+K04734	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	NFKBIA; NF-kappa-B inhibitor alpha
+K02581	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	NFKBIB; NF-kappa-B inhibitor beta
+K14214	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	NFKBID; NF-kappa-B inhibitor delta
+K05872	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	NFKBIE; NF-kappa-B inhibitor epsilon
+K14242	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	NFKBIZ; NF-kappa-B inhibitor zeta
+K09256	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	NFKBIL1; NF-kappa-B inhibitor-like protein 1
+K09257	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	NFKBIL2; NF-kappa-B inhibitor-like protein 2
+K09258	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	BCL3; B-cell CLL/lymphoma 3 protein
+K09454	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) Ankyrin only	GABPB; GA-binding protein transcription factor, beta
+K04446	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) NF-AT	NFATC1, NFAT2, NFATC; nuclear factor of activated T-cells, cytoplasmic 1
+K17332	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) NF-AT	NFATC2, NFAT1, NFATP; nuclear factor of activated T-cells, cytoplasmic 2
+K17333	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) NF-AT	NFATC3, NFAT4; nuclear factor of activated T-cells, cytoplasmic 3
+K17334	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) NF-AT	NFATC4, NFAT3; nuclear factor of activated T-cells, cytoplasmic 4
+K17335	Eukaryotic type	beta-Scaffold factors with minor groove contacts	RHR (Rel homology region) NF-AT	NFAT5; nuclear factor of activated T-cells 5
+K11220	Eukaryotic type	beta-Scaffold factors with minor groove contacts	STAT	STAT1; signal transducer and activator of transcription 1
+K11221	Eukaryotic type	beta-Scaffold factors with minor groove contacts	STAT	STAT2; signal transducer and activator of transcription 2
+K04692	Eukaryotic type	beta-Scaffold factors with minor groove contacts	STAT	STAT3; signal transducer and activator of transcription 3
+K11222	Eukaryotic type	beta-Scaffold factors with minor groove contacts	STAT	STAT4; signal transducer and activator of transcription 4
+K11223	Eukaryotic type	beta-Scaffold factors with minor groove contacts	STAT	STAT5A; signal transducer and activator of transcription 5A
+K11224	Eukaryotic type	beta-Scaffold factors with minor groove contacts	STAT	STAT5B; signal transducer and activator of transcription 5B
+K11225	Eukaryotic type	beta-Scaffold factors with minor groove contacts	STAT	STAT6; signal transducer and activator of transcription 6
+K04451	Eukaryotic type	beta-Scaffold factors with minor groove contacts	p53	TP53, P53; tumor protein p53
+K10148	Eukaryotic type	beta-Scaffold factors with minor groove contacts	p53	TP73; tumor protein p73
+K10149	Eukaryotic type	beta-Scaffold factors with minor groove contacts	p53	TP63; tumor protein p63
+K09260	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, MEF-2	MEF2A; MADS-box transcription enhancer factor 2A
+K09261	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, MEF-2	MEF2B; MADS-box transcription enhancer factor 2B
+K04454	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, MEF-2	MEF2C; MADS-box transcription enhancer factor 2C
+K09262	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, MEF-2	MEF2D; MADS-box transcription enhancer factor 2D
+K09264	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, Homeotic genes	K09264; MADS-box transcription factor, plant
+K12412	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, Yeast regulators	MCM1; pheromone receptor transcription factor
+K19808	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, Yeast regulators	ARG80, ARGR1; arginine metabolism regulation protein I
+K09265	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, Yeast regulators	RLM1; transcription factor RLM1
+K19807	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box regulators of differentiation, Yeast regulators	SMP1; transcription factor SMP1
+K04378	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MADS-box responders to external signals	SRF; serum response factor
+K15413	Eukaryotic type	beta-Scaffold factors with minor groove contacts	SAND domain-containing proteins	SP100; nuclear body protein Sp100
+K24503	Eukaryotic type	beta-Scaffold factors with minor groove contacts	SAND domain-containing proteins	SP110; nuclear body protein Sp110
+K24504	Eukaryotic type	beta-Scaffold factors with minor groove contacts	SAND domain-containing proteins	SP140; nuclear body protein Sp140
+K10603	Eukaryotic type	beta-Scaffold factors with minor groove contacts	SAND domain-containing proteins	AIRE; autoimmune regulator
+K23041	Eukaryotic type	beta-Scaffold factors with minor groove contacts	SAND domain-containing proteins	DEAF1; deformed epidermal autoregulatory factor 1
+K24505	Eukaryotic type	beta-Scaffold factors with minor groove contacts	SAND domain-containing proteins	GMEB; glucocorticoid modulatory element-binding protein
+K03120	Eukaryotic type	beta-Scaffold factors with minor groove contacts	TATA-binding proteins	TBP, tbp; transcription initiation factor TFIID TATA-box-binding protein
+K09266	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SRY; sex-determining region Y protein (SOX group A)
+K09267	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX1S; transcription factor SOX1/3/14/21 (SOX group B)
+K16796	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX2; transcription factor SOX2 (SOX group B)
+K23581	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX4; transcription factor SOX4 (SOX group C)
+K09268	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX11_12; transcription factor SOX11/12 (SOX group C)
+K09269	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX5_6_13; transcription factor SOX5/6/13 (SOX group D)
+K09270	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX7S; transcription factor SOX7/8/10/18 (SOX group E/F)
+K18435	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX9; transcription factor SOX9 (SOX group E)
+K04495	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX17; transcription factor SOX17 (SOX group F)
+K09271	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	SOX15_30; transcription factor SOX15/30
+K20225	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	CIC; capicua transcriptional repressor
+K21643	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	BBX, HBP2; HMG box transcription factor BBX
+K21644	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG SOX	HBP1; HMG box transcription factor 1
+K04492	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG TCF-1	LEF1; lymphoid enhancer-binding factor 1
+K02620	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG TCF-1	TCF7, TCF-1; transcription factor 7
+K04490	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG TCF-1	TCF7L1; transcription factor 7-like 1
+K04491	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG TCF-1	TCF7L2; transcription factor 7-like 2
+K09272	Eukaryotic type	beta-Scaffold factors with minor groove contacts	HMG2-related	SSRP1, POB3; FACT complex subunit SSRP1/POB3
+K09273	Eukaryotic type	beta-Scaffold factors with minor groove contacts	UBF	UBTF; upstream-binding transcription factor
+K22483	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Other HMG box factors	HMO1; transcriptional regulator HMO1
+K22496	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Other HMG box factors	RFG1, ROX1; repressor RFG1/ROX1
+K09274	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Other HMG box factors	K09274; HMG box factor, other
+K08064	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Heteromeric CCAAT factors	NFYA, HAP2; nuclear transcription factor Y, alpha
+K08065	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Heteromeric CCAAT factors	NFYB, HAP3; nuclear transcription Y subunit beta
+K08066	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Heteromeric CCAAT factors	NFYC, HAP5; nuclear transcription factor Y, gamma
+K09275	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Grainyhead	TFCP2; transcription factor CP2 and related proteins
+K06099	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Cold-shock domain factors, DbpA-like	CSDA, ZONAB; cold shock domain protein A
+K09276	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Cold-shock domain factors, YB-1/DbpB-like	YBX1, NSEP1; Y-box-binding protein 1
+K09277	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Cold-shock domain factors, FRG Y2-like	YBX2; Y-box-binding protein 2
+K08367	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Runt	RUNX1, AML1; runt-related transcription factor 1
+K09278	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Runt	RUNX2, AML3; runt-related transcription factor 2
+K09279	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Runt	RUNX3, AML2; runt-related transcription factor 3
+K20213	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Runt	RUN; RUNX transcription factor Runt
+K20214	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Runt	LZ; RUNX transcription factor Lozenge
+K09280	Eukaryotic type	beta-Scaffold factors with minor groove contacts	Runt	RUNXA_B; runt-related transcription factor
+K24768	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MYRF	MYRF; myelin regulatory factor [EC:3.4.-.-]
+K12769	Eukaryotic type	beta-Scaffold factors with minor groove contacts	MYRF	NDT80; meiosis-specific transcription factor NDT80
+K09282	Eukaryotic type	Other transcription factors	HMGI(Y)	HMGA1; high mobility group AT-hook protein 1
+K09283	Eukaryotic type	Other transcription factors	HMGI(Y)	HMGA2; high mobility group AT-hook protein 2
+K15626	Eukaryotic type	Other transcription factors	NUPR	NUPR1, COM1; nuclear protein 1
+K25793	Eukaryotic type	Other transcription factors	NUPR	NUPR2, NUPR1L; nuclear protein 2
+K06618	Eukaryotic type	Other transcription factors	Pocket domain Rb	RB1; retinoblastoma-associated protein
+K04681	Eukaryotic type	Other transcription factors	Pocket domain Rb	RBL1; retinoblastoma-like protein 1
+K16332	Eukaryotic type	Other transcription factors	Pocket domain Rb	RBL2; retinoblastoma-like protein 2
+K04498	Eukaryotic type	Other transcription factors	Pocket domain CBP	EP300, CREBBP, KAT3; E1A/CREB-binding protein [EC:2.3.1.48]
+K10172	Eukaryotic type	Other transcription factors	T-box	BRA, T; brachyury protein
+K10173	Eukaryotic type	Other transcription factors	T-box	EOMES, TBR2; eomesodermin protein
+K10174	Eukaryotic type	Other transcription factors	T-box	TBR1; T-box brain protein 1
+K10175	Eukaryotic type	Other transcription factors	T-box	TBX1; T-box protein 1
+K10176	Eukaryotic type	Other transcription factors	T-box	TBX2; T-box protein 2
+K10177	Eukaryotic type	Other transcription factors	T-box	TBX3; T-box protein 3
+K10178	Eukaryotic type	Other transcription factors	T-box	TBX4; T-box protein 4
+K10179	Eukaryotic type	Other transcription factors	T-box	TBX5, HOS; T-box protein 5
+K10180	Eukaryotic type	Other transcription factors	T-box	TBX6; T-box protein 6
+K10181	Eukaryotic type	Other transcription factors	T-box	TBX10, TBX7; T-box protein 10
+K10182	Eukaryotic type	Other transcription factors	T-box	TBX15, TBX14; T-box protein 15
+K10183	Eukaryotic type	Other transcription factors	T-box	TBX18; T-box protein 18
+K10184	Eukaryotic type	Other transcription factors	T-box	TBX19; T-box protein 19
+K10185	Eukaryotic type	Other transcription factors	T-box	TBX20; T-box protein 20
+K10166	Eukaryotic type	Other transcription factors	T-box	TBX21; T-box protein 21
+K10186	Eukaryotic type	Other transcription factors	T-box	TBX22; T-box protein 22
+K19488	Eukaryotic type	Other transcription factors	DMRT	DMRT1; doublesex- and mab-3-related transcription factor 1
+K19489	Eukaryotic type	Other transcription factors	DMRT	DMRT2; doublesex- and mab-3-related transcription factor 2
+K19490	Eukaryotic type	Other transcription factors	DMRT	DMRT3; doublesex- and mab-3-related transcription factor 3
+K19491	Eukaryotic type	Other transcription factors	DMRT	DMRT4_5, DMRTA; doublesex- and mab-3-related transcription factor 4/5
+K19492	Eukaryotic type	Other transcription factors	DMRT	DMRT6, DMRTB; doublesex- and mab-3-related transcription factor 6
+K19493	Eukaryotic type	Other transcription factors	DMRT	DMRT7, DMRTC2; doublesex- and mab-3-related transcription factor 7
+K19494	Eukaryotic type	Other transcription factors	DMRT	DMRT8, DMRTC1; doublesex- and mab-3-related transcription factor 8
+K26434	Eukaryotic type	Other transcription factors	LRRFIP	LRRFIP; leucine-rich repeat flightless-interacting protein
+K16221	Eukaryotic type	Other transcription factors	TCP	TCP21, CHE; transcription factor TCP21 (protein CCA1 HIKING EXPEDITION)
+K09284	Eukaryotic type	Other transcription factors	AP2/ERF	AP2; AP2-like factor, euAP2 lineage
+K09285	Eukaryotic type	Other transcription factors	AP2/ERF	OVM, ANT; AP2-like factor, ANT lineage
+K09287	Eukaryotic type	Other transcription factors	AP2/ERF	RAV; RAV-like factor
+K09286	Eukaryotic type	Other transcription factors	AP2/ERF	EREBP; EREBP-like factor
+K14516	Eukaryotic type	Other transcription factors	AP2/ERF	ERF1; ethylene-responsive transcription factor 1
+K14517	Eukaryotic type	Other transcription factors	AP2/ERF	ERF2; ethylene-responsive transcription factor 2
+K14507	Eukaryotic type	Other transcription factors	AP2/ERF	ORCA2_3; AP2-domain DNA-binding protein ORCA2/3
+K13432	Eukaryotic type	Other transcription factors	AP2/ERF	PTI4; pathogenesis-related genes transcriptional activator PTI4
+K13433	Eukaryotic type	Other transcription factors	AP2/ERF	PTI5; pathogenesis-related genes transcriptional activator PTI5
+K13434	Eukaryotic type	Other transcription factors	AP2/ERF	PTI6; pathogenesis-related genes transcriptional activator PTI6
+K18834	Eukaryotic type	Other transcription factors	WRKY	WRKY1; WRKY transcription factor 1
+K18835	Eukaryotic type	Other transcription factors	WRKY	WRKY2; WRKY transcription factor 2
+K13425	Eukaryotic type	Other transcription factors	WRKY	WRKY22; WRKY transcription factor 22
+K13423	Eukaryotic type	Other transcription factors	WRKY	WRKY25; WRKY transcription factor 25
+K13426	Eukaryotic type	Other transcription factors	WRKY	WRKY29; WRKY transcription factor 29
+K13424	Eukaryotic type	Other transcription factors	WRKY	WRKY33; WRKY transcription factor 33
+K13944	Eukaryotic type	Other transcription factors	LOB	LBD16; LOB domain-containing protein 16
+K21994	Eukaryotic type	Other transcription factors	LOB	LBD18; LOB domain-containing protein 18
+K13945	Eukaryotic type	Other transcription factors	LOB	LBD29; LOB domain-containing protein 29
+K09281	Eukaryotic type	Other transcription factors	Copper-fist proteins fungal regulators	K09281; copper-fist transcription factor
+K21404	Eukaryotic type	Other transcription factors	Others	AKNA; AT-hook-containing transcription factor
+K21595	Eukaryotic type	Other transcription factors	Others	CARF; calcium-responsive transcription factor
+K21596	Eukaryotic type	Other transcription factors	Others	CAMTA; calmodulin-binding transcription activator
+K21598	Eukaryotic type	Other transcription factors	Others	GCM; chorion-specific transcription factor GCM
+K21599	Eukaryotic type	Other transcription factors	Others	CIART, CHRONO, GM129; circadian-associated transcriptional repressor
+K22145	Eukaryotic type	Other transcription factors	Others	TMEM18; transmembrane protein 18
+K22543	Eukaryotic type	Other transcription factors	Others	MN1; transcriptional activator MN1
+K22758	Eukaryotic type	Other transcription factors	Others	CHCHD2; coiled-coil-helix-coiled-coil-helix domain-containing protein 2
+K06053	Eukaryotic type	Other transcription factors	Others	RBPSUH, RBPJK; recombining binding protein suppressor of hairless
+K23804	Eukaryotic type	Other transcription factors	Others	GON4L; GON-4-like protein
+K21772	Eukaryotic type	Other transcription factors	Others	PURA; transcriptional activator protein Pur-alpha
+K21799	Eukaryotic type	Other transcription factors	Others	PURB; transcriptional activator protein Pur-beta
+K24992	Eukaryotic type	Other transcription factors	Others	MYEF2; myelin expression factor 2
+K23408	Eukaryotic type	Other transcription factors	Others	CDCA7, CDCA7L, JPO1; cell division cycle-associated protein 7
+K26458	Eukaryotic type	Other transcription factors	Others	NKRF; NF-kappa-B-repressing factor
+K14514	Eukaryotic type	Other transcription factors	Others	EIN3; ethylene-insensitive protein 3
+K11215	Eukaryotic type	Other transcription factors	Others	STE12; transcription factor STE12
+K12413	Eukaryotic type	Other transcription factors	Others	WHI5; G1-specific transcriptional repressor WHI5
+K12764	Eukaryotic type	Other transcription factors	Others	IME1; meiosis-inducing protein 1
+K12779	Eukaryotic type	Other transcription factors	Others	SUM1; suppressor of MAR1-1 protein
+K19815	Eukaryotic type	Other transcription factors	Others	HOT1; high-osmolarity-induced transcription protein 1
+K19816	Eukaryotic type	Other transcription factors	Others	MSS11; transcription activator MSS11
+K21631	Eukaryotic type	Other transcription factors	Others	GTI1, PAC2, WOR1; Gti1/Pac2 family transcription factor
+K12763	Eukaryotic type	Other transcription factors	Others	EFG1, SOK2; enhanced filamentous growth protein 1
+K02099	Prokaryotic type	Helix-turn-helix	AraC family	araC; AraC family transcriptional regulator, arabinose operon regulatory protein
+K02508	Prokaryotic type	Helix-turn-helix	AraC family	hpaA; AraC family transcriptional regulator, 4-hydroxyphenylacetate 3-monooxygenase operon regulatory protein
+K02854	Prokaryotic type	Helix-turn-helix	AraC family	rhaR; AraC family transcriptional regulator, L-rhamnose operon transcriptional activator RhaR
+K02855	Prokaryotic type	Helix-turn-helix	AraC family	rhaS; AraC family transcriptional regulator, L-rhamnose operon regulatory protein RhaS
+K03490	Prokaryotic type	Helix-turn-helix	AraC family	chbR, celD; AraC family transcriptional regulator, dual regulator of chb operon
+K03755	Prokaryotic type	Helix-turn-helix	AraC family	adiY; AraC family transcriptional regulator, transcriptional activator of adiA
+K04033	Prokaryotic type	Helix-turn-helix	AraC family	eutR; AraC family transcriptional regulator, ethanolamine operon transcriptional activator
+K05372	Prokaryotic type	Helix-turn-helix	AraC family	ybtA; AraC family transcriptional regulator
+K06599	Prokaryotic type	Helix-turn-helix	AraC family	chpD; AraC family transcriptional regulator, chemosensory pili system protein ChpD
+K07780	Prokaryotic type	Helix-turn-helix	AraC family	appY; AraC family transcriptional regulator, transcriptional regulator required for anaerobic and stationary phase induction of genes
+K10923	Prokaryotic type	Helix-turn-helix	AraC family	tcpN, toxT; AraC family transcriptional regulator, TCP pilus virulence regulatory protein
+K11920	Prokaryotic type	Helix-turn-helix	AraC family	envY; AraC family transcriptional regulator
+K12243	Prokaryotic type	Helix-turn-helix	AraC family	pchR; AraC family transcriptional regulator, transcriptional activator of the genes for pyochelin and ferripyochelin receptors
+K13631	Prokaryotic type	Helix-turn-helix	AraC family	soxS; AraC family transcriptional regulator, mar-sox-rob regulon activator
+K13632	Prokaryotic type	Helix-turn-helix	AraC family	marA; AraC family transcriptional regulator, mar-sox-rob regulon activator
+K05804	Prokaryotic type	Helix-turn-helix	AraC family	rob; AraC family transcriptional regulator, mar-sox-rob regulon activator
+K18325	Prokaryotic type	Helix-turn-helix	AraC family	ramA; AraC family of transcriptional regulator, multidrug resistance transcriptional activator
+K14063	Prokaryotic type	Helix-turn-helix	AraC family	feaR; AraC family transcriptional regulator, positive regulator of tynA and feaB
+K18954	Prokaryotic type	Helix-turn-helix	AraC family	pobR; AraC family transcriptional regulator, transcriptional activator of pobA
+K18991	Prokaryotic type	Helix-turn-helix	AraC family	mtrA; AraC family transcriptional regulator, activator of mtrCDE
+K19056	Prokaryotic type	Helix-turn-helix	AraC family	tetD; AraC family transcriptional regulator, transposon Tn10 TetD protein
+K20968	Prokaryotic type	Helix-turn-helix	AraC family	exsA; AraC family transcriptional regulator, exoenzyme S synthesis regulatory protein ExsA
+K21746	Prokaryotic type	Helix-turn-helix	AraC family	rclR; AraC family transcriptional regulator, reactive chlorine species (RCS)-specific activator of rcl operon
+K21747	Prokaryotic type	Helix-turn-helix	AraC family	alkR; AraC family transcriptional regulator, alkane utilization regulator
+K21906	Prokaryotic type	Helix-turn-helix	AraC family	gadW; AraC family transcriptional regulator, glutamate-dependent acid resistance regulator
+K21905	Prokaryotic type	Helix-turn-helix	AraC family	gadX; AraC family transcriptional regulator, glutamate-dependent acid resistance regulator
+K23237	Prokaryotic type	Helix-turn-helix	AraC family	melR; AraC family transcriptional regulator, melibiose operon regulatory protein
+K25495	Prokaryotic type	Helix-turn-helix	AraC family	nimR; AraC family transcriptional regulator, regulator of nimT
+K19693	Prokaryotic type	Helix-turn-helix	AraC family	tfoS; AraC family transcriptional regulator, chitin signaling transcriptional activator
+K21701	Prokaryotic type	Helix-turn-helix	AraC family	btr; AraC family transcriptional regulator, transcriptional activator for feuABC-ybbA operon
+K13652	Prokaryotic type	Helix-turn-helix	AraC family	K13652; AraC family transcriptional regulator
+K13653	Prokaryotic type	Helix-turn-helix	AraC family	K13653; AraC family transcriptional regulator
+K07506	Prokaryotic type	Helix-turn-helix	AraC family	K07506; AraC family transcriptional regulator
+K10778	Prokaryotic type	Helix-turn-helix	AraC family	ada; AraC family transcriptional regulator, regulatory protein of adaptative response / methylated-DNA-[protein]-cysteine methyltransferase [EC:2.1.1.63]
+K13529	Prokaryotic type	Helix-turn-helix	AraC family	ada-alkA; AraC family transcriptional regulator, regulatory protein of adaptative response / DNA-3-methyladenine glycosylase II [EC:3.2.2.21]
+K13530	Prokaryotic type	Helix-turn-helix	AraC family	adaA; AraC family transcriptional regulator, regulatory protein of adaptative response / methylphosphotriester-DNA alkyltransferase methyltransferase [EC:2.1.1.-]
+K13633	Prokaryotic type	Helix-turn-helix	AraC family	ftrA; AraC family transcriptional regulator, transcriptional activator FtrA
+K17736	Prokaryotic type	Helix-turn-helix	AraC family	cdhR; AraC family transcriptional regulator, carnitine catabolism transcriptional activator
+K21825	Prokaryotic type	Helix-turn-helix	AraC family	argR; AraC family transcriptional regulator, L-arginine-responsive activator
+K21826	Prokaryotic type	Helix-turn-helix	AraC family	gbdR; AraC family transcriptional regulator, glycine betaine-responsive activator
+K03566	Prokaryotic type	Helix-turn-helix	LysR family	gcvA; LysR family transcriptional regulator, glycine cleavage system transcriptional activator
+K02521	Prokaryotic type	Helix-turn-helix	LysR family	ilvY; LysR family transcriptional regulator, positive regulator for ilvC
+K02623	Prokaryotic type	Helix-turn-helix	LysR family	pcaQ; LysR family transcriptional regulator, pca operon transcriptional activator
+K03576	Prokaryotic type	Helix-turn-helix	LysR family	metR; LysR family transcriptional regulator, regulator for metE and metH
+K03717	Prokaryotic type	Helix-turn-helix	LysR family	nhaR; LysR family transcriptional regulator, transcriptional activator of nhaA
+K04761	Prokaryotic type	Helix-turn-helix	LysR family	oxyR; LysR family transcriptional regulator, hydrogen peroxide-inducible genes activator
+K05596	Prokaryotic type	Helix-turn-helix	LysR family	iciA; LysR family transcriptional regulator, chromosome initiation inhibitor
+K05798	Prokaryotic type	Helix-turn-helix	LysR family	leuO; LysR family transcriptional regulator, transcriptional activator for leuABCD operon
+K05817	Prokaryotic type	Helix-turn-helix	LysR family	hcaR; LysR family transcriptional regulator, hca operon transcriptional activator
+K07592	Prokaryotic type	Helix-turn-helix	LysR family	tdcA; LysR family transcriptional regulator, tdc operon transcriptional activator
+K09681	Prokaryotic type	Helix-turn-helix	LysR family	gltC; LysR family transcriptional regulator, transcription activator of glutamate synthase operon
+K10918	Prokaryotic type	Helix-turn-helix	LysR family	aphB; LysR family transcriptional regulator, transcriptional activator AphB
+K10972	Prokaryotic type	Helix-turn-helix	LysR family	allS; LysR family transcriptional regulator, transcriptional activator of the allD operon
+K11921	Prokaryotic type	Helix-turn-helix	LysR family	cynR; LysR family transcriptional regulator, cyn operon transcriptional activator
+K13634	Prokaryotic type	Helix-turn-helix	LysR family	cysB; LysR family transcriptional regulator, cys regulon transcriptional activator
+K13635	Prokaryotic type	Helix-turn-helix	LysR family	cbl; LysR family transcriptional regulator, cys regulon transcriptional activator
+K13636	Prokaryotic type	Helix-turn-helix	LysR family	dsdC; LysR family transcriptional regulator, D-serine deaminase activator
+K13794	Prokaryotic type	Helix-turn-helix	LysR family	tcuR; LysR family transcriptional regulator, regulatory protein for tcuABC
+K13928	Prokaryotic type	Helix-turn-helix	LysR family	mdcR; LysR family transcriptional regulator, malonate utilization transcriptional regulator
+K14057	Prokaryotic type	Helix-turn-helix	LysR family	abgR; LysR family transcriptional regulator, regulator of abg operon
+K14657	Prokaryotic type	Helix-turn-helix	LysR family	nodD; LysR family transcriptional regulator, nod-box dependent transcriptional activator
+K25882	Prokaryotic type	Helix-turn-helix	LysR family	syrM; LysR family transcriptional regulator, transcriptional activator of nodD3 and syrA
+K16135	Prokaryotic type	Helix-turn-helix	LysR family	dmlR; LysR family transcriptional regulator, transcriptional activator for dmlA
+K17737	Prokaryotic type	Helix-turn-helix	LysR family	dhcR; LysR family transcriptional regulator, carnitine catabolism transcriptional activator
+K16516	Prokaryotic type	Helix-turn-helix	LysR family	galR; LysR family transcriptional regulator, regulator for genes of the gallate degradation pathway
+K17850	Prokaryotic type	Helix-turn-helix	LysR family	ampR; LysR family transcriptional regulator, regulator of gene expression of beta-lactamase
+K18297	Prokaryotic type	Helix-turn-helix	LysR family	mexT; LysR family transcriptional regulator, mexEF-oprN operon transcriptional activator
+K18900	Prokaryotic type	Helix-turn-helix	LysR family	bpeT; LysR family transcriptional regulator, regulator for bpeEF and oprC
+K18927	Prokaryotic type	Helix-turn-helix	LysR family	lldR; LysR family transcriptional regulator, L-lactate utilization regulator
+K19242	Prokaryotic type	Helix-turn-helix	LysR family	citR; LysR family transcriptional regulator, repressor for citA
+K19338	Prokaryotic type	Helix-turn-helix	LysR family	nac; LysR family transcriptional regulator, nitrogen assimilation regulatory protein
+K19555	Prokaryotic type	Helix-turn-helix	LysR family	spvR; LysR family transcriptional regulator, spv operon transcriptional activator
+K19618	Prokaryotic type	Helix-turn-helix	LysR family	fitG; LysR family transcriptional regulator, activator of insecticidal toxin
+K19624	Prokaryotic type	Helix-turn-helix	LysR family	phcA; LysR family transcriptional regulator, virulence genes transcriptional regulator
+K19735	Prokaryotic type	Helix-turn-helix	LysR family	mvfR, pqsR; LysR family transcriptional regulator, quorum-sensing system regulator MvfR
+K21645	Prokaryotic type	Helix-turn-helix	LysR family	hypT, qseD; LysR family transcriptional regulator, hypochlorite-specific transcription factor HypT
+K21698	Prokaryotic type	Helix-turn-helix	LysR family	aaeR; LysR family transcriptional regulator, transcriptional activator for aaeXAB operon
+K21699	Prokaryotic type	Helix-turn-helix	LysR family	bauR; LysR family transcriptional regulator, transcriptional activator for bauABCD operon
+K21703	Prokaryotic type	Helix-turn-helix	LysR family	cbbR, cmpR, ndhR; LysR family transcriptional regulator, low CO2-responsive transcriptional regulator
+K21711	Prokaryotic type	Helix-turn-helix	LysR family	pycR; LysR family transcriptional regulator, putative pyruvate carboxylase regulator
+K21742	Prokaryotic type	Helix-turn-helix	LysR family	ttdR; LysR family transcriptional regulator, transcriptional activator for ttdABT operon
+K21755	Prokaryotic type	Helix-turn-helix	LysR family	bsdA; LysR family transcriptional regulator, salicylic acid-responsive activator of bsdBCD
+K21756	Prokaryotic type	Helix-turn-helix	LysR family	catM; LysR family transcriptional regulator, cis,cis-muconate-responsive activator of cat and ben genes
+K21757	Prokaryotic type	Helix-turn-helix	LysR family	benM; LysR family transcriptional regulator, benzoate and cis,cis-muconate-responsive activator of ben and cat genes
+K21900	Prokaryotic type	Helix-turn-helix	LysR family	cysL; LysR family transcriptional regulator, transcriptional activator of the cysJI operon
+K21959	Prokaryotic type	Helix-turn-helix	LysR family	ftsR; LysR family transcriptional regulator, cell division regulator
+K22711	Prokaryotic type	Helix-turn-helix	LysR family	pltR; LysR family transcriptional regulator, pyoluteorin biosynthesis regulator
+K23773	Prokaryotic type	Helix-turn-helix	LysR family	hdfR; LysR family transcriptional regulator, flagellar master operon regulator
+K24082	Prokaryotic type	Helix-turn-helix	LysR family	pgrR; LysR family transcriptional regulator, regulator of peptidoglycan recycling
+K26290	Prokaryotic type	Helix-turn-helix	LysR family	palR; LysR family transcriptional regulator, regulator of pal gene cluster
+K27042	Prokaryotic type	Helix-turn-helix	LysR family	trpI; LysR family transcriptional regulator, trpBA operon transcriptional activator
+K21960	Prokaryotic type	Helix-turn-helix	LysR family	ytlI; LysR family transcriptional regulator, regulator of the ytmI operon
+K11534	Prokaryotic type	Helix-turn-helix	DeoR family	deoR; DeoR family transcriptional regulator, deoxyribose operon repressor
+K02444	Prokaryotic type	Helix-turn-helix	DeoR family	glpR; DeoR family transcriptional regulator, glycerol-3-phosphate regulon repressor
+K02530	Prokaryotic type	Helix-turn-helix	DeoR family	lacR; DeoR family transcriptional regulator, lactose phosphotransferase system repressor
+K02436	Prokaryotic type	Helix-turn-helix	DeoR family	gatR; DeoR family transcriptional regulator, galactitol utilization operon repressor
+K02081	Prokaryotic type	Helix-turn-helix	DeoR family	agaR; DeoR family transcriptional regulator, aga operon transcriptional repressor
+K02430	Prokaryotic type	Helix-turn-helix	DeoR family	fucR; DeoR family transcriptional regulator, L-fucose operon activator
+K03436	Prokaryotic type	Helix-turn-helix	DeoR family	fruR2, fruR; DeoR family transcriptional regulator, fructose operon transcriptional repressor
+K02468	Prokaryotic type	Helix-turn-helix	DeoR family	srlR, gutR; DeoR family transcriptional regulator, glucitol operon repressor
+K03477	Prokaryotic type	Helix-turn-helix	DeoR family	ulaR; DeoR family transcriptional regulator, ulaG and ulaABCDEF operon transcriptional repressor
+K06283	Prokaryotic type	Helix-turn-helix	DeoR family	spoIIID; putative DeoR family transcriptional regulator, stage III sporulation protein D
+K06608	Prokaryotic type	Helix-turn-helix	DeoR family	iolR; DeoR family transcriptional regulator, myo-inositol catabolism operon repressor
+K20271	Prokaryotic type	Helix-turn-helix	DeoR family	accR; DeoR family transcriptional regulator, repressor of opine catabolism and conjugal transfer
+K22103	Prokaryotic type	Helix-turn-helix	DeoR family	glcR; DeoR family transcriptional regulator, carbon catabolite repression regulator
+K23774	Prokaryotic type	Helix-turn-helix	DeoR family	ccpN; DeoR family transcriptional regulator, catabolite repression regulator
+K21601	Prokaryotic type	Helix-turn-helix	DeoR family	ycnK; DeoR family transcriptional regulator, copper-sensing transcriptional repressor
+K09012	Prokaryotic type	Helix-turn-helix	DeoR family	sufR; DeoR family transcriptional regulator, suf operon transcriptional repressor
+K27069	Prokaryotic type	Helix-turn-helix	LacI family	lacI; LacI family transcriptional regulator, lactose operon repressor
+K02529	Prokaryotic type	Helix-turn-helix	LacI family	galR; LacI family transcriptional regulator, galactose operon repressor
+K02525	Prokaryotic type	Helix-turn-helix	LacI family	kdgR; LacI family transcriptional regulator, kdg operon repressor
+K05499	Prokaryotic type	Helix-turn-helix	LacI family	cytR; LacI family transcriptional regulator, repressor for deo operon, udp, cdd, tsx, nupC, and nupG
+K03435	Prokaryotic type	Helix-turn-helix	LacI family	fruR1, fruR; LacI family transcriptional regulator, fructose operon transcriptional repressor
+K03484	Prokaryotic type	Helix-turn-helix	LacI family	scrR; LacI family transcriptional regulator, sucrose operon repressor
+K03485	Prokaryotic type	Helix-turn-helix	LacI family	treR; LacI family transcriptional regulator, trehalose operon repressor
+K03487	Prokaryotic type	Helix-turn-helix	LacI family	ascG; LacI family transcriptional regulator, asc operon repressor
+K03604	Prokaryotic type	Helix-turn-helix	LacI family	purR; LacI family transcriptional regulator, purine nucleotide synthesis repressor
+K06145	Prokaryotic type	Helix-turn-helix	LacI family	gntR; LacI family transcriptional regulator, gluconate utilization system Gnt-I transcriptional repressor
+K06146	Prokaryotic type	Helix-turn-helix	LacI family	idnR, gntH; LacI family transcriptional regulator, gluconate utilization system Gnt-II transcriptional activator
+K12113	Prokaryotic type	Helix-turn-helix	LacI family	ebgR; LacI family transcriptional regulator, ebg operon repressor
+K16136	Prokaryotic type	Helix-turn-helix	LacI family	malI; LacI family transcriptional regulator, maltose regulon regulatory protein
+K17640	Prokaryotic type	Helix-turn-helix	LacI family	bxlR; LacI family transcriptional regulator, xylobiose transport system transcriptional regulator
+K26609	Prokaryotic type	Helix-turn-helix	LacI family	exuR; LacI family transcriptional regulator, galacturonate utilization repressor
+K02103	Prokaryotic type	Helix-turn-helix	GntR family	araR; GntR family transcriptional regulator, arabinose operon transcriptional repressor
+K03482	Prokaryotic type	Helix-turn-helix	GntR family	yidP; GntR family transcriptional regulator, glv operon transcriptional regulator
+K03486	Prokaryotic type	Helix-turn-helix	GntR family	treR2, treR; GntR family transcriptional regulator, trehalose operon transcriptional repressor
+K03489	Prokaryotic type	Helix-turn-helix	GntR family	yydK; GntR family transcriptional regulator, transcriptional regulator of bglA
+K03492	Prokaryotic type	Helix-turn-helix	GntR family	gmuR; GntR family transcriptional regulator, regulator of glucomannan utilization
+K02043	Prokaryotic type	Helix-turn-helix	GntR family	phnF; GntR family transcriptional regulator, phosphonate transport system regulatory protein
+K05836	Prokaryotic type	Helix-turn-helix	GntR family	hutC; GntR family transcriptional regulator, histidine utilization repressor
+K10711	Prokaryotic type	Helix-turn-helix	GntR family	frlR; GntR family transcriptional regulator, frlABCD operon transcriptional regulator
+K11922	Prokaryotic type	Helix-turn-helix	GntR family	mngR, farR; GntR family transcriptional regulator, mannosyl-D-glycerate transport/metabolism system repressor
+K24966	Prokaryotic type	Helix-turn-helix	GntR family	gamR; GntR family transcriptional regulator, amino sugar utilization regulator
+K24967	Prokaryotic type	Helix-turn-helix	GntR family	nagR; GntR family transcriptional regulator, N-acetylglucosamine utilization regulator
+K24968	Prokaryotic type	Helix-turn-helix	GntR family	phnF; GntR family transcriptional regulator, repressor of the phnDCE operon
+K24969	Prokaryotic type	Helix-turn-helix	GntR family	dasR; GntR family transcriptional regulator, nutrient-sensing system regulator
+K03710	Prokaryotic type	Helix-turn-helix	GntR family	K03710; GntR family transcriptional regulator
+K03603	Prokaryotic type	Helix-turn-helix	GntR family	fadR; GntR family transcriptional regulator, negative regulator for fad regulon and positive regulator of fabA
+K05799	Prokaryotic type	Helix-turn-helix	GntR family	pdhR; GntR family transcriptional regulator, transcriptional repressor for pyruvate dehydrogenase complex
+K11474	Prokaryotic type	Helix-turn-helix	GntR family	glcC; GntR family transcriptional regulator, glc operon transcriptional activator
+K13637	Prokaryotic type	Helix-turn-helix	GntR family	uxuR; GntR family transcriptional regulator, uxu operon transcriptional repressor
+K19775	Prokaryotic type	Helix-turn-helix	GntR family	exuR; GntR family transcriptional regulator, hexuronate regulon transcriptional repressor
+K14348	Prokaryotic type	Helix-turn-helix	GntR family	lldR; GntR family transcriptional regulator, L-lactate dehydrogenase operon regulator
+K19776	Prokaryotic type	Helix-turn-helix	GntR family	dgoR; GntR family transcriptional regulator, galactonate operon transcriptional repressor
+K22104	Prokaryotic type	Helix-turn-helix	GntR family	nanR; GntR family transcriptional regulator, sialic acid-inducible nan operon repressor
+K00375	Prokaryotic type	Helix-turn-helix	GntR family	K00375; GntR family transcriptional regulator / MocR family aminotransferase
+K18907	Prokaryotic type	Helix-turn-helix	GntR family	norG; GntR family transcriptional regulator, regulator for abcA and norABC
+K07978	Prokaryotic type	Helix-turn-helix	GntR family	plmA; GntR family transcriptional regulator
+K07979	Prokaryotic type	Helix-turn-helix	GntR family	ytrA; GntR family transcriptional regulator
+K11476	Prokaryotic type	Helix-turn-helix	GntR family	gntR; GntR family transcriptional regulator, gluconate operon transcriptional repressor
+K11475	Prokaryotic type	Helix-turn-helix	GntR family	vanR; GntR family transcriptional regulator, vanillate catabolism transcriptional regulator
+K13654	Prokaryotic type	Helix-turn-helix	GntR family	mcbR; GntR family transcriptional regulator, colanic acid and biofilm gene transcriptional regulator
+K15735	Prokaryotic type	Helix-turn-helix	GntR family	csiR; GntR family transcriptional regulator, carbon starvation induced regulator
+K22293	Prokaryotic type	Helix-turn-helix	GntR family	rspR; GntR family transcriptional regulator, rspAB operon transcriptional repressor
+K23015	Prokaryotic type	Helix-turn-helix	GntR family	lgoR; GntR family transcriptional regulator, transcriptional activator for L-galactonate catabolism
+K23466	Prokaryotic type	Helix-turn-helix	GntR family	tgnR; GntR family transcriptional regulator, trigonelline degradation regulator
+K18476	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	tetR; TetR/AcrR family transcriptional regulator, tetracycline repressor protein
+K19047	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	tetC; TetR/AcrR family transcriptional regulator, repressor of tetCD
+K02167	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	betI; TetR/AcrR family transcriptional regulator, transcriptional repressor of bet genes
+K03577	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	acrR, smeT; TetR/AcrR family transcriptional regulator, acrAB operon repressor
+K18136	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	acrR; TetR/AcrR family transcriptional regulator, multidrug resistance operon repressor
+K05501	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	slmA, ttk; TetR/AcrR family transcriptional regulator
+K09017	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	rutR; TetR/AcrR family transcriptional regulator
+K10913	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	hapR, luxR, litR; TetR/AcrR family transcriptional regulator, hemagglutinin/protease regulatory protein
+K19736	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	aefR; TetR/AcrR family transcriptional regulator, regulator of autoinduction and epiphytic fitness
+K13770	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	ysiA, fadR; TetR/AcrR family transcriptional regulator, fatty acid metabolism regulator protein
+K16137	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	nemR; TetR/AcrR family transcriptional regulator, transcriptional repressor for nem operon
+K16138	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	uidR; TetR/AcrR family transcriptional regulator, repressor for uid operon
+K18301	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	mexL; TetR/AcrR family transcriptional regulator, mexJK operon transcriptional repressor
+K18129	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	mexZ; TetR/AcrR family transcriptional regulator, mexXY operon repressor
+K18130	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	nalC; TetR/AcrR family transcriptional regulator, transcriptional repressor NalC
+K18135	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	nalD; TetR/AcrR family transcriptional regulator, repressor of the mexAB-oprM multidrug resistance operon
+K18137	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	adeN; TetR/AcrR family transcriptional regulator, repressor of the adeIJK operon
+K18140	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	envR, acrS; TetR/AcrR family transcriptional regulator, acrEF/envCD operon repressor
+K18294	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	nfxB; TetR/AcrR family transcriptional regulator, mexCD-oprJ operon repressor
+K18905	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	ameR, rmiR; TetR/AcrR family transcriptional regulator, repressor of the ameABC operon
+K18937	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	lfrR; TetR/AcrR family transcriptional regulator, repressor for lfrA
+K18938	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	qacR; TetR/AcrR family transcriptional regulator, repressor for qacA
+K18939	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	lmrA, yxaF; TetR/AcrR family transcriptional regulator, lmrAB and yxaGH operons repressor
+K18992	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	cmeR; TetR/AcrR family transcriptional regulator, cmeABC operon repressor
+K19060	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	mphR; TetR/AcrR family transcriptional regulator, macrolide resistance operon repressor
+K19335	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	bdcR; TetR/AcrR family transcriptional regulator, repressor for divergent bdcA
+K20325	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	fhrR; TetR/AcrR family transcriptional regulator, Clp-modulated transcription factor
+K21453	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	icaR; TetR/AcrR family transcriptional regulator, biofilm operon repressor
+K21961	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	ethR, etaR; TetR/AcrR family transcriptional regulator, ethionamide resistance regulator
+K21962	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	acnR; TetR/AcrR family transcriptional regulator, transcriptional repressor of aconitase
+K22041	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	comR; TetR/AcrR family transcriptional regulator, copper-responsive repressor
+K22105	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	fabR; TetR/AcrR family transcriptional regulator, fatty acid biosynthesis regulator
+K22106	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	fatR, bscR; TetR/AcrR family transcriptional regulator, repressor of fatR-cypB operon
+K22107	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	kstR; TetR/AcrR family transcriptional regulator, cholesterol catabolism regulator
+K22108	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	kstR2; TetR/AcrR family transcriptional regulator, cholesterol catabolism regulator
+K22294	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	nicS; TetR/AcrR family transcriptional regulator, upper aerobic nicotinate degradation pathway regulator
+K23777	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	cecR; TetR/AcrR family transcriptional regulator, regulator of cefoperazone and chloramphenicol sensitivity
+K24699	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	mftR; TetR/AcrR family transcriptional regulator, regulator of mycofactocin system
+K27107	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	mce3R; TetR/AcrR family transcriptional regulator, mce3 operon repressor
+K22295	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	K22295; TetR/AcrR family transcriptional regulator, repressor for neighboring sulfatase
+K23778	Prokaryotic type	Helix-turn-helix	TetR/AcrR family	rcdA; TetR/AcrR family transcriptional regulator, regulator of biofilm formation and stress response
+K03718	Prokaryotic type	Helix-turn-helix	Lrp/AsnC family	asnC; Lrp/AsnC family transcriptional regulator, regulator for asnA, asnC and gidA
+K03719	Prokaryotic type	Helix-turn-helix	Lrp/AsnC family	lrp; Lrp/AsnC family transcriptional regulator, leucine-responsive regulatory protein
+K06154	Prokaryotic type	Helix-turn-helix	Lrp/AsnC family	lysM; Lrp/AsnC family transcriptional regulator, involved in the regulation of lysine biosynthesis
+K15782	Prokaryotic type	Helix-turn-helix	Lrp/AsnC family	doeX; Lrp/AsnC family transcriptional regulator, regulator of ectoine-degradation genes
+K05800	Prokaryotic type	Helix-turn-helix	Lrp/AsnC family	decR, cyuR; Lrp/AsnC family transcriptional regulator, cysteine-sensing transcriptional activator
+K26601	Prokaryotic type	Helix-turn-helix	Lrp/AsnC family	azlB; Lrp/AsnC family transcriptional regulator, repressor for azl operon
+K15852	Prokaryotic type	Helix-turn-helix	LuxR family	luxR, vanR; LuxR family transcriptional regulator, transcriptional activator of the bioluminescence operon
+K18304	Prokaryotic type	Helix-turn-helix	LuxR family	lasR; LuxR family transcriptional regulator, quorum-sensing system regulator LasR
+K18099	Prokaryotic type	Helix-turn-helix	LuxR family	rhlR, phzR; LuxR family transcriptional regulator, quorum-sensing system regulator RhlR
+K18098	Prokaryotic type	Helix-turn-helix	LuxR family	bjaR1, rpaR, rhiR; LuxR family transcriptional regulator, quorum-sensing system regulator BjaR1
+K07782	Prokaryotic type	Helix-turn-helix	LuxR family	sdiA; LuxR family transcriptional regulator, quorum-sensing system regulator SdiA
+K19666	Prokaryotic type	Helix-turn-helix	LuxR family	solR, cepR, tofR; LuxR family transcriptional regulator, quorum-sensing system regulator SolR
+K20540	Prokaryotic type	Helix-turn-helix	LuxR family	cepR2; LuxR family transcriptional regulator, quorum-sensing system regulator CepR2
+K19731	Prokaryotic type	Helix-turn-helix	LuxR family	cciR; LuxR family transcriptional regulator, quorum-sensing system regulator CciR
+K19732	Prokaryotic type	Helix-turn-helix	LuxR family	traR; LuxR family transcriptional regulator, activator of conjugal transfer of Ti plasmids
+K19733	Prokaryotic type	Helix-turn-helix	LuxR family	sinR, avsR; LuxR family transcriptional regulator, quorum-sensing system regulator SinR
+K19734	Prokaryotic type	Helix-turn-helix	LuxR family	expR; LuxR family transcriptional regulator, quorum-sensing system regulator ExpR
+K20252	Prokaryotic type	Helix-turn-helix	LuxR family	cinR; LuxR family transcriptional regulator, quorum-sensing system regulator CinR
+K20253	Prokaryotic type	Helix-turn-helix	LuxR family	bisR; LuxR family transcriptional regulator, quorum-sensing system regulator BisR
+K21697	Prokaryotic type	Helix-turn-helix	LuxR family	vjbR; LuxR family transcriptional regulator, quorum-sensing system regulator VjbR
+K21963	Prokaryotic type	Helix-turn-helix	LuxR family	ecpR, matA; LuxR family transcriptional regulator, Mat/Ecp fimbriae transcriptional regulator
+K25873	Prokaryotic type	Helix-turn-helix	LuxR family	raiR; LuxR family transcriptional regulator, quorum-sensing system regulator RaiR
+K07781	Prokaryotic type	Helix-turn-helix	LuxR family	rcsA; LuxR family transcriptional regulator, capsular biosynthesis positive transcription factor
+K04333	Prokaryotic type	Helix-turn-helix	LuxR family	csgD; LuxR family transcriptional regulator, csgAB operon transcriptional regulatory protein
+K01994	Prokaryotic type	Helix-turn-helix	LuxR family	gerE; LuxR family transcriptional regulator, transcriptional regulator of spore coat protein
+K20330	Prokaryotic type	Helix-turn-helix	LuxR family	toxJ; LuxR family transcriptional regulator, activator of tox operons
+K20334	Prokaryotic type	Helix-turn-helix	LuxR family	cviR; LuxR family transcriptional regulator, quorum-sensing system regulator CviR
+K20918	Prokaryotic type	Helix-turn-helix	LuxR family	vpsT; LuxR family transcriptional regulator, positive regulator of biofilm formation
+K21685	Prokaryotic type	Helix-turn-helix	LuxR family	ramA; LuxR family transcriptional regulator, regulator of acetate metabolism
+K21901	Prokaryotic type	Helix-turn-helix	LuxR family	dctR; LuxR family transcriptional regulator, dicarboxylate transport regulator
+K22650	Prokaryotic type	Helix-turn-helix	LuxR family	bglJ; LuxR family transcriptional regulator, regulator of transport and utilization of aryl beta-glucosides
+K24912	Prokaryotic type	Helix-turn-helix	LuxR family	ramR, amfR; LuxR family transcriptional regulator, transcriptional activator for aerial hyphae formation
+K03556	Prokaryotic type	Helix-turn-helix	LuxR family	malT; LuxR family transcriptional regulator, maltose regulon positive regulatory protein
+K21748	Prokaryotic type	Helix-turn-helix	LuxR family	alkS; LuxR family transcriptional regulator, alkane degradation pathway regulator
+K16247	Prokaryotic type	Helix-turn-helix	LuxR family	gutR; LuxR family transcriptional regulator, glucitol operon activator
+K21907	Prokaryotic type	Helix-turn-helix	LuxR family	gadE; LuxR family transcriptional regulator, glutamate-dependent acid resistance regulator
+K03712	Prokaryotic type	Helix-turn-helix	MarR family	marR; MarR family transcriptional regulator, multiple antibiotic resistance protein MarR
+K06075	Prokaryotic type	Helix-turn-helix	MarR family	slyA; MarR family transcriptional regulator, transcriptional regulator for hemolysin
+K09682	Prokaryotic type	Helix-turn-helix	MarR family	hpr; MarR family transcriptional regulator, protease production regulatory protein HPr
+K15973	Prokaryotic type	Helix-turn-helix	MarR family	mhqR; MarR family transcriptional regulator, 2-MHQ and catechol-resistance regulon repressor
+K15974	Prokaryotic type	Helix-turn-helix	MarR family	emrR, mprA; MarR family transcriptional regulator, negative regulator of the multidrug operon emrRAB
+K18131	Prokaryotic type	Helix-turn-helix	MarR family	mexR; MarR family transcriptional regulator, repressor of the mexAB-oprM multidrug resistance operon
+K18906	Prokaryotic type	Helix-turn-helix	MarR family	mgrA; MarR family transcriptional regulator, multiple gene regulator MgrA
+K18909	Prokaryotic type	Helix-turn-helix	MarR family	mepR; MarR family transcriptional regulator, repressor for mepA
+K20338	Prokaryotic type	Helix-turn-helix	MarR family	rot; MarR family transcriptional regulator, global regulator for virulence
+K21454	Prokaryotic type	Helix-turn-helix	MarR family	tcaR; MarR family transcriptional regulator, teicoplanin-associated locus regulator
+K22296	Prokaryotic type	Helix-turn-helix	MarR family	nicR; MarR family transcriptional regulator, lower aerobic nicotinate degradation pathway regulator
+K22489	Prokaryotic type	Helix-turn-helix	MarR family	hosA; MarR family transcriptional regulator, temperature-dependent positive regulator of motility
+K23775	Prokaryotic type	Helix-turn-helix	MarR family	ohrR; MarR family transcriptional regulator, organic hydroperoxide resistance regulator
+K25883	Prokaryotic type	Helix-turn-helix	MarR family	expG, wggR; MarR family transcriptional regulator, exopolysaccharide II synthesis transcriptional activator
+K03713	Prokaryotic type	Helix-turn-helix	MerR family	glnR; MerR family transcriptional regulator, glutamine synthetase repressor
+K08365	Prokaryotic type	Helix-turn-helix	MerR family	merR; MerR family transcriptional regulator, mercuric resistance operon regulatory protein
+K19057	Prokaryotic type	Helix-turn-helix	MerR family	merD; MerR family transcriptional regulator, mercuric resistance operon regulatory protein
+K19591	Prokaryotic type	Helix-turn-helix	MerR family	cueR; MerR family transcriptional regulator, copper efflux regulator
+K11923	Prokaryotic type	Helix-turn-helix	MerR family	cueR; MerR family transcriptional regulator, copper efflux regulator
+K13638	Prokaryotic type	Helix-turn-helix	MerR family	zntR; MerR family transcriptional regulator, Zn(II)-responsive regulator of zntA
+K13639	Prokaryotic type	Helix-turn-helix	MerR family	soxR; MerR family transcriptional regulator, redox-sensitive transcriptional activator SoxR
+K13640	Prokaryotic type	Helix-turn-helix	MerR family	hspR; MerR family transcriptional regulator, heat shock protein HspR
+K19575	Prokaryotic type	Helix-turn-helix	MerR family	bmrR; MerR family transcriptional regulator, activator of bmr gene
+K19592	Prokaryotic type	Helix-turn-helix	MerR family	golS; MerR family transcriptional regulator, gold-responsive activator of gol and ges genes
+K21089	Prokaryotic type	Helix-turn-helix	MerR family	mlrA; MerR family transcriptional regulator, activator of the csg genes
+K21743	Prokaryotic type	Helix-turn-helix	MerR family	mta; MerR family transcriptional regulator, multidrug-efflux activator
+K21744	Prokaryotic type	Helix-turn-helix	MerR family	tipA; MerR family transcriptional regulator, thiopeptide resistance regulator
+K21745	Prokaryotic type	Helix-turn-helix	MerR family	adhR; MerR family transcriptional regulator, aldehyde-responsive regulator
+K21972	Prokaryotic type	Helix-turn-helix	MerR family	bluR; MerR family transcriptional regulator, repressor of blue light- and temperature-responsive genes
+K22491	Prokaryotic type	Helix-turn-helix	MerR family	litR; MerR family transcriptional regulator, light-induced transcriptional regulator
+K23776	Prokaryotic type	Helix-turn-helix	MerR family	tnrA; MerR family transcriptional regulator, global nitrogen regulator
+K21902	Prokaryotic type	Helix-turn-helix	MerR family	yfmP; MerR family transcriptional regulator, repressor of the yfmOP operon
+K03711	Prokaryotic type	Helix-turn-helix	Fur family	fur, zur, furB; Fur family transcriptional regulator, ferric uptake regulator
+K22297	Prokaryotic type	Helix-turn-helix	Fur family	furA; Fur family transcriptional regulator, stress-responsive regulator
+K09823	Prokaryotic type	Helix-turn-helix	Fur family	zur; Fur family transcriptional regulator, zinc uptake regulator
+K02076	Prokaryotic type	Helix-turn-helix	Fur family	zurR, zur; Fur family transcriptional regulator, zinc uptake regulator
+K09825	Prokaryotic type	Helix-turn-helix	Fur family	perR; Fur family transcriptional regulator, peroxide stress response regulator
+K09826	Prokaryotic type	Helix-turn-helix	Fur family	irr; Fur family transcriptional regulator, iron response regulator
+K13641	Prokaryotic type	Helix-turn-helix	IclR family	iclR; IclR family transcriptional regulator, acetate operon repressor
+K02624	Prokaryotic type	Helix-turn-helix	IclR family	pcaR; IclR family transcriptional regulator, pca regulon regulatory protein
+K05818	Prokaryotic type	Helix-turn-helix	IclR family	mhpR; IclR family transcriptional regulator, mhp operon transcriptional activator
+K10973	Prokaryotic type	Helix-turn-helix	IclR family	allR; IclR family transcriptional regulator, negative regulator of allantoin and glyoxylate utilization operons
+K19333	Prokaryotic type	Helix-turn-helix	IclR family	kdgR; IclR family transcriptional regulator, KDG regulon repressor
+K20329	Prokaryotic type	Helix-turn-helix	IclR family	qsmR; IclR family transcriptional regulator, positive regulator for flagellar biogenesis
+K20539	Prokaryotic type	Helix-turn-helix	IclR family	blcR; IclR family transcriptional regulator, blcABC operon repressor
+K21602	Prokaryotic type	Helix-turn-helix	IclR family	yiaJ; IclR family transcriptional regulator, carbohydrate utilization repressor
+K21827	Prokaryotic type	Helix-turn-helix	IclR family	arcR; IclR family transcriptional regulator, arginine deiminase pathway regulator
+K10914	Prokaryotic type	Helix-turn-helix	CRP/FNR family	crp; CRP/FNR family transcriptional regulator, cyclic AMP receptor protein
+K01420	Prokaryotic type	Helix-turn-helix	CRP/FNR family	fnr; CRP/FNR family transcriptional regulator, anaerobic regulatory protein
+K13642	Prokaryotic type	Helix-turn-helix	CRP/FNR family	ftrB; CRP/FNR family transcriptional regulator, transcriptional activator FtrB
+K15861	Prokaryotic type	Helix-turn-helix	CRP/FNR family	fixK; CRP/FNR family transcriptional regulator, nitrogen fixation regulation protein
+K21555	Prokaryotic type	Helix-turn-helix	CRP/FNR family	cooA; CRP/FNR family transcriptional regulator, carbon monoxide oxidation system transcription regulator
+K21556	Prokaryotic type	Helix-turn-helix	CRP/FNR family	malR; CRP/FNR family transcriptional regulator, polysaccharide utilization system transcription regulator
+K21558	Prokaryotic type	Helix-turn-helix	CRP/FNR family	cprK; CRP/FNR family transcriptional regulator, reductive dehalogenation system regulator
+K21560	Prokaryotic type	Helix-turn-helix	CRP/FNR family	prfA; CRP/FNR family transcriptional regulator, listeriolysin regulatory protein
+K21561	Prokaryotic type	Helix-turn-helix	CRP/FNR family	ntcA; CRP/FNR family transcriptional regulator, global nitrogen regulator
+K21562	Prokaryotic type	Helix-turn-helix	CRP/FNR family	flp; CRP/FNR family transcriptional regulator, anaerobic regulatory protein
+K21563	Prokaryotic type	Helix-turn-helix	CRP/FNR family	dnr; CRP/FNR family transcriptional regulator, dissimilatory nitrate respiration regulator
+K21564	Prokaryotic type	Helix-turn-helix	CRP/FNR family	nnrR; CRP/FNR family transcriptional regulator, nitrogen oxide reductase regulator
+K21828	Prokaryotic type	Helix-turn-helix	CRP/FNR family	arcR; CRP/FNR family transcriptional regulator, arginine deiminase pathway regulator
+K21884	Prokaryotic type	Helix-turn-helix	CRP/FNR family	cmr; CRP/FNR family transcriptional regulator, cAMP and macrophage regulator
+K22490	Prokaryotic type	Helix-turn-helix	CRP/FNR family	ldrP; CRP/FNR family transcriptional regulator, LitR-dependent transcriptional activator
+K16326	Prokaryotic type	Helix-turn-helix	CRP/FNR family	yeiL; CRP/FNR family transcriptional regulator, putaive post-exponential-phase nitrogen-starvation regulator
+K13643	Prokaryotic type	Helix-turn-helix	Rrf2 family	iscR; Rrf2 family transcriptional regulator, iron-sulfur cluster assembly transcription factor
+K13771	Prokaryotic type	Helix-turn-helix	Rrf2 family	nsrR; Rrf2 family transcriptional regulator, nitric oxide-sensitive transcriptional repressor
+K13772	Prokaryotic type	Helix-turn-helix	Rrf2 family	rirA; Rrf2 family transcriptional regulator, iron-responsive regulator
+K17472	Prokaryotic type	Helix-turn-helix	Rrf2 family	cymR; Rrf2 family transcriptional regulator, cysteine metabolism repressor
+K19587	Prokaryotic type	Helix-turn-helix	Rrf2 family	oqxR; Rrf2 family transcriptional regulator, repressor of oqxAB
+K03892	Prokaryotic type	Helix-turn-helix	ArsR family	arsR; ArsR family transcriptional regulator, arsenate/arsenite/antimonite-responsive transcriptional repressor
+K23988	Prokaryotic type	Helix-turn-helix	ArsR family	arsR-arsC; ArsR family transcriptional regulator, arsenate/arsenite/antimonite-responsive transcriptional repressor / arsenate reductase (thioredoxin) [EC:1.20.4.4]
+K21885	Prokaryotic type	Helix-turn-helix	ArsR family	cmtR; ArsR family transcriptional regulator, cadmium/lead-responsive transcriptional repressor
+K21886	Prokaryotic type	Helix-turn-helix	ArsR family	nmtR; ArsR family transcriptional regulator, nickel/cobalt-responsive transcriptional repressor
+K21903	Prokaryotic type	Helix-turn-helix	ArsR family	cadC, smtB; ArsR family transcriptional regulator, lead/cadmium/zinc/bismuth-responsive transcriptional repressor
+K22043	Prokaryotic type	Helix-turn-helix	ArsR family	czrA; ArsR family transcriptional regulator, zinc-responsive transcriptional repressor
+K22298	Prokaryotic type	Helix-turn-helix	ArsR family	smtB; ArsR family transcriptional regulator, zinc-responsive transcriptional repressor
+K22042	Prokaryotic type	Helix-turn-helix	ArsR family	hlyU; ArsR family transcriptional regulator, virulence genes transcriptional regulator
+K26993	Prokaryotic type	Helix-turn-helix	ArsR family	sdpR; ArsR family transcriptional regulator, repressor of sdpIR and other operons
+K07721	Prokaryotic type	Helix-turn-helix	ArsR family	K07721; ArsR family transcriptional regulator
+K15546	Prokaryotic type	Helix-turn-helix	XRE family	boxR, bzdR; XRE family transcriptional regulator, aerobic/anaerobic benzoate catabolism transcriptional regulator
+K19449	Prokaryotic type	Helix-turn-helix	XRE family	sinR; XRE family transcriptional regulator, master regulator for biofilm formation
+K21686	Prokaryotic type	Helix-turn-helix	XRE family	prpR; XRE family transcriptional regulator, fatty acid utilization regulator
+K07110	Prokaryotic type	Helix-turn-helix	XRE family	ramB; XRE family transcriptional regulator, fatty acid utilization regulator
+K22206	Prokaryotic type	Helix-turn-helix	XRE family	thiR; XRE family transcriptional regulator, thiamine biosynthesis regulator
+K23779	Prokaryotic type	Helix-turn-helix	XRE family	sutR; XRE family transcriptional regulator, regulator of sulfur utilization
+K19417	Prokaryotic type	Helix-turn-helix	XRE family	slrR; XRE family transcriptional regulator, biofilm formation regulator
+K27043	Prokaryotic type	Helix-turn-helix	XRE family	clgR; XRE family transcriptional regulator, stress-response regulator
+K26739	Prokaryotic type	Helix-turn-helix	PadR family	padR; PadR family transcriptional regulator, phenolic acid-responsive transcriptional regulator
+K10917	Prokaryotic type	Helix-turn-helix	PadR family	aphA; PadR family transcriptional regulator, regulatory protein AphA
+K26740	Prokaryotic type	Helix-turn-helix	PadR family	vanR; PadR family transcriptional regulator, regulator of vanillate utilization
+K26741	Prokaryotic type	Helix-turn-helix	PadR family	ladR; PadR family transcriptional regulator, multidrug transcriptional repressor LadR
+K26742	Prokaryotic type	Helix-turn-helix	PadR family	lmrR; PadR family transcriptional regulator, multidrug transcriptional repressor LmrR
+K26743	Prokaryotic type	Helix-turn-helix	PadR family	pex; PadR family transcriptional regulator, circadian period extender
+K23305	Prokaryotic type	Helix-turn-helix	PadR family	gvpE; PadR family transcriptional regulator, activator of gas vesicle formation
+K10947	Prokaryotic type	Helix-turn-helix	PadR family	K10947; PadR family transcriptional regulator
+K26252	Prokaryotic type	Helix-turn-helix	Other families	dtxR, ideR; DtxR family transcriptional regulator, iron-dependent repressor
+K03709	Prokaryotic type	Helix-turn-helix	Other families	troR, sirR, scaR, mntR; DtxR family transcriptional regulator, Mn-dependent transcriptional regulator
+K11924	Prokaryotic type	Helix-turn-helix	Other families	mntR; DtxR family transcriptional regulator, manganese transport regulator
+K23238	Prokaryotic type	Helix-turn-helix	Other families	rpiR, alsR; RpiR family transcriptional regulator, repressor of rpiB and als operon
+K03481	Prokaryotic type	Helix-turn-helix	Other families	glvR; RpiR family transcriptional regulator, glv operon transcriptional regulator
+K15835	Prokaryotic type	Helix-turn-helix	Other families	murR; RpiR family transcriptional regulator, murPQ operon repressor
+K19337	Prokaryotic type	Helix-turn-helix	Other families	hexR; RpiR family transcriptional regulator, carbohydrate utilization regulator
+K02171	Prokaryotic type	Helix-turn-helix	Other families	blaI; BlaI family transcriptional regulator, penicillinase repressor
+K02546	Prokaryotic type	Helix-turn-helix	Other families	mecI; BlaI family transcriptional regulator, methicillin resistance regulatory protein
+K03524	Prokaryotic type	Helix-turn-helix	Other families	birA; BirA family transcriptional regulator, biotin operon repressor / biotin---[acetyl-CoA-carboxylase] ligase [EC:6.3.4.15]
+K03557	Prokaryotic type	Helix-turn-helix	Other families	fis; Fis family transcriptional regulator, factor for inversion stimulation protein
+K03720	Prokaryotic type	Helix-turn-helix	Other families	trpR; TrpR family transcriptional regulator, trp operon repressor
+K02688	Prokaryotic type	Helix-turn-helix	Other families	prpR; transcriptional regulator, propionate catabolism operon regulatory protein
+K07724	Prokaryotic type	Helix-turn-helix	Other families	ner, nlp, sfsB; Ner family transcriptional regulator
+K11925	Prokaryotic type	Helix-turn-helix	Other families	sgrR; SgrR family transcriptional regulator
+K06211	Prokaryotic type	Helix-turn-helix	Other families	nadR; HTH-type transcriptional regulator, transcriptional repressor of NAD biosynthesis genes [EC:2.7.7.1 2.7.1.22]
+K13655	Prokaryotic type	Helix-turn-helix	Other families	mqsA; HTH-type transcriptional regulator / antitoxin MqsA
+K14056	Prokaryotic type	Helix-turn-helix	Other families	puuR; HTH-type transcriptional regulator, repressor for puuD
+K15773	Prokaryotic type	Helix-turn-helix	Other families	hipB; HTH-type transcriptional regulator / antitoxin HipB
+K18830	Prokaryotic type	Helix-turn-helix	Other families	pezA; HTH-type transcriptional regulator / antitoxin PezA
+K20480	Prokaryotic type	Helix-turn-helix	Other families	nprR, nprA; HTH-type transcriptional regulator, quorum sensing regulator NprR
+K20342	Prokaryotic type	Helix-turn-helix	Other families	comR; HTH-type transcriptional regulator, regulator for ComX
+K20373	Prokaryotic type	Helix-turn-helix	Other families	rgg2; HTH-type transcriptional regulator, SHP2-responsive activator
+K20374	Prokaryotic type	Helix-turn-helix	Other families	rgg3; HTH-type transcriptional regulator, SHP3-responsive repressor
+K22299	Prokaryotic type	Helix-turn-helix	Other families	rghR; HTH-type transcriptional regulator, competence development regulator
+K22300	Prokaryotic type	Helix-turn-helix	Other families	dicA; HTH-type transcriptional regulator, cell division transcriptional repressor
+K20391	Prokaryotic type	Helix-turn-helix	Other families	plcR; HTH-type transcriptional regulator, pleiotropic regulator of extracellular virulence genes
+K20375	Prokaryotic type	Helix-turn-helix	Other families	ropB, rgg1; HTH-type transcriptional regulator, pheromone-responsive regulator
+K20380	Prokaryotic type	Helix-turn-helix	Other families	traA; HTH-type transcriptional regulator, pheromone-responsive repressor
+K18831	Prokaryotic type	Helix-turn-helix	Other families	higA; HTH-type transcriptional regulator / antitoxin HigA
+K20388	Prokaryotic type	Helix-turn-helix	Other families	cylR2; HTH-type transcriptional regulator, cytolysin regulator
+K20377	Prokaryotic type	Helix-turn-helix	Other families	prgX; HTH-type transcriptional regulator, major conjugation operon repressor
+K21557	Prokaryotic type	Helix-turn-helix	Other families	susR; HTH-type transcriptional regulator, polysaccharide utilization system transcription regulator
+K09720	Prokaryotic type	Helix-turn-helix	Other families	nrpRI; HTH-type transcriptional regulator, global nitrogen regulator NrpRI
+K22109	Prokaryotic type	Helix-turn-helix	Other families	gbsR; HTH-type transcriptional regulator, glycine betaine synthesis regulator
+K22301	Prokaryotic type	Helix-turn-helix	Other families	opcR; HTH-type transcriptional regulator, osmoprotectant uptake regulator
+K23356	Prokaryotic type	Helix-turn-helix	Other families	trmB; HTH-type transcriptional regulator, sugar sensing transcriptional regulator
+K06930	Prokaryotic type	Helix-turn-helix	Other families	bat; HTH-type transcriptional regulator, bacterioopsin transcriptional activator and related proteins
+K23348	Prokaryotic type	Helix-turn-helix	Other families	dmsR; HTH-type transcriptional regulator, dimethyl sulfoxide reductase transcription regulator
+K09714	Prokaryotic type	Helix-turn-helix	Other families	tfx; HTH-type transcriptional regulator, fmd operon transcriptional regulator
+K09685	Prokaryotic type	Helix-turn-helix	Other families	purR; HTH-type transcriptional regulator, purine operon repressor
+K26599	Prokaryotic type	Helix-turn-helix	Other families	gfcR; HTH-type transcriptional regulator, activator of D-glucose/D-fructose catabolism
+K10941	Prokaryotic type	Helix-turn-helix	Other families	flrA, fleQ, flaK; sigma-54 dependent transcriptional regulator, flagellar regulatory protein
+K18219	Prokaryotic type	Helix-turn-helix	Other families	txr; sigma-54 dependent transcriptional regulator, tetracycline resistant transcriptional regulator
+K20919	Prokaryotic type	Helix-turn-helix	Other families	vpsR, cpsR; sigma-54 dependent transcriptional regulator, positive regulator of biofilm formation
+K17473	Prokaryotic type	Helix-turn-helix	Other families	dgaR; sigma-54 dependent transcriptional regulator, dga operon transcriptional activator
+K19505	Prokaryotic type	Helix-turn-helix	Other families	gfrR; sigma-54 dependent transcriptional regulator, gfr operon transcriptional activator
+K21405	Prokaryotic type	Helix-turn-helix	Other families	acoR; sigma-54 dependent transcriptional regulator, acetoin dehydrogenase operon transcriptional activator AcoR
+K11908	Prokaryotic type	Helix-turn-helix	Other families	vasH; sigma-54 dependent transcriptional regulator
+K11917	Prokaryotic type	Helix-turn-helix	Other families	sfa3; sigma-54 dependent transcriptional regulator
+K11914	Prokaryotic type	Helix-turn-helix	Other families	sfa2; sigma-54 dependent transcriptional regulator
+K26990	Prokaryotic type	Helix-turn-helix	Other families	rsoA; sigma-O factor regulatory protein RsoA
+K12146	Prokaryotic type	Helix-turn-helix	Other families	hyfR; hydrogenase-4 transcriptional activator
+K12266	Prokaryotic type	Helix-turn-helix	Other families	norR; anaerobic nitric oxide reductase transcription regulator
+K15836	Prokaryotic type	Helix-turn-helix	Other families	fhlA; formate hydrogenlyase transcriptional activator
+K02584	Prokaryotic type	Helix-turn-helix	Other families	nifA; Nif-specific regulatory protein
+K02647	Prokaryotic type	Helix-turn-helix	Other families	cdaR; carbohydrate diacid regulator
+K06714	Prokaryotic type	Helix-turn-helix	Other families	rocR; arginine utilization regulatory protein
+K02019	Prokaryotic type	Helix-turn-helix	Other families	modE; molybdate transport system regulatory protein
+K01926	Prokaryotic type	Helix-turn-helix	Other families	rex; redox-sensing transcriptional repressor
+K03706	Prokaryotic type	Helix-turn-helix	Other families	codY; transcriptional pleiotropic repressor
+K17071	Prokaryotic type	Helix-turn-helix	Other families	dcmR; transcriptional repressor of dcmA and dcmR
+K07725	Prokaryotic type	Helix-turn-helix	Other families	csa3; CRISPR-associated protein Csa3
+K21829	Prokaryotic type	Helix-turn-helix	Other families	dauR; D-arginine utilization repressor
+K27097	Prokaryotic type	Helix-turn-helix	Other families	espR; ESX-1-secreted protein regulator
+K07726	Prokaryotic type	Helix-turn-helix	Other families	K07726; putative transcriptional regulator
+K07727	Prokaryotic type	Helix-turn-helix	Other families	K07727; putative transcriptional regulator
+K07728	Prokaryotic type	Helix-turn-helix	Other families	K07728; putative transcriptional regulator
+K07729	Prokaryotic type	Helix-turn-helix	Other families	K07729; putative transcriptional regulator
+K07730	Prokaryotic type	Helix-turn-helix	Other families	K07730; putative transcriptional regulator
+K07731	Prokaryotic type	Helix-turn-helix	Other families	K07731; putative transcriptional regulator
+K07722	Prokaryotic type	Ribbon-helix-helix	CopG family	nikR; CopG family transcriptional regulator, nickel-responsive regulator
+K07723	Prokaryotic type	Ribbon-helix-helix	CopG family	ndoAI; CopG family transcriptional regulator / antitoxin EndoAI
+K03764	Prokaryotic type	Ribbon-helix-helix	Other families	metJ; MetJ family transcriptional regulator, methionine regulon repressor
+K13821	Prokaryotic type	Ribbon-helix-helix	Other families	putA; RHH-type transcriptional regulator, proline utilization regulon repressor / proline dehydrogenase / delta 1-pyrroline-5-carboxylate dehydrogenase [EC:1.5.5.2 1.2.1.88]
+K18918	Prokaryotic type	Ribbon-helix-helix	Other families	relB; RHH-type transcriptional regulator, rel operon repressor / antitoxin RelB
+K03488	Prokaryotic type	Other transcription factors	BglG family	licT, bglG; beta-glucoside operon transcriptional antiterminator
+K26931	Prokaryotic type	Other transcription factors	BglG family	sacY; levansucrase and sucrase synthesis operon transcriptional antiterminator
+K26932	Prokaryotic type	Other transcription factors	BglG family	sacT; sacPA operon transcriptional antiterminator
+K03480	Prokaryotic type	Other transcription factors	BglG family	glcT; transcriptional antiterminator
+K03493	Prokaryotic type	Other transcription factors	BglG family	bglG1; transcriptional antiterminator
+K03483	Prokaryotic type	Other transcription factors	BglG family	mtlR; mannitol operon transcriptional activator
+K02538	Prokaryotic type	Other transcription factors	BglG family	manR; mannose operon transcriptional activator
+K03491	Prokaryotic type	Other transcription factors	BglG family	licR; probable licABCH operon transcriptional regulator
+K18531	Prokaryotic type	Other transcription factors	BglG family	frvR; putative frv operon regulatory protein
+K22976	Prokaryotic type	Other transcription factors	BglG family	atxA; anthrax toxin expression trans-acting positive regulator
+K22977	Prokaryotic type	Other transcription factors	BglG family	acpA; capsule synthesis positive regulator AcpA
+K22980	Prokaryotic type	Other transcription factors	BglG family	acpB; capsule synthesis positive regulator AcpB
+K18955	Prokaryotic type	Other transcription factors	Others	whiB1_2_3_4; WhiB family transcriptional regulator, redox-sensing transcriptional regulator
+K18956	Prokaryotic type	Other transcription factors	Others	whiB5; WhiB family transcriptional regulator, redox-sensing transcriptional regulator
+K18957	Prokaryotic type	Other transcription factors	Others	whiB6; WhiB family transcriptional regulator, redox-sensing transcriptional regulator
+K18958	Prokaryotic type	Other transcription factors	Others	whiB7; WhiB family transcriptional regulator, redox-sensing transcriptional regulator
+K19339	Prokaryotic type	Other transcription factors	Others	nosR; NosR/NirI family transcriptional regulator, nitrous oxide reductase regulator
+K19343	Prokaryotic type	Other transcription factors	Others	nirI; NosR/NirI family transcriptional regulator, nitrite reductase regulator
+K21559	Prokaryotic type	Other transcription factors	Others	cprC; NosR/NirI family transcriptional regulator, putative reductive dehalogenation system regulator
+K23239	Prokaryotic type	Other transcription factors	Others	frmR; FrmR/RcnR family transcriptional regulator, repressor of frmRAB operon
+K23240	Prokaryotic type	Other transcription factors	Others	rcnR; FrmR/RcnR family transcriptional regulator, repressor of rcnA expression
+K21600	Prokaryotic type	Other transcription factors	Others	csoR, ricR; CsoR family transcriptional regulator, copper-sensing transcriptional repressor
+K09684	Prokaryotic type	Other transcription factors	Others	pucR; PucR family transcriptional regulator, purine catabolism regulatory protein
+K23253	Prokaryotic type	Other transcription factors	Others	putR; PucR family transcriptional regulator, proline-responsive transcriptional activator
+K06284	Prokaryotic type	Other transcription factors	Others	abrB, abh; AbrB family transcriptional regulator, transcriptional pleiotropic regulator of transition state genes
+K04769	Prokaryotic type	Other transcription factors	Others	spoVT; AbrB family transcriptional regulator, stage V sporulation protein T
+K21696	Prokaryotic type	Other transcription factors	Others	rcoM; LytTR family transcriptional regulator, CO-responsive transcriptional regulator RcoM
+K05527	Prokaryotic type	Other transcription factors	Others	bolA; BolA family transcriptional regulator, general stress-responsive regulator
+K22894	Prokaryotic type	Other transcription factors	Others	embR; SARP family transcriptional regulator, regulator of embCAB operon
+K03497	Prokaryotic type	Other transcription factors	Others	parB, spo0J; ParB family transcriptional regulator, chromosome partitioning protein
+K23371	Prokaryotic type	Other transcription factors	Others	sbnI; L-serine kinase (ATP) / ParB family transcriptional regulator, heme-responsive regulator [EC:2.7.1.225]
+K07736	Prokaryotic type	Other transcription factors	Others	carD; CarD family transcriptional regulator, regulator of rRNA transcription
+K25884	Prokaryotic type	Other transcription factors	Others	mucR, rosR; MucR family transcriptional regulator, transcriptional regulator of exopolysaccharide biosynthesis
+K02443	Prokaryotic type	Other transcription factors	Others	glpP; glycerol uptake operon antiterminator
+K02531	Prokaryotic type	Other transcription factors	Others	lacT; transcriptional antiterminator
+K05785	Prokaryotic type	Other transcription factors	Others	rfaH; transcriptional antiterminator RfaH
+K03402	Prokaryotic type	Other transcription factors	Others	argR, ahrC; transcriptional regulator of arginine metabolism
+K02565	Prokaryotic type	Other transcription factors	Others	nagC; N-acetylglucosamine repressor
+K15545	Prokaryotic type	Other transcription factors	Others	mlc; transcriptional regulator of PTS gene
+K02562	Prokaryotic type	Other transcription factors	Others	mtlR; mannitol operon repressor
+K03705	Prokaryotic type	Other transcription factors	Others	hrcA; heat-inducible transcriptional repressor
+K03707	Prokaryotic type	Other transcription factors	Others	tenA; thiaminase (transcriptional activator TenA) [EC:3.5.99.2]
+K10810	Prokaryotic type	Other transcription factors	Others	tenI; thiazole tautomerase (transcriptional regulator TenI) [EC:5.3.99.10]
+K03708	Prokaryotic type	Other transcription factors	Others	ctsR; transcriptional regulator of stress and heat shock response
+K03721	Prokaryotic type	Other transcription factors	Others	tyrR; transcriptional regulator of aroF, aroG, tyrA and aromatic amino acid transport
+K03765	Prokaryotic type	Other transcription factors	Others	cadC; transcriptional activator of cad operon
+K22486	Prokaryotic type	Other transcription factors	Others	hilA; transcriptional regulator HilA, main transcriptional regulator of SPI1
+K03567	Prokaryotic type	Other transcription factors	Others	gcvR; glycine cleavage system transcriptional repressor
+K02616	Prokaryotic type	Other transcription factors	Others	paaX; phenylacetic acid degradation operon negative regulatory protein
+K03974	Prokaryotic type	Other transcription factors	Others	pspF; psp operon transcriptional activator
+K03973	Prokaryotic type	Other transcription factors	Others	pspC; phage shock protein C
+K05311	Prokaryotic type	Other transcription factors	Others	cggR; central glycolytic genes regulator
+K05346	Prokaryotic type	Other transcription factors	Others	deoR; deoxyribonucleoside regulator
+K11531	Prokaryotic type	Other transcription factors	Others	lsrR; lsr operon transcriptional repressor
+K05519	Prokaryotic type	Other transcription factors	Others	med; transcriptional activator of comK gene
+K05880	Prokaryotic type	Other transcription factors	Others	dhaR; transcriptional activator for dhaKLM operon
+K06140	Prokaryotic type	Other transcription factors	Others	rnk; regulator of nucleoside diphosphate kinase
+K06285	Prokaryotic type	Other transcription factors	Others	mtrB; transcription attenuation protein (tryptophan RNA-binding attenuator protein)
+K02825	Prokaryotic type	Other transcription factors	Others	pyrR; pyrimidine operon attenuation protein / uracil phosphoribosyltransferase [EC:2.4.2.9]
+K06314	Prokaryotic type	Other transcription factors	Others	rsfA; prespore-specific regulator
+K06315	Prokaryotic type	Other transcription factors	Others	splA; transcriptional regulator of the spore photoproduct lyase operon
+K07733	Prokaryotic type	Other transcription factors	Others	alpA; prophage regulatory protein
+K07734	Prokaryotic type	Other transcription factors	Others	paiB; transcriptional regulator
+K07735	Prokaryotic type	Other transcription factors	Others	algH; putative transcriptional regulator
+K08277	Prokaryotic type	Other transcription factors	Others	caiF; transcriptional activator CaiF
+K06204	Prokaryotic type	Other transcription factors	Others	dksA; RNA polymerase-binding transcription factor
+K07738	Prokaryotic type	Other transcription factors	Others	nrdR; transcriptional repressor NrdR
+K09683	Prokaryotic type	Other transcription factors	Others	hutP; hut operon positive regulatory protein
+K11926	Prokaryotic type	Other transcription factors	Others	crl; sigma factor-binding protein Crl
+K12296	Prokaryotic type	Other transcription factors	Others	comX1_2; competence protein ComX
+K02250	Prokaryotic type	Other transcription factors	Others	comK; competence protein ComK
+K14414	Prokaryotic type	Other transcription factors	Others	rtcR; transcriptional regulatory protein RtcR
+K19667	Prokaryotic type	Other transcription factors	Others	xpsR; transcriptional activator of eps genes
+K22302	Prokaryotic type	Other transcription factors	Others	dicC; transcriptional repressor of cell division inhibition gene dicB
+K23306	Prokaryotic type	Other transcription factors	Others	brz; bacteriorhodopsin-regulating zinc finger protein
+K03925	Prokaryotic type	Other transcription factors	Others	mraZ; transcriptional regulator MraZ
+K08088	Prokaryotic type	Other transcription factors	Others	fimY; fimbrial regulator
+K25885	Prokaryotic type	Other transcription factors	Others	exoR; exopolysaccharide production negative regulator
+K07471	Prokaryotic type	Other transcription factors	Others	ygiV; probable transcriptional regulator
+K26991	Prokaryotic type	Other transcription factors	Others	yvrL; membrane-bound negative regulator

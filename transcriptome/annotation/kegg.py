@@ -28,6 +28,22 @@ def process_keg(input_f, output_f):
     pass
 
 
+def ko03000(kegg_gene_df, kegg_tier3_df):
+    ko03000_def_df_file = '/home/colddata/qinqiang/script/transcriptome/annotation/ko03000_def.txt'
+    ko03000_def_df = pd.read_csv(ko03000_def_df_file, sep='\t')
+    ko03000_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03000")]['GeneID'].tolist()
+    ko03022_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03022")]['GeneID'].tolist()
+    
+    ko03000_df = kegg_gene_df[kegg_gene_df['GeneID'].isin(ko03000_geneid_list)][['GeneID', 'KEGG_ID']].copy()
+    ko03022_df = kegg_gene_df[kegg_gene_df['GeneID'].isin(ko03022_geneid_list)][['GeneID', 'KEGG_ID']].copy()
+    # ko03000_df = ko03000_df
+    ko03000_df = pd.merge(left=ko03000_df, right=ko03000_def_df, on='KEGG_ID', how='left')
+    
+    return ko03000_df, ko03022_df
+
+    
+
+
 def main():
     args = parse_input()
     keg_file, specie_type, all_id_file = args[0], args[1], args[2]
@@ -84,22 +100,30 @@ def main():
         all_gene_df.fillna(value='', inplace=True)
         all_gene_df.to_csv(key_name + '_shortname.txt', sep='\t', index=False)
     
-    # 生成 tier2 和 tier3 文件
+    # 生成 tier2 文件
     tier2_name = key_name + '_KEGG_tier2.txt'
-    tier3_name = key_name + '_KEGG.txt'
-    
     tier2_df = kegg_clean_df.copy()
     tier2_df.drop(columns=['Pathway', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number'], inplace=True)
     tier2_df['Level2'] = tier2_df['Level2'].str.replace('\\','').str.replace(' / ', '_').str.replace('/', '_').str.replace(', ', '').str.replace(',', '_')
     tier2_df.drop_duplicates(keep='first', inplace=True)
     tier2_df.to_csv(tier2_name, sep='\t', index=False, header=None)
     
+    # tier3 文件，后来改名 KEGG.txt 了
+    # geneid \t ko pathway
+    # no header
+    tier3_name = key_name + '_KEGG.txt'
     tier3_df = kegg_clean_df.copy()
     tier3_df.drop(columns=['Level2', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number'], inplace=True)
     tier3_df['Pathway'] = tier3_df['Pathway'].str.replace('\\','').str.replace(' / ', '_').str.replace('/', '_').str.replace(', ', '').str.replace(',', '_')
     tier3_df.drop_duplicates(keep='first', inplace=True)
     tier3_df.to_csv(tier3_name, sep='\t', index=False, header=None)
     
+    # ko03022_basal_transcription_factor.txt (子集) from tier3
+    # 比对 ko03000_def.txt 加上定义
+    ko03000_df, ko03022_df = ko03000(gene_def_df, tier3_df)
+    ko03000_df.to_csv(key_name + '_ko03000_transcription_factors.txt', sep='\t', index=False)
+    ko03022_df.to_csv(key_name + '_ko03022_basal_transcription_factor.txt', sep='\t', index=False)
+
     
 if __name__ == '__main__':
     main()
