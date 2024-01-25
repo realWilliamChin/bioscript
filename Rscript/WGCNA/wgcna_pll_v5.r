@@ -1,15 +1,15 @@
-setwd("L:/work/01_Refenrence/2023_10_16_xiaomai/2023_11_16_WGCNA/WGCNA_8")
+setwd("/home/colddata/qinqiang/Project/2024_01_17_xing/09_WGCNA/group2")
 library(DESeq2)
 library(WGCNA)
 library(genefilter)
 library(tidyr)
 library(tidyverse)
-allowWGCNAThreads(8)
+allowWGCNAThreads(18)
 options(stringsAsFactors = FALSE)
 getwd()
 rm(list=ls())
 ###############读入raw data，DESeq normalize之后保存备份#####################
-sp_name<-"xiaomai"
+sp_name<-"group2"
 infile1<-paste0(sp_name,"_reads_matrix_filtered.txt",sep="")
 infile2<-paste0(sp_name,"_samples_described.txt",sep="")
 
@@ -253,26 +253,26 @@ METree = hclust(as.dist(MEDiss), method = "average");
 #sizeGrWindow(7, 6)
 #png("Clustering_of_module_eigengenes1.png",width = 800,height = 600)
 
-png("Analysis_results/Clustering_of_module_eigengenes1_0.35.png",width = 800,height = 600)
+png("Analysis_results/Clustering_of_module_eigengenes1_0.39.png",width = 800,height = 600)
 plot(METree, main = "Clustering of module eigengenes",     xlab = "", sub = "")
 #######################这个地方需要手动选择理想的cutoff,这个值越大，模块数越少##################################
 ##################MEDissThres值的选择根据Clustering_of_module_eigengenes1.png图来决定，值越大，模块数越少
-MEDissThres = 0.35
+MEDissThres = 0.39
 
 # Plot the cut line into the dendrogram
 abline(h=MEDissThres, col = "red")
+
 dev.off()
 
-
-
 # Call an automatic merging function MEDissThres=0.1
-MEDissThres = 0.26
+MEDissThres = 0.39
 merge = mergeCloseModules(datExpr, dynamicColors, cutHeight = MEDissThres, verbose = 3)
 str(merge)
 # The merged module colors
 mergedColors = merge$colors;
 # Eigengenes of the new merged modules:
 mergedMEs = merge$newMEs
+
 png("Analysis_color_module_barplot/dynamicColors_mergedColors.png",width = 800,height = 600)
 plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors),c("Dynamic Tree Cut", "Merged dynamic"),dendroLabels = FALSE, hang = 0.03,addGuide = TRUE, guideHang = 0.05)
 dev.off()
@@ -281,9 +281,18 @@ png("Analysis_color_module_barplot/wgcna.adjacency.heatmap.png",height = 1000,wi
 plotEigengeneNetworks(MEs, "Eigengene adjacency heatmap",plotDendrograms = F,marDendro = c(4,4,2,4))
 dev.off()
 
-moduleColors = merge$colors
+#moduleColors = merge$colors
+moduleColors = mergedColors
 MEs0 = moduleEigengenes(datExpr, moduleColors)$eigengenes
-MEs = orderMEs(MEs0); 
+MEs = orderMEs(MEs0);
+
+# filter less than 10 of gene colors
+geneMEsCounts <- table(mergedColors)
+print(geneMEsCounts)
+filteredColors <- names(geneMEsCounts[geneMEsCounts >= 10])
+filteredColors <- paste("ME", filteredColors, sep="")
+MEs <- MEs[, filteredColors]
+
 MEs
 colnames(MEs)
 module_order = names(MEs) %>% gsub("ME","", .)
@@ -294,7 +303,7 @@ row.names(MEs)
 colnames(MEs)
 MEs.out<-MEs[c(ncol(MEs),1:(ncol(MEs)-1))]
 colnames(MEs.out)<-gsub("ME", "", colnames(MEs.out))
-write.table(MEs.out,"Analysis_color_module_barplot/sample_module_cor.txt",sep="\t",row.names=F,quote=F)
+write.table(MEs.out,"Analysis_color_module_barplot/sample_module_eng.txt",sep="\t",row.names=F,quote=F)
 
 mME = MEs %>%
   pivot_longer(-treatment) %>%
@@ -328,10 +337,10 @@ image_width <- 2 + x_label_count / 4 # 根据x轴标签数量调整宽度
 image_height <- 2 + y_label_count / 4 # 根据y轴标签数量调整高度
 
 # 保存图形，指定图片的宽度和高度
-ggsave("Analysis_color_module_barplot/sample_module_cor.pdf", mME.plot, width = image_width, height = image_height, dpi = 320)
-
+ggsave("Analysis_color_module_barplot/sample_module_eng.pdf", mME.plot, width = image_width, height = image_height, dpi = 320)
 
 MEs<-MEs[1:(ncol(MEs)-1)]
+
 colnames(MEs)
 for(module in substring(colnames(MEs),3)){
   #if(module == "grey") next
@@ -433,4 +442,44 @@ for (each_color in colors) {
   write.table(color_module_tmp,file = color_module_file_name,row.names=F,quote=F,col.names=F,sep="\t")
   
 }
+
+eng_data<-read.table("Analysis_color_module_barplot/sample_module_eng.txt",header = T,row.names = 1)
+MEs_new<-eng_data
+meta<-read.table(infile2,sep="\t",header=T,check.names = F)
+rownames(meta)<-meta$sample
+meta
+MEs_new
+rownames(MEs_new)
+datTraits<-data.frame(row.names=meta$sample,group=meta$group)
+datTraits
+datTraits$group<-datTraits$group[match(rownames(MEs_new),rownames(datTraits))]
+datTraits$group <- as.factor(datTraits$group)
+datTraits
+nrow(MEs_new)
+design <- model.matrix(~0+datTraits$group)
+colnames(design) <- levels(datTraits$group)
+moduleTraitCor <- cor(MEs_new,design,use = "p")
+moduleTraitCor
+moduleTraitPvalue <- corPvalueStudent(moduleTraitCor,nrow(datTraits))
+moduleTraitPvalue
+textMatrix <- paste0(signif(moduleTraitCor,2),"\n(",
+                     signif(moduleTraitPvalue,2),")")
+dim(textMatrix) <- dim(moduleTraitCor)
+textMatrix
+pdf("Analysis_color_module_barplot/step4_Module-trait-relationship_heatmap.pdf",
+    width = 2*length(colnames(design)), 
+    height = 1*length(names(MEs_new)) )
+par(mar=c(5, 9, 3, 3)) #留白：下、左、上、右
+labeledHeatmap(Matrix = moduleTraitCor,
+               xLabels = colnames(design),
+               yLabels = names(MEs_new),
+               ySymbols = names(MEs_new),
+               colorLabels = F,
+               colors = blueWhiteRed(50),
+               textMatrix = textMatrix,
+               setStdMargins = F,
+               cex.text = 0.5,
+               zlim = c(-1,1), 
+               main = "Module-trait relationships")
+dev.off()
 
