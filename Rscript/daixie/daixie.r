@@ -1,5 +1,5 @@
 setwd("L:/script/Rscript/daixie/ceshi")
-setwd("C:/Users/Analysis/OneDrive/Work/zhiwusuo/01_Work/00_NoRef/2023_07_13_duoniansheng_niubang_redo/2023_11_29/07_牛蒡植物激素结果/daixie")
+setwd("L:/Project/2024_01_17_xing/daixie/zujianfenxi_Group1")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -11,14 +11,31 @@ library(plyr)
 library(ropls)
 library(ggrepel)
 library(mixOmics)
+library(readxl)
 rm(list=ls())
 
 # 读取文件
-reads_data<-read.table("All_sample_data.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F)
+# reads_data<-read.table("All_sample_data.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F)
+reads_data <- read.xlsx("All_sample_data.xlsx", sheet = 1, rowNames = TRUE)
+
+# 数据预处理
+reads_data <- reads_data[rowSums(reads_data != 0) > 0, ]
+# 清理每个元素头尾的空格
+#reads_data <- apply(reads_data, 2, function(x) trimws(x, which = c("both")))
+# 检查是否油 NA，油则退出
+if (any(is.na(reads_data))) {
+  print("检查数据，有 NA")
+  quit()
+}
+
+
 sample_info<-read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
 # 如果需要合并定义则读取单独定义文件，没有则跳过
-definition_df<-read.table("def.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F,quote="")
-definition_df$Metabolite <- rownames(definition_df)
+#definition_df<-read.table("def.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F,quote="")
+if (file.exists("def.xlsx")) {
+  definition_df <- read.xlsx("def.xlsx", sheet = 1, rowNames = TRUE)
+  definition_df$Metabolite <- rownames(definition_df)
+}
 
 fpkm<-as.data.frame(t(apply(reads_data,1,function(x){(x-mean(x))/(sd(x)**0.5)})))
 
@@ -41,7 +58,8 @@ fpkm.cor<-cor(fpkm.m)
 correlation_df<-as.data.frame(fpkm.cor)
 correlation_df$ID<-rownames(correlation_df)
 correlation_df <- correlation_df[, c("ID", setdiff(names(correlation_df), "ID"))]
-write.table(correlation_df,"Metabolite_correlation.txt",sep="\t",quote=F,row.names=F)
+# write.table(correlation_df,"Metabolite_correlation.txt",sep="\t",quote=F,row.names=F)
+write.xlsx(correlation_df, "Metabolite_correlation.xlsx", sheetName = "Sheet1", rowNames = FALSE)
 min(fpkm.cor)
 # 根据样本数量，设置图的大小
 sample_num <- ncol(fpkm.cor)
@@ -75,22 +93,20 @@ p <- ggplot(data = pca_sample, aes(x = Dim.1, y = Dim.2)) +
 p<-p+geom_text_repel(data=pca_sample,aes(Dim.1, Dim.2, label=rownames(pca_sample)))
 cluster_border <- ddply(pca_sample, 'group', function(df) df[chull(df[[1]], df[[2]]), ])
 p<-p + geom_polygon(data = cluster_border, aes(color = group),fill=NA, show.legend = FALSE)
-ggsave("Metabolite_PCA_analysis.jpeg",p,dpi=300,width=10,height=10)
+ggsave("Metabolite_PCA_analysis.jpeg",p,dpi=300,width=18,height=18)
 
 
 # 代谢的图
-
 dir.create("多组分析")
-# >>>>>> 多组分析中有多个组的
-select_sample_info <- read.table("multigroup4_samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
-select_fpkm <- fpkm[, select_sample_info$sample, drop = FALSE]
+# >>>>>> 多组分析中有多个组的(用不到了)
+#select_sample_info <- read.table("multigroup4_samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
+#select_fpkm <- fpkm[, select_sample_info$sample, drop = FALSE]
 
-fpkm_t<-t(select_fpkm)
-groups=select_sample_info$group
-select_reads_data <- reads_data[, select_sample_info$sample, drop = FALSE]
+#fpkm_t<-t(select_fpkm)
+#groups=select_sample_info$group
+#select_reads_data <- reads_data[, select_sample_info$sample, drop = FALSE]
 # <<<<<<
 
-# 选择上面不需要执行这两句
 fpkm_t<-t(fpkm)
 groups=sample_info$group
 
@@ -128,7 +144,8 @@ ggsave('多组分析/Metabolite_quantitation_scree_plot.jpeg', scree_plot, width
 comp_load_df <- as.data.frame(df_plsda$loadings$X)
 comp_load_df <- cbind(rownames(comp_load_df), comp_load_df)
 colnames(comp_load_df)[1] = "compound_name"
-write.table(comp_load_df, file="多组分析/pc_loading_value.txt", sep='\t', row.names=FALSE,col.names = TRUE,quote = FALSE)
+# write.table(comp_load_df, file="多组分析/pc_loading_value.txt", sep='\t', row.names=FALSE,col.names = TRUE,quote = FALSE)
+write.xlsx(comp_load_df, file="多组分析/pc_loading_value.xlsx", sheetName = "Sheet1", rowNames = FALSE)
 
 df <- unclass(df_plsda)
 
@@ -138,31 +155,48 @@ df1$group = groups
 df1$samples = rownames(df1)
 
 explain = df$prop_expl_var$X
-x_lable <- round(explain[1],digits=3)
-y_lable <- round(explain[2],digits=3)
+x_label <- round(explain[1],digits=3)
+y_label <- round(explain[2],digits=3)
 
 num_samples <- nrow(df1)
-plot_width <- 5 + num_samples * 0.1
-plot_height <- 4 + num_samples * 0.1
+plot_width <- 5 + num_samples * 0.2
+plot_height <- 4 + num_samples * 0.2
 
-p1 <- ggplot(df1, aes(x = comp1, y = comp2, color = group, shape = group)) +
+p1 <- ggplot(df1, aes(x = comp1, y = comp2, color = group)) +
   theme_bw() +
   geom_point(size = 1.8) +
-  theme(panel.grid = element_blank()) +  # 设置高度
-  geom_text(aes(label = samples, y = comp2 + 0.02, x = comp1 + 0.05, vjust = 0), size = 2) +
-  labs(x = paste0("P1 (", x_lable * 100, "%)"), y = paste0("P2 (", y_lable * 100, "%)")) +
+  geom_text_repel(
+    aes(label = samples),
+    size = 2,
+    box.padding = 0.35,
+    point.padding = 0.5
+  ) +
+  labs(x = paste0("P1 (", x_label * 100, "%)"), y = paste0("P2 (", y_label * 100, "%)")) +
   stat_ellipse(data = df1, geom = "polygon", level = 0.95,
                linetype = 2, linewidth = 0.5, aes(fill = group),
                alpha = 0.2, show.legend = TRUE) +
   scale_color_discrete() +
   scale_fill_discrete() +
-  theme(axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 12, angle = 90),
-        axis.text.y = element_text(size = 10),
-        axis.text.x = element_text(size = 10),
-        panel.grid = element_blank())
+  theme(
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12, angle = 90),
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10),
+    panel.grid = element_blank()
+  )
+# 提取当前坐标轴的极限
+current_limits <- ggplot_build(p1)$layout$panel_params[[1]]
+x_range <- current_limits$x.range
+y_range <- current_limits$y.range
 
-ggsave("多组分析/Multigroup_PCA_Distribution_Graph.jpeg", p1, width = plot_width, height = plot_height)
+# 根据当前值每个增加2
+x_min <- x_range[1] - 2
+x_max <- x_range[2] + 2
+y_min <- y_range[1]# - 1
+y_max <- y_range[2]# + 1
+p1 <- p1 + coord_cartesian(xlim = c(x_min, x_max), ylim = c(y_min, y_max))
+
+ggsave("多组分析/Multigroup_Plsda_Distribution_Graph.jpeg", p1, width = plot_width, height = plot_height)
 
 
 # vip 值使用 fpkm, 其他值计算都是用 reads
@@ -173,7 +207,7 @@ df.vip<-as.data.frame(vip_values)
 # 整个多组
 reads_data_with_def <- cbind(reads_data, VIP = df.vip$vip_values)
 # 多个多组
-reads_data_with_def <- cbind(select_reads_data, VIP = df.vip$vip_values)
+# reads_data_with_def <- cbind(select_reads_data, VIP = df.vip$vip_values)
 
 reads_data_with_def$Metabolite <- rownames(reads_data_with_def)
 reads_data_with_def <- reads_data_with_def[, c("Metabolite", setdiff(names(reads_data_with_def), "Metabolite"))]
@@ -183,23 +217,32 @@ class_count <- ""
 if (exists("definition_df")) {
   reads_data_with_def<-merge(reads_data_with_def, definition_df, by = "Metabolite", all.x=TRUE)
   greater_than_one_data_def <- reads_data_with_def[reads_data_with_def$VIP > 1,]
+  # 如果 greater_than_one_data_def 没有数据，就是用 reads_data_with_def
+  if (nrow(greater_than_one_data_def) == 0) {
+    print("没有 VIP 大于 1，输出全部")
+    greater_than_one_data_def <- reads_data_with_def
+  }
+  
   class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$Class), length)
   class_count <- class_count[class_count$Group.1 != '',]
   class_count <- class_count[order(-class_count$x),]
-  write.table(class_count, file='多组分析/Significant_compound_count_by_class.txt',
-              sep="\t", row.names=FALSE,col.names=FALSE, quote = FALSE)
+  # write.table(class_count, file='多组分析/Significant_compound_count_by_class.txt',
+  #             sep="\t", row.names=FALSE,col.names=FALSE, quote = FALSE)
+  write.xlsx(class_count, file='多组分析/Significant_compound_count_by_class.xlsx',
+             sheetName = "Sheet1", rowNames=FALSE,colNames=FALSE)
 }
 
 reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.last = TRUE), ]
 
-write.table(reads_data_with_def, file="多组分析/Metabolite_quantitation_VIP.txt", sep='\t', row.names = FALSE, col.names = TRUE, quote=FALSE)
-
+# write.table(reads_data_with_def, file="多组分析/Metabolite_quantitation_VIP.txt", sep='\t', row.names = FALSE, col.names = TRUE, quote=FALSE)
+write.xlsx(reads_data_with_def, file="多组分析/Metabolite_quantitation_VIP.xlsx", sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
 
 # 自动生成组间分析
-group_levels <- unique(sample_info$group)
-comparisons <- combn(group_levels, 2, simplify = FALSE)
+#group_levels <- unique(sample_info$group)
+#comparisons <- combn(group_levels, 2, simplify = FALSE)
 
 # 指定组间分析
+dir.create('组间分析')
 comp_info<-read.table("compare_info.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
 comparisons <- list()
 for(i in seq_along(1:nrow(comp_info))){
@@ -210,13 +253,8 @@ plot_types <- c('correlation', 'outlier', 'overview', 'permutation',
                 'predict-train', 'x-loading', 'x-score', 
                 'x-variance', 'xy-score')
 
-
-
-dir.create('组间分析')
-
 deg_data <- data.frame(group = character(0), All=numeric(0), Up = numeric(0), Down = numeric(0))
-
-# 循环中注意可能需要修改 corssvalI 值
+# 循环中注意可能需要修改 corssvalI 值,crossvalI 默认是 7, crossvalI 需要小于等于两组样本的数量
 for (i in seq_along(comparisons)) {
   
   key_name <- paste(comparisons[[i]], collapse = "_vs_")
@@ -321,16 +359,6 @@ for (i in seq_along(comparisons)) {
   # 将更新后的数据框保存为文本文件
   write.table(current_expression_data_def, file = paste0('组间分析/', key_name, '/', key_name, '_VIP.txt'), sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
   
-  # class 分组计数
-  class_count <- ""
-  if (exists("definition_df")) {
-    greater_than_one_data_def <- current_expression_data_def[current_expression_data_def$VIP > 1,]
-    class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$Class), length)
-    class_count <- class_count[class_count$Group.1 != '',]
-    class_count <- class_count[order(-class_count$x),]
-    write.table(class_count, file=paste0('组间分析/',key_name,'/Significant_compound_count_by_class.txt'),
-                sep="\t", row.names=FALSE,col.names=FALSE, quote = FALSE)
-  }
   
   # 计算 deg
   deg_df <- current_expression_data_def[current_expression_data_def$VIP > 1,]
@@ -354,6 +382,34 @@ for (i in seq_along(comparisons)) {
     }
   }
 }
-write.table(deg_data, file='组间分析/DEG_summary.txt', sep='\t', row.names=FALSE, col.names=TRUE, quote=FALSE)
+# write.table(deg_data, file='组间分析/Differential_metabolite_count_summary.txt', sep='\t', row.names=FALSE, col.names=TRUE, quote=FALSE)
+write.xlsx(deg_data, file='组间分析/Differential_metabolite_count_summary.xlsx', sheetName = "Sheet1", rowNames=FALSE, colNames=TRUE)
+ 
+# class 分组计数
+all_files <- list.files(path = "组间分析", recursive = TRUE)
+vip_files <- all_files[grep("VIP", all_files)]  
+class_count_list <- list()  
 
+for (vip_file in vip_files) {  
+  vip_df <- read.table(paste0("组间分析/",vip_file), sep="\t", header=TRUE, check.names=FALSE, stringsAsFactors=FALSE, quote='')  
+  vip_df_vipgt1 <- vip_df[vip_df$VIP > 1,]
+  vip_df_vipgt1 <- vip_df[vip_df$FoldChange > 1.2,]
+  vip_df_vipgt1 <- vip_df[vip_df$FoldChange < 0.8,]
+  #vip_df_vipgt1 <- vip_df
+  class_count <- aggregate(Metabolite ~ Class, data=vip_df_vipgt1, FUN=length)
+  class_count <- class_count[class_count$Class != '',]
+  names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1]  # 修改列名为对应的 count_name
+  class_count_list <- append(class_count_list, list(class_count))  
+}
+
+# 去除重复的行?
+#class_count_list <- lapply(class_count_list, function(df) df[!duplicated(df$class), ])
+
+# 合并 class_count_list 中所有的 class_count，根据第一列的 class 合并，合并方式为并集  
+class_count_result <- Reduce(function(x, y) merge(x, y, by = "Class", all = TRUE), class_count_list)  
+class_count_result[is.na(class_count_result)] <- 0
+#write.table(class_count_result, file=paste0('组间分析/Significant_compound_count_by_class.txt'),
+#            sep="\t", row.names=FALSE,col.names=TRUE, quote = FALSE)
+write.xlsx(class_count_result, file=paste0('组间分析/Significant_compound_count_by_class.xlsx'),
+           sheetName = "Sheet1", rowNames=FALSE,colNames=TRUE)
 
