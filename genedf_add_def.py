@@ -4,11 +4,10 @@
 # Author        : William GoGo
 import argparse
 import pandas as pd
-from traitlets import default
 
 
 def parse_input():
-    argparser = argparse.ArgumentParser(description='输入 k，n，s，def 文件，添加 KEGG_ID, KEGG_GeneID, NR_Def, Swiss_protein_ID')
+    argparser = argparse.ArgumentParser(description='对各种表添加基因定义文件，指定 --kns 则无需指定 -k,-n,-s')
     argparser.add_argument('--kns', help='输入 kns_def 文件，添加 KEGG_ID, KEGG_GeneID, NR_Def, Swiss_protein_ID')
     argparser.add_argument('-k', '--kegg', help='KEGG_gene_def 文件，会添加 KEGG_ID 和 KEGG_Shortname 列')
     argparser.add_argument('-n', '--nr', help='NR_gene_def 文件')
@@ -19,13 +18,19 @@ def parse_input():
     argparser.add_argument('--input-header', default='GeneID', dest='input_header',
                            help="默认 GeneID 添加定义，如果有其他列名，请写出列名，如果没有列名，输入列的位置，从 0 开始数，列名不可以是数字")
     argparser.add_argument('-o', '--output', default='output.txt', help='输出文件')
-    return argparser.parse_args()
+    
+    args = argparser.parse_args()
+    
+    if args.kns:
+        args.kegg, args.nr, args.swiss = None, None, None
+    
+    return args
 
 
 def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file=None):
     """
     传入表中必须包含 GeneID 列
-    添加 NR_Def, Swiss_protein_ID, KEGG_ID, GeneSymbol, EC_number, KEGG_Description 列
+    添加 NR_Def, Swiss_protein_ID, KEGG_ID, KEGG_Shortname, EC_number, KEGG_Description 列
     """
     result_df = file_df
     source_shape = file_df.shape[0]
@@ -58,7 +63,7 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
         result_df = pd.merge(left=result_df, right=swiss_df, on='GeneID', how='left')
         
     if kegg_file:
-        kegg_df = pd.read_csv(kegg_file, sep='\t', skiprows=1, names=['GeneID', 'KEGG_ID', 'GeneSymbol', 'EC_Number', 'KEGG_Description'], dtype={'GeneID': str})
+        kegg_df = pd.read_csv(kegg_file, sep='\t', skiprows=1, names=['GeneID', 'KEGG_ID', 'KEGG_Shortname', 'EC_Number', 'KEGG_Description'], dtype={'GeneID': str})
         result_df = pd.merge(left=result_df, right=kegg_df, on='GeneID', how='left')
 
     if kns_file:
@@ -100,7 +105,7 @@ def main():
         result_df = result_df.rename(columns={'GeneID': args.input_header})
         result_df.to_csv(args.output, sep='\t', index=False)
     elif type(args.input_header) == int:
-        result_df.to_csv(args.output, sep='\t', index=False, header=False)
+        result_df.to_csv(args.output, sep='\t', index=False, header=True)
         
     print('\nDone!\n')
 
