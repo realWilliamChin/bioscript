@@ -32,7 +32,7 @@ def main():
     args = parse_input()
     if args.samples:
         samples_data = open(args.samples, 'r').readlines()
-        sample_data_list = [os.sep.join([args.input, x.split('\t')[1] + '_fastp.json']) for x in samples_data[1:] if x.strip() != '']
+        sample_data_list = [os.sep.join([args.input, x.split('\t')[1].strip() + '_fastp.json']) for x in samples_data[1:] if x.strip() != '']
     else:
         sample_data_list = [os.sep.join([args.input, x]) for x in os.listdir(args.input) if x.endswith('_fastp.json')]
     open(args.output, 'w').write('Sample\tClean_reads\tClean_base\tQ20\tQ30\tGC\n')
