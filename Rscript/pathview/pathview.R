@@ -1,6 +1,7 @@
 setwd("d:/pll/R_work/pathview/")
 library(tidyverse)
 library(scales)
+library(pathview)
 rm(list=ls())
 set.seed(2)
 test.data <- data.frame(values = replicate(1, sample(0:10,1000, rep=TRUE)))
@@ -12,7 +13,7 @@ ggplot(test.data, aes(x=values)) +
   theme_bw()
 percent
 
-library("pathview")
+
 head(gse16873.d)
 eco.dat.kegg <- sim.mol.data(mol.type="gene",id.type="kegg",species="eco",nmol=3000)
 head(eco.dat.kegg)
@@ -52,7 +53,6 @@ pathview(gene.data = ko.data, pathway.id = c("04110","04210"), species = "ko", o
 ###################################程序正式开始，之前是测试
 setwd("d:/pll/R_work/pathview/")
 rm(list=ls())
-library("pathview")
 kid.dt<-read.table("CHX_vs_HBX_DEG_data.result",header=T)
 ko.data<-kid.dt[,2]
 names(ko.data)<-kid.dt[,1]
