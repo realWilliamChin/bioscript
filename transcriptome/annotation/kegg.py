@@ -5,6 +5,7 @@
 import os
 import pandas as pd
 import argparse
+from merge_fpkm_reads_matrix import merge_fpkm_reads
 
 
 def parse_input():
@@ -13,18 +14,35 @@ def parse_input():
     """
     parser = argparse.ArgumentParser(description='指定 keg 文件，对 keg 文件清理，处理拆分')
     parser.add_argument('-k', '--keg', type=str, help='指定 keg 文件，默认当前文件夹 keg 结尾的文件')
-    parser.add_argument('-t', '--type', type=str, help='指定物种类型，植物=plant，动物=animal')
+    parser.add_argument('-t', '--type', type=str, help='指定物种类型，植物=plant, 动物=animal')
     parser.add_argument('-i', '--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
-    args = parser.parse_args()
-    if args.keg:
-        keg_file = args.keg
-    else:
-        keg_file = [x for x in os.listdir() if x.endswith('.keg')][0]
     
-    return keg_file, args.type, args.allid
+    # 这两个参数用于生成 ko03000_expression_data.txt 文件
+    parser.add_argument('--fpkm', type=str,
+                        help='指定 fpkm 文件, 用于对 ko03000 添加表达量生成新文件，如果不指定，则不生成 ko03000_expression_data 文件')
+    parser.add_argument('--reads', type=str,
+                        help='指定 reads 文件, 用于对 ko03000 添加表达量生成新文件, 如果指定需要 fpkm 和 reads 都存在')
+    
+    args = parser.parse_args()
+    if args.keg and os.path.exists(args.keg) is True:
+        pass
+    else:
+        args.keg = [x for x in os.listdir() if x.endswith('.keg')][0]
+    
+    # 检测 fpkm 和 reads 文件是否有效
+    if args.fpkm or args.reads:
+        if os.path.exists(args.fpkm) is False:
+            raise Exception('fpkm 文件不存在')
+        if os.path.exists(args.reads) is False:
+            raise Exception('reads 文件不存在')
+    
+    return args
 
 
 def process_keg(input_f, output_f):
+    """
+    TODO: 从 keg 文件开始解析, 顶替 perl 脚本, 使用 python 处理 keg 文件
+    """
     pass
 
 
@@ -42,11 +60,9 @@ def ko03000(kegg_gene_df, kegg_tier3_df):
     return ko03000_df, ko03022_df
 
     
-
-
 def main():
     args = parse_input()
-    keg_file, specie_type, all_id_file = args[0], args[1], args[2]
+    keg_file, specie_type, all_id_file = args.keg, args.type, args.allid
     key_name = keg_file.replace('.keg', '')
     kegg_file = keg_file.replace('.keg','_KEGG_original.txt')
     # 初始处理 keg 文件
@@ -87,7 +103,7 @@ def main():
     gene_def_df['EC_number'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[1].str.replace(']', '').str.split(' ', expand=True)[0]
     gene_def_df['KEGG_def'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[0].str.strip()
     gene_def_df.fillna(value='NA', inplace=True)
-    # Gene_shortname 不能设置空为 NA，设置为空
+    # Gene_shortname 不能设置空为 NA，设置为空（张老师说的）
     gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0]
     gene_def_df['Gene_shortname'].fillna(value='', inplace=True)
     gene_def_df.drop(columns='Description EC_number', inplace=True)
@@ -123,6 +139,13 @@ def main():
     ko03000_df, ko03022_df = ko03000(gene_def_df, tier3_df)
     ko03000_df.to_csv(key_name + '_ko03000_transcription_factors.txt', sep='\t', index=False)
     ko03022_df.to_csv(key_name + '_ko03022_basal_transcription_factor.txt', sep='\t', index=False)
+    
+    # ko03000 需要增加表达量，生成新文件 (2024_02_22)
+    if args.fpkm and args.reads:
+        ko03000_fpkm_reads_df = merge_fpkm_reads(args.fpkm, args.reads)
+        ko03000_fpkm_reads_df = pd.merge(ko03000_fpkm_reads_df, ko03000_df, on='GeneID', how='inner')
+        # ko03000_fpkm_reads_df = ko03000_fpkm_reads_df[ko03000_fpkm_reads_df['GeneID'].isin(ko03000_df['GeneID'])]
+        ko03000_fpkm_reads_df.to_csv(key_name + '_ko03000_expression_data_def.txt', sep='\t', index=False)
 
     
 if __name__ == '__main__':
