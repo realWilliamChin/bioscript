@@ -53,8 +53,8 @@ def main():
     })
 
     # 输出 cog_count.txt
-    cog_count_source_df = pd.read_csv(cog_file, sep='\t', skiprows=3)
-    cog_list = Counter(''.join(list(cog_count_source_df['COG Functional cat.'].dropna()))).most_common()
+    cog_count_source_df = pd.read_csv(cog_file, sep='\t', skiprows=4)
+    cog_list = Counter(''.join(list(cog_count_source_df['COG_category'].dropna()))).most_common()
     cog_count_df = pd.DataFrame(list(cog_list))
     cog_df = pd.merge(left=cog_source_df, right=cog_count_df, on=0, how='left').fillna(0)
     cog_df.to_csv(os.path.join(args.output_path, 'COG_count.txt'), sep='\t', header=False, index=False)
