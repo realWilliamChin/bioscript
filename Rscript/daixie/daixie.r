@@ -1,5 +1,5 @@
 setwd("L:/script/Rscript/daixie/ceshi")
-setwd("L:/Project/2024_01_17_xing/daixie/zujianfenxi_Group1")
+setwd("/home/colddata/qinqiang/work/2024_03_06/Metabolite_analysis_prep")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -392,10 +392,8 @@ class_count_list <- list()
 
 for (vip_file in vip_files) {  
   vip_df <- read.table(paste0("组间分析/",vip_file), sep="\t", header=TRUE, check.names=FALSE, stringsAsFactors=FALSE, quote='')  
-  vip_df_vipgt1 <- vip_df[vip_df$VIP > 1,]
-  vip_df_vipgt1 <- vip_df[vip_df$FoldChange > 1.2,]
-  vip_df_vipgt1 <- vip_df[vip_df$FoldChange < 0.8,]
-  #vip_df_vipgt1 <- vip_df
+  vip_df_vipgt1 <- vip_df[vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8),]
+  # vip_df_vipgt1 <- vip_df
   class_count <- aggregate(Metabolite ~ Class, data=vip_df_vipgt1, FUN=length)
   class_count <- class_count[class_count$Class != '',]
   names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1]  # 修改列名为对应的 count_name
