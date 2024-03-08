@@ -72,7 +72,7 @@ def exec_blast(fasta_file, num_threads, database, prefix):
 def drop_dup(blast_file):
     blast_names = ['qacc','sacc','qcovhsp','ppos','length','mismatch','gapopen','qstart','qend','sstart','send','evalue','bitscore','stitle']
     df = pd.read_csv(blast_file, sep='\t', names=blast_names, low_memory=False)
-    df.sort_values(by=['qacc', 'qcovhsp'], ascending=[True, False], inplace=True)
+    df.sort_values(by=['qacc', 'bitscore'], ascending=[True, False], inplace=True)
     df.drop_duplicates(subset='qacc', keep='first', inplace=True)
     df.to_csv(blast_file.replace('.blast', '_uniq.blast'), sep='\t', index=False)
 
