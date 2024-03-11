@@ -10,14 +10,21 @@ def parse_input():
     parser = argparse.ArgumentParser(description='根据 samples_described.txt 对表文件列重新排序')
     parser.add_argument('-s', '--sample', default='samples_described.txt',
                         help='指定 samples_described.txt 文件, 默认当前文件夹下的 samples_described.txt')
-    parser.add_argument('-f', '--file', required=True, help='输入需要重新对列排序的文件')
-    parser.add_argument('-o', '--output', default='output.txt', help='生成的文件名，默认在当前文件夹下生成 output.txt')
+    parser.add_argument('-f', '--file', required=True,
+                        help='输入需要重新对列排序的文件, 可以针对 csv 和 txt 和 xlsx 格式文件进行处理')
+    parser.add_argument('-o', '--output', default='output.txt',
+                        help='生成的文件名，默认在当前文件夹下生成 output.txt, 也可以指定其他格式, csv 或者 xlsx')
     args = parser.parse_args()
     return args
     
     
 def reindex(lst, input_file, output_file):
-    df = pd.read_csv(input_file, sep='\t', dtype=str)
+    if input_file.endswith('.csv'):
+        df = pd.read_csv(input_file, dtype=str)
+    elif input_file.endswith('.xlsx'):
+        df = pd.read_excel(input_file, dtype=str, engine='openpyxl')
+    else:
+        df = pd.read_csv(input_file, sep='\t', dtype=str)
     df_columns = df.columns.values[1:]
     error_lst = []
     
@@ -38,7 +45,12 @@ def reindex(lst, input_file, output_file):
         print('输入的 title list 和输出的表 title 数量不匹配，请检查')
         exit(1)
 
-    df.to_csv(output_file, sep='\t', index=False)
+    if output_file.endswith('.csv'):
+        df.to_csv(output_file, index=False)
+    elif output_file.endswith('.xlsx'):
+        df.to_excel(output_file, index=False, engine='openpyxl')
+    else:
+        df.to_csv(output_file, sep='\t', index=False)
 
 
 def main():
