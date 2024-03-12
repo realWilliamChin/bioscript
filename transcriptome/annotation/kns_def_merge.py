@@ -13,9 +13,16 @@ def parse_input():
     argparser.add_argument('-k', '--kegg', help='KEGG_gene_def 文件，会添加 KEGG_ID 和 KEGG_Shortname 列')
     argparser.add_argument('-n', '--nr', help='NR_gene_def 文件')
     argparser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
+    argparser.add_argument('-b', '--basicinfo', help="basic_info.txt 文件，如果指定则添加到 Kns 中")
     argparser.add_argument('-i', '--input', required=True, help='输入 all_geneid 文件')
-    argparser.add_argument('-o', '--output', help='输出文件')
-    return argparser.parse_args()
+    argparser.add_argument('-o', '--output', help='输出文件，支持 xlsx, csv, txt 格式输出')
+    
+    args = argparser.parse_args()
+    
+    if not args.output:
+        args.output = args.input.split(os.sep)[-1].split('_all')[0] + '_kns_def.txt'
+    
+    return args
 
 
 def main():
@@ -24,10 +31,16 @@ def main():
     df = pd.read_csv(args.input, sep='\t', names=['GeneID'], dtype={"GeneID": str})
     result_df = add_kns_def(df, args.kegg, args.nr, args.swiss)
     
-    if not args.output:
-        args.output = args.input.split(os.sep)[-1].split('_all')[0] + '_kns_def.txt'
-    result_df.to_csv(args.output, sep='\t', index=False)
+    if args.basicinfo:
+        basic_df = pd.read_csv(args.basicinfo, sep='\t', dtype={"GeneID": str})
+        result_df = pd.merge(result_df, basic_df, on="GeneID", how="left")
 
+    if args.output.endswith('.csv'):
+        result_df.to_csv(args.output, index=False)
+    elif args.output.endswith('.xlsx'):
+        result_df.to_excel(args.output, index=False, engine='openpyxl')
+    else:
+        result_df.to_csv(args.output, sep='\t', index=False)
 
     print('\nDone!\n')
 
