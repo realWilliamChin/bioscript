@@ -29,11 +29,14 @@ def main():
     args = parse_input()
         
     df = pd.read_csv(args.input, sep='\t', names=['GeneID'], dtype={"GeneID": str})
-    result_df = add_kns_def(df, args.kegg, args.nr, args.swiss)
     
     if args.basicinfo:
         basic_df = pd.read_csv(args.basicinfo, sep='\t', dtype={"GeneID": str})
-        result_df = pd.merge(result_df, basic_df, on="GeneID", how="left")
+        result_df = pd.merge(df, basic_df, on="GeneID", how="left")
+    
+    result_df = add_kns_def(result_df, args.kegg, args.nr, args.swiss)
+    
+    
 
     if args.output.endswith('.csv'):
         result_df.to_csv(args.output, index=False)
