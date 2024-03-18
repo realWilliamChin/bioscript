@@ -9,5 +9,6 @@ examples/
 *.zip
 *.Rhistory
 *.RData
+test.py
 ceshi*/
 practice/git
