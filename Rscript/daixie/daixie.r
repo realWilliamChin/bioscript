@@ -97,12 +97,13 @@ ggsave("Metabolite_PCA_analysis.jpeg",p,dpi=300,width=18,height=18)
 
 
 # 代谢的图
-dir.create("多组分析")
-# >>>>>> 多组分析中有多个组的(用不到了)
+multigroup_dir <- "多组分析_group1"
+dir.create(multigroup_dir)
+# >>>>>> 多组分析中有多个组的
 #select_sample_info <- read.table("multigroup4_samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
-#select_fpkm <- fpkm[, select_sample_info$sample, drop = FALSE]
+#select_reads <- reads_data[, select_sample_info$sample, drop = FALSE]
 
-#fpkm_t<-t(select_fpkm)
+#reads_data_t<-t(select_reads)
 #groups=select_sample_info$group
 #select_reads_data <- reads_data[, select_sample_info$sample, drop = FALSE]
 # <<<<<<
@@ -139,13 +140,13 @@ scree_plot <- ggplot(scree_df, aes(x = comp, y = value)) +
   geom_line(aes(group = 1), color = "red")+
   geom_point()
 
-ggsave('多组分析/Metabolite_quantitation_scree_plot.jpeg', scree_plot, width = ncomp * 0.7, height = 4)
+ggsave(paste0(multigroup_dir, '/Metabolite_quantitation_scree_plot.jpeg'), scree_plot, width = ncomp * 0.7, height = 4)
 
 comp_load_df <- as.data.frame(df_plsda$loadings$X)
 comp_load_df <- cbind(rownames(comp_load_df), comp_load_df)
 colnames(comp_load_df)[1] = "compound_name"
 # write.table(comp_load_df, file="多组分析/pc_loading_value.txt", sep='\t', row.names=FALSE,col.names = TRUE,quote = FALSE)
-write.xlsx(comp_load_df, file="多组分析/pc_loading_value.xlsx", sheetName = "Sheet1", rowNames = FALSE)
+write.xlsx(comp_load_df, file=paste0(multigroup_dir, "/pc_loading_value.xlsx"), sheetName = "Sheet1", rowNames = FALSE)
 
 df <- unclass(df_plsda)
 
@@ -196,7 +197,7 @@ y_min <- y_range[1]# - 1
 y_max <- y_range[2]# + 1
 p1 <- p1 + coord_cartesian(xlim = c(x_min, x_max), ylim = c(y_min, y_max))
 
-ggsave("多组分析/Multigroup_Plsda_Distribution_Graph.jpeg", p1, width = plot_width, height = plot_height)
+ggsave(paste0(multigroup_dir, "/Multigroup_Plsda_Distribution_Graph.jpeg"), p1, width = plot_width, height = plot_height)
 
 
 # vip 值使用 fpkm, 其他值计算都是用 reads
@@ -228,14 +229,14 @@ if (exists("definition_df")) {
   class_count <- class_count[order(-class_count$x),]
   # write.table(class_count, file='多组分析/Significant_compound_count_by_class.txt',
   #             sep="\t", row.names=FALSE,col.names=FALSE, quote = FALSE)
-  write.xlsx(class_count, file='多组分析/Significant_compound_count_by_class.xlsx',
+  write.xlsx(class_count, file=paste0(multigroup_dir, "/Significant_compound_count_by_class.xlsx"),
              sheetName = "Sheet1", rowNames=FALSE,colNames=FALSE)
 }
 
 reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.last = TRUE), ]
 
 # write.table(reads_data_with_def, file="多组分析/Metabolite_quantitation_VIP.txt", sep='\t', row.names = FALSE, col.names = TRUE, quote=FALSE)
-write.xlsx(reads_data_with_def, file="多组分析/Metabolite_quantitation_VIP.xlsx", sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
+write.xlsx(reads_data_with_def, file=paste0(multigroup_dir, "/Metabolite_quantitation_VIP.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
 
 # 自动生成组间分析
 #group_levels <- unique(sample_info$group)
@@ -253,7 +254,8 @@ plot_types <- c('correlation', 'outlier', 'overview', 'permutation',
                 'predict-train', 'x-loading', 'x-score', 
                 'x-variance', 'xy-score')
 
-deg_data <- data.frame(group = character(0), All=numeric(0), Up = numeric(0), Down = numeric(0))
+deg_data <- data.frame(group = character(0), All=numeric(0), Up = numeric(0), Down = numeric(0),
+                       Up_list = character(0), Down_list = character(0))
 # 循环中注意可能需要修改 corssvalI 值,crossvalI 默认是 7, crossvalI 需要小于等于两组样本的数量
 for (i in seq_along(comparisons)) {
   
@@ -357,14 +359,17 @@ for (i in seq_along(comparisons)) {
   current_expression_data_def[is.na(current_expression_data_def)] <- 0
   
   # 将更新后的数据框保存为文本文件
-  write.table(current_expression_data_def, file = paste0('组间分析/', key_name, '/', key_name, '_VIP.txt'), sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
-  
+  # write.table(current_expression_data_def, file = paste0('组间分析/', key_name, '/', key_name, '_VIP.txt'), sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+  write.xlsx(current_expression_data_def, file=paste0('组间分析/', key_name, '/', key_name, '_VIP.xlsx'), sheetName = "Sheet1", rowNames=FALSE, colNames=TRUE)
   
   # 计算 deg
   deg_df <- current_expression_data_def[current_expression_data_def$VIP > 1,]
   deg_up <- nrow(deg_df[deg_df$FoldChange>=1.2,])
+  deg_up_idlist <- deg_df[deg_df$FoldChange>=1.2,]$Metabolite
   deg_down <- nrow(deg_df[deg_df$FoldChange<=0.8,])
-  new_row <- data.frame(group = key_name, All= deg_up + deg_down, Up = deg_up, Down = deg_down)
+  deg_down_idlist <- deg_df[deg_df$FoldChange<=0.8,]$Metabolite
+  new_row <- data.frame(group = key_name, All= deg_up + deg_down, Up = deg_up, Down = deg_down, 
+                        Up_list = paste0(deg_up_idlist, collapse = ","), Down_list = paste0(deg_down_idlist, collapse = ","))
   deg_data <- rbind(deg_data, new_row)
   
   # 生成图形
@@ -391,7 +396,8 @@ vip_files <- all_files[grep("VIP", all_files)]
 class_count_list <- list()  
 
 for (vip_file in vip_files) {  
-  vip_df <- read.table(paste0("组间分析/",vip_file), sep="\t", header=TRUE, check.names=FALSE, stringsAsFactors=FALSE, quote='')  
+  print(vip_file)
+  vip_df <- read.xlsx(paste0("组间分析/",vip_file), sheet = 1, rowNames = FALSE) 
   vip_df_vipgt1 <- vip_df[vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8),]
   # vip_df_vipgt1 <- vip_df
   class_count <- aggregate(Metabolite ~ Class, data=vip_df_vipgt1, FUN=length)
