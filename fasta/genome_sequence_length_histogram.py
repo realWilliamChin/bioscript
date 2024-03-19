@@ -32,9 +32,9 @@ def plot_histogram(length_counts, output_file):
     y_values = [length_counts[key] for key in sorted(length_counts.keys())]
 
     plt.bar(x_values, y_values, width=100, align='edge', edgecolor='black')
-    plt.xlabel('Sequence Length')
-    plt.ylabel('Count')
-    plt.title('Sequence Length Distribution')
+    plt.xlabel('Protein Length')
+    plt.ylabel('Number')
+    plt.title('Protein Length Distribution')
     # 在每个条形上添加次数标签
     # for x, y in zip(x_values, y_values):
     #     plt.text(x + 50, y + 0.05, str(y), ha='center', va='bottom')
