@@ -3,8 +3,12 @@
 # Created Time  : 2023/5/29 19:43
 # Author        : WilliamGoGo
 # 合并 fpkm 和 reads 然后添加 def
+import os, sys
 import argparse
 import pandas as pd
+
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
 from genedf_add_def import add_kns_def
 
 
