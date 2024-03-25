@@ -121,7 +121,9 @@ exec_swiss() {
 ## nr
 exec_nr() {
     log INFO "执行 Annotation - nr 步骤"
-    mkdir -p ${prep_fs}/nr/temp >/dev/null 2>&1
+    if [[ ! -d ${prep_fs}/nr/temp ]]; then
+        mkdir -p ${prep_fs}/nr/temp
+    fi
     diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
         --threads ${num_threads} \
         --query ${cds_gene_sequence_file} \
@@ -137,7 +139,7 @@ exec_nr() {
     # 如果 nr 执行成功，则对 nr 结果进行处理
     if [[ -f ${prep_fs}/nr/${specie}_nr.blast || $? -eq 0 ]]; then
         cd ${prep_fs}/nr || exit
-        python ${script}/nr.py 
+        python ${script}/nr.py -b ${reference_genome_fs}/${specie}_gene_basicinfo.txt
         if [[ $? -eq 0 ]]; then
             cd ${work_dir} || exit
             log INFO "nr 注释完成"
@@ -155,24 +157,24 @@ exec_nr() {
 ### kegg
 exec_kegg() {
     log INFO "[KEGG]执行 kegg 注释步骤"
-    annotation=${prep_fs}/kegg
+    annotation_d=${prep_fs}/kegg
     if [[ ! -d ${prep_fs}/kegg ]]; then
         mkdir -p ${prep_fs}/kegg
     fi
     # 判断 $cds_gene_sequence_file 是否大于 50000 条，如果大于 50000 条，则需要分批生成 keg 文件
     if [[ $(grep -c '>' ${cds_gene_sequence_file}) -gt 50000 ]]; then
         log INFO "[KEGG]cds.fasta 文件大于 50000 条，切割进行注释"
-        split -l 100000 ${cds_gene_sequence_file} ${annotation}/${specie}.fasta_
-        for i in $(ls ${annotation} | grep "${specie}.fasta_"); do
+        split -l 100000 ${cds_gene_sequence_file} ${annotation_d}/${specie}.fasta_
+        for i in $(ls ${annotation_d} | grep "${specie}.fasta_"); do
             log INFO "[KEGG]正在生成 ${i} 的 keg 文件"
             python ${script}/kegg_annotation.py \
-                -f ${annotation}/${i} \
-                -o ${annotation}/${i}_keg \
-                -l "${kegg_org}"
+                -f ${annotation_d}/${i} \
+                -o ${annotation_d}/${i}_keg \
+                -l "${kegg_org}" >> ${annotation_d}/${i}_keg.log 2>&1
             # 检查文件是否生成
-            if [[ -f ${annotation}/${i}_keg ]]; then
-                cat ${annotation}/${i}_keg >>${annotation}/${specie}.keg
-            elif [[ ! -f ${annotation}/${i}_keg ]]; then
+            if [[ -f ${annotation_d}/${i}_keg ]]; then
+                cat ${annotation_d}/${i}_keg >> ${annotation_d}/${specie}.keg
+            elif [[ ! -f ${annotation_d}/${i}_keg ]]; then
                 log ERROR "[KEGG]${i} 的 keg 文件生成失败"
             fi
         done
@@ -180,12 +182,12 @@ exec_kegg() {
         log INFO "[KEGG]cds.fasta 文件小于 50000 条，直接进行注释"
         python ${script}/kegg_annotation.py \
             -f ${cds_gene_sequence_file} \
-            -o ${annotation}/${specie}.keg \
-            -l "${kegg_org}"
+            -o ${annotation_d}/${specie}.keg \
+            -l "${kegg_org}" >> ${annotation_d}/${specie}.keg.log 2>&1
     fi
 
     # 拿着 $cds_gene_sequence_file 去 kegg 网站生成 keg 文件，再做下面的东西 -t plant/animal 动物或植物
-    cd ${annotation} || exit
+    cd ${annotation_d} || exit
     if [[ -f ${reference_genome_fs}/${specie}_all_gene_id.txt ]]; then
         python ${script}/kegg.py \
             -t ${specie_type} \
@@ -307,8 +309,8 @@ hisat_database=${work_dir}/00_Database
 gene_annotation_fs=${work_dir}/01_Gene_annotation_files
 funrich_def_fs=${work_dir}/02_Funrich_def_files
 gsea_gmt_fs=${work_dir}/03_GSEA_GMT_files
-biogrid_fs=${work_dir}/Biogrid
 prep_fs=${work_dir}/Prep_files
+biogrid_fs=${prep_fs}/Biogrid
 reference_genome_fs=${work_dir}/Reference_genome_data
 log=${work_dir}/log
 
@@ -338,8 +340,7 @@ if [[ ! -d ${log} ]]; then
 fi
 
 # 执行流程
-# 判断是否是列表，如果是列表，则按照列表内循环运行，列表内不能含有 0
-if [ "${#run[@]}" -gt 1 ]; then
+if [[ "$(declare -p run 2>/dev/null)" =~ "declare -a" ]]; then
     for item in "${run[@]}"; do
         $item
     done
