@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 # Created Time  : 2023/08/18 09:22
 # Author        : William GoGo
-import os
+import os, sys
 import argparse
 import pandas as pd
+
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
 from genedf_add_def import add_kns_def
 
 

@@ -128,7 +128,7 @@ bowtie2_alignment() {
 exec_stringtie() {
     # 执行前检查
     # 检查 gff 文件是否存在
-    gff_file=$(find ./00_Database -maxdepth 1 -type f -name '*.g*f*' | head -n 1)
+    gff_file=$(find ${database_d} -maxdepth 1 -type f -name '*.g*f*' | head -n 1)
     if [[ ! -f ${gff_file} ]]; then
         log ERROR "未找到基因注释文件，gff 或 gtf，优先使用 gtf 文件"
         exit 1
