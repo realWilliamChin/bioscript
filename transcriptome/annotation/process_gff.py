@@ -13,7 +13,7 @@ def parse_input():
     argparser.add_argument('-p', '--prefix', required=True, help='输出文件的前缀')
     argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'other'],
                            help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
-    argparser.add_argument('--re_pattern', default='gene-(.*?);', help='指定正则表达式，用来提取 geneid')
+    argparser.add_argument('--re_pattern', default='gene-(.*?);', help='指定正则表达式，用来提取 geneid，默认为 gene-(.*?);')
     args = argparser.parse_args()
     
     if args.gfftype == 'other':
@@ -53,7 +53,9 @@ def get_basic_info(gff_file, output_file, gff_type, re_pattern):
     with open(gff_file, 'r') as file:
         for line in file:
             line = line.strip()
-            
+            # 过滤空行
+            if not line or len(line.split('\t')) < 3:
+                continue
             if 'chromosome=' in line:
                 ncbi_chromosome = re.search('chromosome=(.*?);', line).group(1)
             if line.startswith('#'):
