@@ -12,3 +12,5 @@ examples/
 test.py
 ceshi*/
 practice/git
+script_work/*
+!script_work/*.*

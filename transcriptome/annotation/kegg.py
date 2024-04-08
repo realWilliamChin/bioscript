@@ -2,9 +2,12 @@
 # -*- coding: UTF-8 -*-
 # Created Time  : 5/30/2023 10:53 AM
 # Author        : WilliamGoGo
-import os
+import os, sys
 import pandas as pd
 import argparse
+
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
 from merge_fpkm_reads_matrix import merge_fpkm_reads
 
 
