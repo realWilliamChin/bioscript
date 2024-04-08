@@ -36,6 +36,8 @@ def main():
     if args.basicinfo:
         basic_df = pd.read_csv(args.basicinfo, sep='\t', dtype={"GeneID": str})
         result_df = pd.merge(df, basic_df, on="GeneID", how="left")
+    else:
+        result_df = df
     
     result_df = add_kns_def(result_df, args.kegg, args.nr, args.swiss)
     

@@ -17,7 +17,7 @@ rm(list=ls())
 # comp_file <- 'compare_info.txt'
 # reads_file <- 'reads_matrix_filtered.txt'
 # fpkm_file <- 'fpkm_matrix_filtered.txt'
-raw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file) {
+draw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file) {
   reads_data<-read.table(reads_file,sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F)
   reads_data<-na.omit(reads_data)
   comp_info<-read.table(comp_file,sep="\t",header=T,check.names=F,stringsAsFactors = F)
@@ -90,6 +90,7 @@ raw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file) 
 
   row.names(deg_count_summary) <- deg_count_summary$group
   deg_count_summary$group <- NULL
+  write.table(deg_count_summary, 'all_deg_count_summary.txt', sep = '\t', quote = F, row.names = T, col.names = T)
 
   # 这里我们将行名转换为一个普通的列，假设行名代表样本名
   deg_count_summary <- data.frame(group = rownames(deg_count_summary), deg_count_summary)
@@ -130,6 +131,6 @@ raw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file) 
   height <- 8.5
 
   # 保存图片
-  ggsave("deg_line_plot.png", plot = p, width = width, height = height, dpi = 300)
+  ggsave("deg_line_plot.jpeg", plot = p, width = width, height = height, dpi = 300)
 }
 draw_all_deg_summary('samples_described.txt', 'compare_info.txt', 'reads_matrix_filtered.txt', 'fpkm_matrix_filtered.txt')
