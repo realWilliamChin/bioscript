@@ -1,5 +1,5 @@
 setwd("L:/script/Rscript/daixie/ceshi")
-setwd("/home/colddata/qinqiang/work/2024_03_06/Metabolite_analysis_prep")
+setwd("/home/colddata/qinqiang/work/05_daixie/2024_03_25_张译心/sepal_44_group_fpkm")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -28,8 +28,9 @@ if (any(is.na(reads_data))) {
   quit()
 }
 
+sample_info <- read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
 
-sample_info<-read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
+reads_data <- reads_data[sample_info$sample]
 # 如果需要合并定义则读取单独定义文件，没有则跳过
 #definition_df<-read.table("def.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F,quote="")
 if (file.exists("def.xlsx")) {
@@ -97,7 +98,7 @@ ggsave("Metabolite_PCA_analysis.jpeg",p,dpi=300,width=18,height=18)
 
 
 # 代谢的图
-multigroup_dir <- "多组分析_group1"
+multigroup_dir <- "多组分析"
 dir.create(multigroup_dir)
 # >>>>>> 多组分析中有多个组的
 #select_sample_info <- read.table("multigroup4_samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
@@ -109,7 +110,7 @@ dir.create(multigroup_dir)
 # <<<<<<
 
 fpkm_t<-t(fpkm)
-groups=sample_info$group
+groups = sample_info$group
 
 metabolites<-as.matrix(fpkm_t)
 
@@ -152,6 +153,7 @@ df <- unclass(df_plsda)
 
 df1 = as.data.frame(df$variates$X)
 # df1$group = sample_info$group
+
 df1$group = groups
 df1$samples = rownames(df1)
 

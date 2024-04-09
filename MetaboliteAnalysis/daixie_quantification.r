@@ -1,5 +1,5 @@
 setwd("L:/work/05_daixie/2023_12_12_xuelaoshi_caomei")
-setwd("Y:/work/05_daixie/2024_02_20_xuelaoshi")
+setwd("/home/colddata/qinqiang/work/05_daixie/2024_03_25_张译心/sepal_44_group")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -17,6 +17,9 @@ rm(list=ls())
 # 读取文件
 #reads_data<-read.table("All_sample_data.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F)
 reads_data <- read.xlsx("All_sample_data.xlsx", sheet = 1, rowNames = TRUE)
+sample_info<-read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
+
+reads_data<-reads_data[sample_info$sample]
 # 数据预处理
 reads_data <- reads_data[rowSums(reads_data != 0) > 0, ]
 # 清理每个元素头尾的空格
@@ -26,16 +29,12 @@ if (any(is.na(reads_data))) {
   print("检查数据，有 NA")
   quit()
 }
-
-
-sample_info<-read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
 # 如果需要合并定义则读取单独定义文件，没有则跳过
 #definition_df<-read.table("def.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F,quote="")
 if (file.exists("def.xlsx")) {
   definition_df <- read.xlsx("def.xlsx", sheet = 1, rowNames = TRUE)
   definition_df$Metabolite <- rownames(definition_df)
 }
-definition_df$Metabolite <- rownames(definition_df)
 
 
 
@@ -94,7 +93,7 @@ ggsave("Metabolite_PCA_analysis.jpeg",p,dpi=300,width=10,height=10)
 
 
 # 代谢的图
-multigroup_dir <- "多组分析_group1"
+multigroup_dir <- "多组分析"
 dir.create(multigroup_dir)
 # >>>>>> 多组分析中有多个组的
 #select_sample_info <- read.table("multigroup4_samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
