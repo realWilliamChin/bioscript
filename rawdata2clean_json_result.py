@@ -32,17 +32,19 @@ def main():
     args = parse_input()
     if args.samples:
         samples_data = open(args.samples, 'r').readlines()
-        sample_data_list = [os.sep.join([args.input, x.split('\t')[1].strip() + '_fastp.json']) for x in samples_data[1:] if x.strip() != '']
+        sample_name_list = [x.split('\t')[1].strip() for x in samples_data[1:] if x.strip() != '' and x.split('\t')[1].strip() != '']
+        sample_data_list = [os.sep.join([args.input, x.split('\t')[2].strip() + '_fastp.json']) for x in samples_data[1:] if x.strip() != '']
     else:
         sample_data_list = [os.sep.join([args.input, x]) for x in os.listdir(args.input) if x.endswith('_fastp.json')]
     open(args.output, 'w').write('Sample\tClean_reads\tClean_base\tQ20\tQ30\tGC\n')
-    for json_data in sample_data_list:
+    sample_list = zip(sample_name_list, sample_data_list)
+    for name, json_data in sample_list:
         if not os.path.exists(json_data):
             print(f'{json_data} not exists!')
             continue
         clean_reads, clean_base, q20, q30, gc = parse_json(json_data)
-        sample_name = os.path.basename(json_data).replace('_fastp.json', '')
-        open(args.output, 'a').write(f'{sample_name}\t{clean_reads}\t{clean_base}\t{q20}\t{q30}\t{gc}\n')
+        # sample_name = os.path.basename(json_data).replace('_fastp.json', '')
+        open(args.output, 'a').write(f'{name}\t{clean_reads}\t{clean_base}\t{q20}\t{q30}\t{gc}\n')
     
     print('\nDone!')
 
