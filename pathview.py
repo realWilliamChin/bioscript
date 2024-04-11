@@ -47,7 +47,7 @@ def up_down_idlist_geneid2kid(down_df, up_df, output_prefix, kegg_clean):
     对 K_ID 去重，哪个 regulation 多留下哪个，一样多的变为 0
     并生成一个中间文件，方便检查
     """
-    kegg_clean_df = pd.read_csv(kegg_clean, sep='\t', usecols=[0, 4], names=['GeneID', 'KEGG_ID'])
+    kegg_clean_df = pd.read_csv(kegg_clean, sep='\t', usecols=[0, 4], names=['GeneID', 'KEGG_ID'], dtype=str)
     
     down_df = pd.merge(left=down_df, right=kegg_clean_df, on='GeneID', how='left')
     down_df = down_df.drop_duplicates(subset='GeneID', keep='first')
@@ -78,9 +78,9 @@ def other(args):
         args.output_prefix, args.basicinfo
     )
     
-    ko_df = pd.read_csv(ko_file, sep='\t', names=['Ko_Number'])
-    kegg_gene_def = pd.read_csv(kegg_gene_def_file, sep='\t')
-    kegg_pathway_df = pd.read_csv(kegg_pathway_file, sep='\t', names=['GeneID', 'Ko'])
+    ko_df = pd.read_csv(ko_file, sep='\t', names=['Ko_Number'], dtype=str)
+    kegg_gene_def = pd.read_csv(kegg_gene_def_file, sep='\t', dtype=str)
+    kegg_pathway_df = pd.read_csv(kegg_pathway_file, sep='\t', names=['GeneID', 'Ko'], dtype=str)
     kegg_pathway_df['Ko_Number'] = kegg_pathway_df['Ko'].str.split(":").str[0]
     
     ko_gene_df = pd.merge(ko_df, kegg_pathway_df, how='inner', on='Ko_Number')
@@ -90,7 +90,7 @@ def other(args):
     ko_gene_df.fillna('NA', inplace=True)
     
     if basicinfo is not None:
-        basicinfo_df = pd.read_csv(basicinfo, sep='\t', usecols=[0,1,2,3])
+        basicinfo_df = pd.read_csv(basicinfo, sep='\t', usecols=[0,1,2,3], dtype=str)
         basicinfo_df_columns = basicinfo_df.columns.tolist()
         ko_gene_df = pd.merge(ko_gene_df, basicinfo_df, how='left', on='GeneID')
         output_columns_list = basicinfo_df_columns + ['Ko', 'KEGG_ID', 'Gene_shortname', 'EC_number', 'KEGG_def']
@@ -106,9 +106,9 @@ def other(args):
 
 
 def passed_path(ko_file, output_prefix):
-    ko_def_df = pd.read_csv(ko_file, sep='\t', names=['Ko_Number'])
+    ko_def_df = pd.read_csv(ko_file, sep='\t', names=['Ko_Number'], dtype=str)
     passed_path_file = '/home/colddata/qinqiang/script/Rscript/pathview/passed_path.txt'
-    passed_path_df = pd.read_csv(passed_path_file, sep='\t', names=['Ko_Number', 'Ko_Def'])
+    passed_path_df = pd.read_csv(passed_path_file, sep='\t', names=['Ko_Number', 'Ko_Def'], dtype=str)
     ko_def_df = passed_path_df[passed_path_df['Ko_Number'].isin(ko_def_df['Ko_Number'])]
     ko_def_df = ko_def_df.drop_duplicates(subset=['Ko_Number'])
     ko_def_df.to_csv(output_prefix + '_ko_passed_path.txt', sep='\t', index=False, header=False)
@@ -125,10 +125,10 @@ def get_ko_expression(ko, kegg_pathway_file, expression_file):
     ko_list = open(ko, 'r').read().strip().split('\n')
     print(f"正在输出每个 ko_pathway 相关的基因表达量表：{len(ko_list)} 个 ko_pathway")
     for ko_num in ko_list:
-        kegg_pathway_df = pd.read_csv(kegg_pathway_file, sep='\t', names=['GeneID', 'Ko'])
+        kegg_pathway_df = pd.read_csv(kegg_pathway_file, sep='\t', names=['GeneID', 'Ko'], dtype=str)
         kegg_pathway_df['Ko_Number'] = kegg_pathway_df['Ko'].str.split(":").str[0]
         kegg_pathway_df = kegg_pathway_df[kegg_pathway_df['Ko_Number'] == ko_num]
-        expression_df = pd.read_csv(expression_file, sep='\t')
+        expression_df = pd.read_csv(expression_file, sep='\t', dtype=str)
         expression_df = expression_df[expression_df['GeneID'].isin(kegg_pathway_df['GeneID'])]
         if expression_df.shape[0] > 0:
             expression_df.to_csv(ko_num + '_expression.txt', sep='\t', index=False)
@@ -222,11 +222,11 @@ def main():
     # 转录组
     elif args.deg_data_dir:
         deg_data_list = os.listdir(args.deg_data_dir)
-        kegg_pathway_df = pd.read_csv(args.kegg_pathway, sep='\t', names=['GeneID', 'Ko'])
-        samples_described_df = pd.read_csv(args.samplesinfo, sep='\t', usecols=[0, 1], names=["group", "sample"])
+        kegg_pathway_df = pd.read_csv(args.kegg_pathway, sep='\t', names=['GeneID', 'Ko'], dtype=str)
+        samples_described_df = pd.read_csv(args.samplesinfo, sep='\t', usecols=[0, 1], names=["group", "sample"], dtype=str)
         for deg_data_file in deg_data_list:
             deg_data_file = os.path.join(args.deg_data_dir, deg_data_file)
-            deg_data_df = pd.read_csv(deg_data_file, sep='\t')
+            deg_data_df = pd.read_csv(deg_data_file, sep='\t', dtype=str)
             
             treat_group = deg_data_df.iloc[0, 1]
             control_group = deg_data_df.iloc[0, 2]
