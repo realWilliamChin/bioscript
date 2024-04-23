@@ -78,6 +78,7 @@ def main():
 
     # 生成 idNO_def 文件
     idNO_def_filename = key_name + '_idNo_def.txt'
+    gene_go_filename = key_name + '_gene_go.txt'
     ref_df['merge_go'] = ref_df['GO_BP'] + '_' + ref_df['GO_CC'] + '_' + ref_df['GO_MF']
     ref_df['merge_go'].replace('', np.nan, regex=True, inplace=True)
     idNo_def = pd.merge(left=swiss_df.iloc[:, [0, 1]], right=ref_df.iloc[:, [0, 4]], on='GOID', how='left')
@@ -86,13 +87,20 @@ def main():
     idNo_def_expand = idNo_def_expand.applymap(_keep_goid)
     idNo_def = pd.concat([idNo_def['GeneID'], idNo_def_expand], axis=1).fillna('')
     idNo_def.to_csv(idNO_def_filename, sep='\t', index=False, header=False)
+
     with open(idNO_def_filename, 'r') as idNo_def_file:
         os.remove(idNO_def_filename)
         for line in idNo_def_file.readlines():
             line = line.replace('\t\t', '\t')
             line = line.strip() + '\n'
-            with open(idNO_def_filename, 'a') as f:
+            with open(idNO_def_filename, 'a') as f, open(gene_go_filename, 'a') as gene_go:
                 f.write(line)
+                parts = line.strip().split('\t')
+                g_id = parts[0]
+                go_terms = parts[1:]
+                for go_term in go_terms:
+                    if go_term:
+                        gene_go.write(f"{g_id}\t{go_term}\n")
 
     result_df = process_go(swiss_df, ref_df)
     # 保存 GO_BP GO_CC GO_MF 文件
