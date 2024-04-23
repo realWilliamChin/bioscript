@@ -35,6 +35,7 @@ def main():
         sample_name_list = [x.split('\t')[1].strip() for x in samples_data[1:] if x.strip() != '' and x.split('\t')[1].strip() != '']
         sample_data_list = [os.sep.join([args.input, x.split('\t')[2].strip() + '_fastp.json']) for x in samples_data[1:] if x.strip() != '']
     else:
+        sample_name_list = [x.replace('_fastp.json', '') for x in os.listdir(args.input) if x.endswith('_fastp.json')]
         sample_data_list = [os.sep.join([args.input, x]) for x in os.listdir(args.input) if x.endswith('_fastp.json')]
     open(args.output, 'w').write('Sample\tClean_reads\tClean_base\tQ20\tQ30\tGC\n')
     sample_list = zip(sample_name_list, sample_data_list)
