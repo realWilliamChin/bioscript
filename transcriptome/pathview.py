@@ -105,6 +105,88 @@ def other(args):
     ko_gene_df[['KEGG_ID', 'regulation']].to_csv(output_prefix + '_keggid_regulation.txt', sep='\t', index=False)
 
 
+def transcriptome(args):
+    deg_data_list = os.listdir(args.deg_data_dir)
+    kegg_pathway_df = pd.read_csv(args.kegg_pathway, sep='\t', names=['GeneID', 'Ko'], dtype=str)
+    samples_described_df = pd.read_csv(args.samplesinfo, sep='\t', usecols=[0, 1], names=["group", "sample"], dtype=str)
+    for deg_data_file in deg_data_list:
+        deg_data_file = os.path.join(args.deg_data_dir, deg_data_file)
+        deg_data_df = pd.read_csv(deg_data_file, sep='\t', dtype=str)
+        
+        treat_group = deg_data_df.iloc[0, 1]
+        control_group = deg_data_df.iloc[0, 2]
+        compare_info = treat_group + '_vs_' + control_group
+        
+        print(f"正在处理 {compare_info}")
+        up_df = deg_data_df[deg_data_df['regulation'] == 'Up']['GeneID']
+        down_df = deg_data_df[deg_data_df['regulation'] == 'Down']['GeneID']
+        
+        crt_group_samples = samples_described_df[samples_described_df['group'].isin([treat_group, control_group])]['sample'].to_list()
+        fpkm_df = deg_data_df[["GeneID"] + [x + '_FPKM' for x in crt_group_samples]]
+        # 把 fpkm_df 的所有列名带 _FPKM 的去掉
+        fpkm_df.columns = ["GeneID"] + crt_group_samples
+        
+        treat_group_samples_name = samples_described_df[samples_described_df['group'].isin([treat_group,])]['sample'].to_list()
+        control_group_samples_name = samples_described_df[samples_described_df['group'].isin([control_group,])]['sample'].to_list()
+        print(f"crt_group_samples: {crt_group_samples}")
+        print(f"treat_group_samples_name: {treat_group_samples_name}")
+        print(f"control_group_samples_name: {control_group_samples_name}")
+        
+        heatmap_sheet2_df = pd.DataFrame(columns=['samples', 'group', 'colors'])
+        for each_sample in crt_group_samples:
+            if each_sample in treat_group_samples_name:
+                group = treat_group
+                color = args.treat_color
+            else:
+                group = control_group
+                color = args.control_color
+            heatmap_sheet2_df = heatmap_sheet2_df.append({'samples': each_sample, 'group': group, 'colors': color}, ignore_index=True)
+
+        # 循环每个 ko number 筛选表达量画热图
+        ko_list = open(args.ko_list, 'r').read().strip().split('\n')
+        for ko_number in ko_list:
+            ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['Ko'].str.contains(ko_number)]['GeneID'])]
+            if ko_num_fpkm_expr_df.shape[0] == 0:
+                print(f"{ko_number} 在 {compare_info} 中相关的基因表达量表为空")
+                continue
+            
+            ko_num_fpkm_expr_df_file = f"{compare_info}_{ko_number}_fpkm_expression.xlsx"
+            with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
+                ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
+                
+                # heatmap_sheet2_df.to_excel(writer, index=False, sheet_name='Sheet2')
+            if ko_num_fpkm_expr_df.shape[0] > 1:
+                print(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
+                draw_heatmap(ko_num_fpkm_expr_df_file)
+            else:
+                print(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行，无法画热图")
+            
+            # 输出每个 ko 的 deg_data 文件
+            ko_num_deg_data_file = f"{compare_info}_{ko_number}_DEG_data.txt"
+            ko_num_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['Ko'].str.contains(ko_number)]['GeneID'])]
+            ko_num_deg_data_df.to_csv(ko_num_deg_data_file, sep='\t', index=False)
+            
+        # R pathview 画图准备文件 regulation
+        print(f"正在准备 {compare_info} 的 regulation 文件")
+        up_down_idlist_geneid2kid(down_df, up_df, compare_info, args.kegg_clean)
+        
+        # R pathview 画图准备文件 passed path
+        print(f"正在筛选 {compare_info} 的 passed_path.txt")
+        passed_path(args.ko_list, compare_info)
+        
+        # R pathview 画图
+        if args.draw_pathview:
+            print(f"正在画 {compare_info} 的 pathview 图")
+            draw_pathview(f"{compare_info}_regulation.txt", f"{compare_info}_ko_passed_path.txt")
+        else:
+            print(f"没有画 {compare_info} 的 pathview 图")
+        
+        # 对每个比较组的文件进行整理
+        os.mkdir(compare_info)
+        os.system(f"mv {compare_info}_* {compare_info}")
+        os.system(f"mv *.png {compare_info}")
+
+
 def passed_path(ko_file, output_prefix):
     ko_def_df = pd.read_csv(ko_file, sep='\t', names=['Ko_Number'], dtype=str)
     passed_path_file = '/home/colddata/qinqiang/script/Rscript/pathview/passed_path.txt'
@@ -149,12 +231,21 @@ def draw_pathview(regulation, passed_path):
 
 
 def draw_heatmap(datafile):
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/heatmap/heatmap.r -f {datafile}"
+    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/heatmap/heatmap_twogroup.r -f {datafile}"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
         print("heatmap 画图失败", ret)
     else:
         print("heatmap 画图结束")
+
+
+def draw_twowayBarplot():
+    cmd = f"Rscript ..."
+    ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if ret.returncode != 0:
+        print("twowayBarplot 画图失败", ret)
+    else:
+        print("twowayBarplot 画图结束")
 
 
 def parse_input():
@@ -188,10 +279,11 @@ def parse_input():
     # 画热图添加的参数    
     group2.add_argument('--heatmap', action='store_true',
                         help='[可选]整理表达量文件，输出差异基因的热图')
-    group2.add_argument('--treat-color', dest="treat_color", type=str, default="blue",
-                        help='[可选]画 heatmap 时指定 Treat Group 的颜色，默认 blue')
-    group2.add_argument('--control-color', dest="control_color", type=str, default="red",
-                        help='[可选]画 heatmap 时指定 Control Group 的颜色, 默认 red')
+    # 2024_04_11 不用弄颜色了，自动分配了
+    # group2.add_argument('--treat-color', dest="treat_color", type=str, default="blue",
+    #                     help='[可选]画 heatmap 时指定 Treat Group 的颜色，默认 blue')
+    # group2.add_argument('--control-color', dest="control_color", type=str, default="red",
+    #                     help='[可选]画 heatmap 时指定 Control Group 的颜色, 默认 red')
     
     args = argparser.parse_args()
 
@@ -221,155 +313,7 @@ def main():
     
     # 转录组
     elif args.deg_data_dir:
-        deg_data_list = os.listdir(args.deg_data_dir)
-        kegg_pathway_df = pd.read_csv(args.kegg_pathway, sep='\t', names=['GeneID', 'Ko'], dtype=str)
-        samples_described_df = pd.read_csv(args.samplesinfo, sep='\t', usecols=[0, 1], names=["group", "sample"], dtype=str)
-        for deg_data_file in deg_data_list:
-            deg_data_file = os.path.join(args.deg_data_dir, deg_data_file)
-            deg_data_df = pd.read_csv(deg_data_file, sep='\t', dtype=str)
-            
-            treat_group = deg_data_df.iloc[0, 1]
-            control_group = deg_data_df.iloc[0, 2]
-            compare_info = treat_group + '_vs_' + control_group
-            
-            print(f"正在处理 {compare_info}")
-            up_df = deg_data_df[deg_data_df['regulation'] == 'Up']['GeneID']
-            down_df = deg_data_df[deg_data_df['regulation'] == 'Down']['GeneID']
-            
-            crt_group_samples = samples_described_df[samples_described_df['group'].isin([treat_group, control_group])]['sample'].to_list()
-            fpkm_df = deg_data_df[["GeneID"] + [x + '_FPKM' for x in crt_group_samples]]
-            # 把 fpkm_df 的所有列名带 _FPKM 的去掉
-            fpkm_df.columns = ["GeneID"] + crt_group_samples
-            
-            treat_group_samples_name = samples_described_df[samples_described_df['group'].isin([treat_group,])]['sample'].to_list()
-            control_group_samples_name = samples_described_df[samples_described_df['group'].isin([control_group,])]['sample'].to_list()
-            print(f"crt_group_samples: {crt_group_samples}")
-            print(f"treat_group_samples_name: {treat_group_samples_name}")
-            print(f"control_group_samples_name: {control_group_samples_name}")
-            
-            heatmap_sheet2_df = pd.DataFrame(columns=['samples', 'group', 'colors'])
-            for each_sample in crt_group_samples:
-                if each_sample in treat_group_samples_name:
-                    group = treat_group
-                    color = args.treat_color
-                else:
-                    group = control_group
-                    color = args.control_color
-                heatmap_sheet2_df = heatmap_sheet2_df.append({'samples': each_sample, 'group': group, 'colors': color}, ignore_index=True)
-
-            # 循环每个 ko number 筛选表达量画热图
-            ko_list = open(args.ko_list, 'r').read().strip().split('\n')
-            for ko_number in ko_list:
-                ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['Ko'].str.contains(ko_number)]['GeneID'])]
-                if ko_num_fpkm_expr_df.shape[0] == 0:
-                    print(f"{ko_number} 在 {compare_info} 中相关的基因表达量表为空")
-                    continue
-                
-                ko_num_fpkm_expr_df_file = f"{compare_info}_{ko_number}_fpkm_expression.xlsx"
-                with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
-                    ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
-                    heatmap_sheet2_df.to_excel(writer, index=False, sheet_name='Sheet2')
-                if ko_num_fpkm_expr_df.shape[0] > 1:
-                    print(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
-                    draw_heatmap(ko_num_fpkm_expr_df_file)
-                else:
-                    print(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行，无法画热图")
-                
-                # 输出每个 ko 的 deg_data 文件
-                ko_num_deg_data_file = f"{compare_info}_{ko_number}_DEG_data.txt"
-                ko_num_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['Ko'].str.contains(ko_number)]['GeneID'])]
-                ko_num_deg_data_df.to_csv(ko_num_deg_data_file, sep='\t', index=False)
-                
-            # R pathview 画图准备文件 regulation
-            print(f"正在准备 {compare_info} 的 regulation 文件")
-            up_down_idlist_geneid2kid(down_df, up_df, compare_info, args.kegg_clean)
-            
-            # R pathview 画图准备文件 passed path
-            print(f"正在筛选 {compare_info} 的 passed_path.txt")
-            passed_path(args.ko_list, compare_info)
-            
-            # R pathview 画图
-            if args.draw_pathview:
-                print(f"正在画 {compare_info} 的 pathview 图")
-                draw_pathview(f"{compare_info}_regulation.txt", f"{compare_info}_ko_passed_path.txt")
-            else:
-                print(f"没有画 {compare_info} 的 pathview 图")
-            
-            # 对每个比较组的文件进行整理
-            os.mkdir(compare_info)
-            os.system(f"mv {compare_info}_* {compare_info}")
-            os.system(f"mv *.png {compare_info}")
-  
-        # compare_df = pd.read_csv(args.compareinfo, sep='\t')
-        # samples_df = pd.read_csv(args.samplesinfo, sep='\t', usecols=[0, 1])
-        # fpkm_df = pd.read_csv(args.fpkm, sep='\t')
-        # kegg_pathway_df = pd.read_csv(args.kegg_pathway, sep='\t', names=['GeneID', 'Ko'])
-        
-        # # 循环每个比较组
-        # for each_row in compare_df.itertuples():
-        #     # 准备画 heatmap 的 excel 文件
-        #     compare_info = (each_row[1] + '_vs_' + each_row[2])
-        #     compares_samples_df = samples_df[samples_df['group'].isin([each_row[1], each_row[2]])]
-        #     compares_samples_sample_lst = compares_samples_df['sample'].tolist()
-            
-        #     fpkm_expression_df = fpkm_df.reindex(columns=[fpkm_df.columns[0],] + compares_samples_sample_lst)
-        #     fpkm_expression_df['sum'] = fpkm_expression_df[compares_samples_sample_lst].sum(axis=1)
-        #     fpkm_expression_df = fpkm_expression_df[fpkm_expression_df['sum'] > 0]
-        #     fpkm_expression_df = fpkm_expression_df.drop(columns=['sum'])
-            
-        #     sample_info = pd.DataFrame(columns=['samples', 'group', 'colors'])
-        #     for each_sample in compares_samples_df.itertuples():
-        #         sample = each_sample[2]
-        #         group = each_sample[1]
-        #         if group == each_row[1]:
-        #             color = args.treat_color
-        #         else:
-        #             color = args.control_color
-        #         sample_info = sample_info.append({'samples': sample, 'group': group, 'colors': color}, ignore_index=True)
-            
-        #     # 循环每个 ko number 筛选表达量画热图
-        #     ko_list = open(args.ko_list, 'r').read().strip().split('\n')
-        #     for ko_number in ko_list:
-        #         ko_num_fpkm_expr_df = fpkm_expression_df[fpkm_expression_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['Ko'].str.contains(ko_number)]['GeneID'])]
-        #         if ko_num_fpkm_expr_df.shape[0] == 0:
-        #             print(f"{ko_number} 在 {compare_info} 中相关的基因表达量表为空")
-        #             continue
-        #         elif ko_num_fpkm_expr_df.shape[0] == 1:
-        #             print(f"{ko_number} 在 {compare_info} 中相关的基因表达量表只有一行，无法画热图")
-        #             continue
-        #         ko_num_fpkm_expr_df_file = f"{compare_info}_{ko_number}_fpkm_expression.xlsx"
-        #         with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
-        #             ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
-        #             sample_info.to_excel(writer, index=False, sheet_name='Sheet2')
-        #         if args.heatmap and args.treat_color and args.control_color and args.samplesinfo and args.fpkm:
-        #             print(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
-        #             draw_heatmap(ko_num_fpkm_expr_df_file)
-        #         else:
-        #             print(f"参数错误，没有画 {ko_number} 的热图")
-                    
-        #     # 定义两个文件名
-        #     down_idlist_file = compare_info + '_Down_ID.txt'
-        #     up_idlist_file = compare_info + '_Up_ID.txt'
-
-        #     # R pathview 画图准备文件 regulation
-        #     print(f"正在准备 {compare_info} 的 regulation 文件")
-        #     up_down_idlist_geneid2kid(down_idlist_file, up_idlist_file, compare_info, args.kegg_clean)
-            
-        #     # R pathview 画图准备文件 passed path
-        #     print(f"正在筛选 {compare_info} 的 passed_path.txt")
-        #     passed_path(args.ko_list, compare_info)
-            
-        #     # R pathview 画图
-        #     if args.draw_pathview:
-        #         print(f"正在画 {compare_info} 的 pathview 图")
-        #         draw_pathview(f"{compare_info}_regulation.txt", f"{compare_info}_ko_passed_path.txt")
-        #     else:
-        #         print(f"没有画 {compare_info} 的 pathview 图")
-            
-        #     # 对每个比较组的文件进行整理
-        #     os.mkdir(compare_info)
-        #     os.system(f"mv {compare_info}_* {compare_info}")
-        #     os.system(f"mv *.png {compare_info}")
+        transcriptome(args)
     else:
         sys.exit("Error: Please check your input parameters")
     

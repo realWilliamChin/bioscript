@@ -41,26 +41,16 @@ color_names<-c(data_samples$group[data_samples$colors==uniq_colors[1]][1],data_s
 names(ann_colors[['group']])<-color_names
 ann_colors
 
-if (nrow(data) > 100) {
-  tmp.plot<-pheatmap(data, cluster_col = FALSE,
+show_rownames <- if (nrow(data) > 100) FALSE else TRUE
+
+tmp.plot <- pheatmap(data, cluster_col = FALSE,
                      clustering_distance_rows = "correlation",
-                     scale="row",
+                     scale = "row",
                      colorRampPalette(c("green", "black", "red"))(50),
-                     fontsize_row=6,
+                     fontsize_row = 6,
                      annotation_col = ann_column,
                      annotation_colors = ann_colors,
-                     show_rownames = FALSE
-  )
-} else {
-  tmp.plot<-pheatmap(data, cluster_col = FALSE,
-                     clustering_distance_rows = "correlation",
-                     scale="row",
-                     colorRampPalette(c("green", "black", "red"))(50),
-                     fontsize_row=6,
-                     annotation_col = ann_column,
-                     annotation_colors = ann_colors,
-                     show_rownames = TRUE
-  )
-}
+                     show_rownames = show_rownames
+)
 ggsave(paste0(datafile,".jpeg"),tmp.plot,dpi=320)
 #?scale_color_manual
