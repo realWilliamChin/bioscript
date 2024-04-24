@@ -2,6 +2,7 @@
 .vscode/
 __pycache__/
 examples/
+00_Instance/
 *.ipynb
 *.temp
 *.tmp
