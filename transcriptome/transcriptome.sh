@@ -255,9 +255,10 @@ exec_multi_deseq() {
 
         if [ ! -d "${comp_multideseq}" ]; then
             mkdir -p "${comp_multideseq}"
-        else
-            log ERROR "${comp_multideseq} 目录已存在，请手动删除后再执行此步骤"
-            exit 1
+        # else
+        #     log WARNING "${comp_multideseq} 目录已存在"
+        #     read -p "是否删除 ${comp_multideseq} 目录 Y/N" choice
+        #     if ${choice}
         fi
         
         # 复制所需文件
@@ -279,7 +280,11 @@ exec_multi_deseq() {
 
         # 执行流程
         log INFO "正在执行 ${comp_group} multi_deseq 流程，Rlog number 为 ${rlog_number}"
-        Rscript "${script}/multiple_samples_DESeq2.r" "${rlog_number}"
+        /opt/biosoft/R-4.2.2/bin/Rscript "${script}/multiple_samples_DESeq2.r" "${rlog_number}"
+        if [[ $? -ne 0 ]]; then
+            log ERROR "multi_deseq 流程执行失败"
+            return 1
+        fi
         log INFO "正在给 multideseq 程序生成的文件添加定义"
         kns_def_file=$(find ${annotation_d} -maxdepth 1 -type f -name '*kns_gene_def.txt')
         python "${script}/de_results_add_def.py" \
