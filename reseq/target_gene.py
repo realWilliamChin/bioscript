@@ -2,12 +2,16 @@
 # -*- coding: utf-8 -*-
 # Created Time  : 2023/07/04 18:09
 # Author        : William GoGo
-import os
+import os, sys
 import argparse
 import pandas as pd
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
-from genedf_add_def import add_kns_def
+
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
+from genedf_add_knsdef import add_kns_def
 
 def parse_input():
     argparser = argparse.ArgumentParser(description="target gene")
