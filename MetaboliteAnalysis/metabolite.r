@@ -1,5 +1,4 @@
-setwd("L:/work/05_daixie/2023_12_12_xuelaoshi_caomei")
-setwd("/home/colddata/qinqiang/work/05_daixie/2024_03_25_张译心/sepal_44_group")
+setwd("/home/colddata/qinqiang/work/05_daixie/2024_04_29_杨树糖类代谢分析/聚合物分析")
 library(ggthemes)
 library(ggplot2)
 library(pheatmap)
@@ -13,6 +12,16 @@ library(ggrepel)
 library(mixOmics)
 library(openxlsx)
 rm(list=ls())
+
+
+zhengtifenxi_dir <- "03_代谢物整体分析"
+chayifenxi_dir <- "04_代谢物差异分析"
+
+dir.create("00_Background_materials")
+dir.create("01_原始质谱数据")
+dir.create("02_代谢物定量图数据")
+dir.create(zhengtifenxi_dir)
+dir.create(chayifenxi_dir)
 
 # 读取文件
 #reads_data<-read.table("All_sample_data.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F)
@@ -31,21 +40,19 @@ if (any(is.na(reads_data))) {
 }
 # 如果需要合并定义则读取单独定义文件，没有则跳过
 #definition_df<-read.table("def.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F,quote="")
-if (file.exists("def.xlsx")) {
-  definition_df <- read.xlsx("def.xlsx", sheet = 1, rowNames = TRUE)
+if (file.exists("Compound_def.xlsx")) {
+  definition_df <- read.xlsx("Compound_def.xlsx", sheet = 1, rowNames = TRUE)
   definition_df$Metabolite <- rownames(definition_df)
 }
-
-
 
 # heatmap
 # 化合物多于 100 的 ，show_rownames=F
 if (nrow(reads_data) > 100) {
-  all.heatmap<-pheatmap(reads_data,scale="row",cluster_cols=F,show_rownames=F)
+  all.heatmap<-pheatmap(reads_data,scale="row",cluster_cols=F,show_rownames=F, encoding = "UTF-8")
 } else {
-  all.heatmap<-pheatmap(reads_data,scale="row",cluster_cols=F,show_rownames=T)
+  all.heatmap<-pheatmap(reads_data,scale="row",cluster_cols=F,show_rownames=T, encoding = "UTF-8")
 }
-ggsave("All_metabolites_heatmap.jpeg",all.heatmap,dpi=300,width=20,height=10,limitsize=FALSE)
+ggsave(paste(zhengtifenxi_dir, "All_metabolites_heatmap.jpeg", sep='/'),all.heatmap,dpi=300,width=20,height=10,limitsize=FALSE)
 
 
 # correlation
@@ -57,16 +64,16 @@ correlation_df<-as.data.frame(fpkm.cor)
 correlation_df$ID<-rownames(correlation_df)
 correlation_df <- correlation_df[, c("ID", setdiff(names(correlation_df), "ID"))]
 # write.table(correlation_df,"Metabolite_correlation.txt",sep="\t",quote=F,row.names=F)
-write.xlsx(correlation_df, "Metabolite_correlation.xlsx", sheetName = "Sheet1", rowNames = FALSE)
+write.xlsx(correlation_df, paste(zhengtifenxi_dir, "Metabolite_correlation.xlsx",sep='/'), sheetName = "Sheet1", rowNames = FALSE)
 min(fpkm.cor)
 # 根据样本数量，设置图的大小
 sample_num <- ncol(fpkm.cor)
 correlation_plot_width <- 5 + sample_num * 0.5
 correlation_plot_height <- 4 + sample_num * 0.5
-png("Metabolite_correlation_graph.png", width = correlation_plot_width, height = correlation_plot_height, units = 'in', res = 300)
+png(paste(zhengtifenxi_dir, "Metabolite_correlation_graph.png", sep='/'), width = correlation_plot_width, height = correlation_plot_height, units = 'in', res = 300)
 corrplot(fpkm.cor,is.corr = F,col= rev(COL2('PiYG')),method="color",addCoef.col = 'black',tl.col="black",col.lim=c(min(fpkm.cor)-0.01,max(fpkm.cor)),cl.ratio=0.1)
 dev.off()
-pdf("Metabolite_correlation_graph.pdf", width = correlation_plot_width, height = correlation_plot_height)
+pdf(paste(zhengtifenxi_dir, "Metabolite_correlation_graph.pdf", sep='/'), width = correlation_plot_width, height = correlation_plot_height)
 corrplot(fpkm.cor,is.corr = F,col= rev(COL2('PiYG')),method="color",addCoef.col = 'black',tl.col="black",col.lim=c(min(fpkm.cor)-0.01,max(fpkm.cor)),cl.ratio=0.1)
 dev.off()
 
@@ -89,11 +96,11 @@ p <- ggplot(data = pca_sample, aes(x = Dim.1, y = Dim.2)) +
 p<-p+geom_text_repel(data=pca_sample,aes(Dim.1, Dim.2, label=rownames(pca_sample)))
 cluster_border <- ddply(pca_sample, 'group', function(df) df[chull(df[[1]], df[[2]]), ])
 p<-p + geom_polygon(data = cluster_border, aes(color = group),fill=NA, show.legend = FALSE)
-ggsave("Metabolite_PCA_analysis.jpeg",p,dpi=300,width=10,height=10)
+ggsave(paste(zhengtifenxi_dir, "Metabolite_PCA_analysis.jpeg", sep='/'),p,dpi=300,width=10,height=10)
 
 
 # 代谢的图
-multigroup_dir <- "多组分析"
+multigroup_dir <- paste(chayifenxi_dir, "多组分析", sep='/')
 dir.create(multigroup_dir)
 # >>>>>> 多组分析中有多个组的
 #select_sample_info <- read.table("multigroup4_samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
@@ -198,7 +205,8 @@ ggsave(paste0(multigroup_dir, "/Multigroup_Plsda_Distribution_Graph.jpeg"), p1, 
 
 
 # vip 值使用 fpkm, 其他值计算都是用 reads
-plsda_model <- opls(x = metabolites, y = groups, predI = 1)
+# predI 这里不知道为什么有时候需要写 NA 才行
+plsda_model <- opls(x = metabolites, y = groups, predI = NA)
 vip_values <- plsda_model@vipVn
 df.vip<-as.data.frame(vip_values)
 
@@ -241,7 +249,8 @@ write.xlsx(reads_data_with_def, file=paste0(multigroup_dir, "/Metabolite_quantit
 # comparisons <- combn(group_levels, 2, simplify = FALSE)
 
 # 指定组间分析
-dir.create('组间分析')
+zujianfenxi_dir <- paste(chayifenxi_dir, '组间分析', sep='/')
+dir.create(zujianfenxi_dir)
 comp_info<-read.table("compare_info.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
 comparisons <- list()
 for(i in seq_along(1:nrow(comp_info))){
@@ -258,7 +267,7 @@ deg_data <- data.frame(group = character(0), All=numeric(0), Up = numeric(0), Do
 for (i in seq_along(comparisons)) {
   
   key_name <- paste(comparisons[[i]], collapse = "_vs_")
-  dir_create_path <- paste0('组间分析/', key_name)
+  dir_create_path <- paste(zujianfenxi_dir, key_name, sep='/')
   dir.create(dir_create_path, showWarnings = FALSE)
   print(paste("Processing:", key_name)) # 打印当前处理的组合名称
   groups <- comparisons[[i]]
@@ -358,7 +367,7 @@ for (i in seq_along(comparisons)) {
   
   # 将更新后的数据框保存为文本文件
   # write.table(current_expression_data_def, file = paste0('组间分析/', key_name, '/', key_name, '_VIP.txt'), sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
-  write.xlsx(current_expression_data_def, file=paste0('组间分析/', key_name, '/', key_name, '_VIP.xlsx'), sheetName = "Sheet1", rowNames=FALSE, colNames=TRUE)
+  write.xlsx(current_expression_data_def, file=paste0(zujianfenxi_dir, '/', key_name, '/', key_name, '_VIP.xlsx'), sheetName = "Sheet1", rowNames=FALSE, colNames=TRUE)
   
   # 计算 deg
   deg_df <- current_expression_data_def[current_expression_data_def$VIP > 1,]
@@ -373,7 +382,7 @@ for (i in seq_along(comparisons)) {
   # 生成图形
   for (type in plot_types) {
     # 创建文件名
-    file_name <- paste0('组间分析/', key_name, '/', key_name, "_OPLS_DA_", type, ".png")
+    file_name <- paste0(zujianfenxi_dir, '/', key_name, '/', key_name, "_OPLS_DA_", type, ".png")
     
     # 检查模型是否有效
     if(inherits(opls_model, "opls")) {
@@ -386,32 +395,34 @@ for (i in seq_along(comparisons)) {
   }
 }
 # write.table(deg_data, file='组间分析/Differential_metabolite_count_summary.txt', sep='\t', row.names=FALSE, col.names=TRUE, quote=FALSE)
-write.xlsx(deg_data, file='组间分析/Differential_metabolite_count_summary.xlsx', sheetName = "Sheet1", rowNames=FALSE, colNames=TRUE)
+write.xlsx(deg_data, file=paste0(zujianfenxi_dir, '/Differential_metabolite_count_summary.xlsx'), sheetName = "Sheet1", rowNames=FALSE, colNames=TRUE)
 
 
 # class 分组计数
-all_files <- list.files(path = "组间分析", recursive = TRUE)
-vip_files <- all_files[grep("VIP", all_files)]  
-class_count_list <- list()  
-
-for (vip_file in vip_files) {
-  print(vip_file)
-  vip_df <- read.xlsx(paste0("组间分析/",vip_file), sheet = 1, rowNames = FALSE)
-  vip_df_vipgt1 <- vip_df[vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8),]
-  # vip_df_vipgt1 <- vip_df
-  class_count <- aggregate(Metabolite ~ Class, data=vip_df_vipgt1, FUN=length)
-  class_count <- class_count[class_count$Class != '',]
-  names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1]  # 修改列名为对应的 count_name
-  class_count_list <- append(class_count_list, list(class_count))  
+if (exists("definition_df")) {
+  all_files <- list.files(path = zujianfenxi_dir, recursive = TRUE)
+  vip_files <- all_files[grep("VIP", all_files)]  
+  class_count_list <- list()  
+  
+  for (vip_file in vip_files) {
+    print(vip_file)
+    vip_df <- read.xlsx(paste(zujianfenxi_dir,vip_file,sep='/ '), sheet = 1, rowNames = FALSE)
+    vip_df_vipgt1 <- vip_df[vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8),]
+    # vip_df_vipgt1 <- vip_df
+    class_count <- aggregate(Metabolite ~ Class, data=vip_df_vipgt1, FUN=length)
+    class_count <- class_count[class_count$Class != '',]
+    names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1]  # 修改列名为对应的 count_name
+    class_count_list <- append(class_count_list, list(class_count))  
+  }
+  
+  # 去除重复的行?
+  #class_count_list <- lapply(class_count_list, function(df) df[!duplicated(df$class), ])
+  
+  # 合并 class_count_list 中所有的 class_count，根据第一列的 class 合并，合并方式为并集  
+  class_count_result <- Reduce(function(x, y) merge(x, y, by = "Class", all = TRUE), class_count_list)  
+  class_count_result[is.na(class_count_result)] <- 0
+  write.xlsx(class_count_result, file=paste0(zujianfenxi_dir, '/Significant_compound_count_by_class.xlsx'),
+             sheetName = "Sheet1", rowNames=FALSE,colNames=TRUE)
 }
 
-# 去除重复的行?
-#class_count_list <- lapply(class_count_list, function(df) df[!duplicated(df$class), ])
 
-# 合并 class_count_list 中所有的 class_count，根据第一列的 class 合并，合并方式为并集  
-class_count_result <- Reduce(function(x, y) merge(x, y, by = "Class", all = TRUE), class_count_list)  
-class_count_result[is.na(class_count_result)] <- 0
-# write.table(class_count_result, file=paste0('组间分析/Significant_compound_count_by_class.txt'),
-#             sep="\t", row.names=FALSE,col.names=TRUE, quote = FALSE)
-write.xlsx(class_count_result, file=paste0('组间分析/Significant_compound_count_by_class.xlsx'),
-           sheetName = "Sheet1", rowNames=FALSE,colNames=TRUE)
