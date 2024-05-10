@@ -70,7 +70,7 @@ gene_go <- opt$genego
 compare_info <- opt$compare
 kegg_clean <- opt$keggclean
 data_dir <- opt$datadir
-output_dir <- opt$output_dir
+output_dir <- opt$outputdir
 
 # 计算比值的函数
 calculate_ratio <- function(ratio_string) {
@@ -80,8 +80,8 @@ calculate_ratio <- function(ratio_string) {
   return(numerator / denominator) # 返回比值
 }
 
-go_enrich <- function(deg_file, output_dir) {
-  gene_list <- read.delim(deg_file, stringsAsFactors = FALSE, header = T)
+go_enrich <- function(deg_id_file, output_dir) {
+  gene_list <- read.delim(deg_id_file, stringsAsFactors = FALSE, header = T)
   names(gene_list)[1] <- c("gene_id")
   gene_select <- gene_list$gene_id
   go_rich_bp <- enricher(
@@ -91,7 +91,7 @@ go_enrich <- function(deg_file, output_dir) {
     pvalueCutoff = 1,
     pAdjustMethod = "BH",
     qvalueCutoff = 1,
-    minGSSize = 20,
+    minGSSize = 1,
     maxGSSize = 1000
   )
 
@@ -102,7 +102,7 @@ go_enrich <- function(deg_file, output_dir) {
     pvalueCutoff = 1,
     pAdjustMethod = "BH",
     qvalueCutoff = 1,
-    minGSSize = 20,
+    minGSSize = 1,
     maxGSSize = 1000
   )
 
@@ -113,7 +113,7 @@ go_enrich <- function(deg_file, output_dir) {
     pvalueCutoff = 1,
     pAdjustMethod = "BH",
     qvalueCutoff = 1,
-    minGSSize = 20,
+    minGSSize = 1,
     maxGSSize = 1000
   )
 
@@ -141,7 +141,9 @@ go_enrich <- function(deg_file, output_dir) {
   go_rich.cc <- as.data.frame(go_rich_cc)
   go_rich.total <- rbind(bp_result, cc_result, mf_result)
 
-  go_enrich_file_name <- paste0(output_dir, sub("_ID.txt", "_EnrichmentGO.xlsx", basename(deg_file)))
+  go_rich.total <- [, c("ID", "Description", "GeneRation", "BgRation", "RichFactor", "pvalue", "p.adjust", "qvalue", "geneID", "Count", "Ontology")]
+
+  go_enrich_file_name <- paste0(output_dir, sub("_ID.txt", "_EnrichmentGO.xlsx", basename(deg_id_file)))
   cat("正在输出文件",go_enrich_file_name, "\n")
   write.xlsx(go_rich.total, go_enrich_file_name)
 
@@ -163,14 +165,14 @@ go_enrich <- function(deg_file, output_dir) {
   # dev.off()
 }
 
-kegg_enrich <- function(deg_file, kegg2gene, kegg2name, output_dir) {
+kegg_enrich <- function(deg_id_file, kegg2gene, kegg2name, output_dir) {
   ###### 导入目标基因列表################################
-  gene <- read.table(deg_file, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
+  gene <- read.table(deg_id_file, header = FALSE, sep = "\t", stringsAsFactors = FALSE)
   gene <- as.factor(gene$V1)
   # 富集分析
   enrichment <- enricher(gene,
     TERM2GENE = kegg2gene, TERM2NAME = kegg2name, pvalueCutoff = 1,
-    pAdjustMethod = "BH", qvalueCutoff = 1, minGSSize = 20, maxGSSize = 1000
+    pAdjustMethod = "BH", qvalueCutoff = 1, minGSSize = 1, maxGSSize = 1000
   )
   # # 绘制条形图,绘制气泡图
   # barplot(enrichment)
@@ -180,11 +182,12 @@ kegg_enrich <- function(deg_file, kegg2gene, kegg2name, output_dir) {
   enrich_result$BgRatio <- sapply(enrich_result$BgRatio, calculate_ratio)
   enrich_result$RichFactor <- enrich_result$GeneRatio / enrich_result$BgRatio
   enrich_result$Ontology <- rep("KEGG", nrow(enrich_result))
-
+  enrich_result <- na.omit(enrich_result)  # 在 KO_id_pathway_name.txt 中没包含所有的 ko，有的对上了没有描述，所以要去掉这些
   go_enrich_file_name <- paste0(
     output_dir,
-    sub("_ID.txt", "_EnrichmentKEGG.xlsx", basename(deg_file))
+    sub("_ID.txt", "_EnrichmentKEGG.xlsx", basename(deg_id_file))
   )
+  enrich_result <- [, c("ID", "Description", "GeneRation", "BgRation", "RichFactor", "pvalue", "p.adjust", "qvalue", "geneID", "Count", "Ontology")]
   write.xlsx(enrich_result, go_enrich_file_name)
   # enrichplot::cnetplot(go_rich_bp,circular=FALSE,colorEdge = T,edge = F,color_category = "red", color_gene = "green",cex_category = 1,cex_label_category = 1)
 }
@@ -214,23 +217,23 @@ kegg2name <- read.table("/home/colddata/qinqiang/script/Rscript/enrichnet/KO_id_
 comp_info <- read.table(compare_info, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
 for (i in seq_along(1:nrow(comp_info))) {
   compare_name <- paste(comp_info[i, 1], comp_info[i, 2], sep = "_vs_")
-  deg_file <- paste0(data_dir, compare_name, "_Down_ID.txt")
-  if (!file.exists(deg_file)) {
-    cat("文件不存在，请检查这个文件是否存在，处理时跳过：", deg_file, "\n")
+  deg_id_file <- paste0(data_dir, compare_name, "_Down_ID.txt")
+  if (!file.exists(deg_id_file)) {
+    cat("文件不存在，请检查这个文件是否存在，处理时跳过：", deg_id_file, "\n")
   } else {
-    cat("正在处理", deg_file, "文件：", "\n")
+    cat("正在处理", deg_id_file, "文件：", "\n")
   }
-  go_enrich(deg_file, output_dir)
-  kegg_enrich(deg_file, kegg2gene, kegg2name, output_dir)
+  go_enrich(deg_id_file, output_dir)
+  kegg_enrich(deg_id_file, kegg2gene, kegg2name, output_dir)
 }
 for (i in seq_along(1:nrow(comp_info))) {
   compare_name <- paste(comp_info[i, 1], comp_info[i, 2], sep = "_vs_")
-  deg_file <- paste0(data_dir, compare_name, "_Up_ID.txt")
-  if (!file.exists(deg_file)) {
-    cat("文件不存在，请检查这个文件是否存在，处理时跳过：", deg_file, "\n")
+  deg_id_file <- paste0(data_dir, compare_name, "_Up_ID.txt")
+  if (!file.exists(deg_id_file)) {
+    cat("文件不存在，请检查这个文件是否存在，处理时跳过：", deg_id_file, "\n")
   } else {
-    cat("正在处理", deg_file, "文件：", "\n")
+    cat("正在处理", deg_id_file, "文件：", "\n")
   }
-  go_enrich(deg_file, output_dir)
-  kegg_enrich(deg_file, kegg2gene, kegg2name, output_dir)
+  go_enrich(deg_id_file, output_dir)
+  kegg_enrich(deg_id_file, kegg2gene, kegg2name, output_dir)
 }
