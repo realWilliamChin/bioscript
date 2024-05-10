@@ -141,7 +141,7 @@ go_enrich <- function(deg_id_file, output_dir) {
   go_rich.cc <- as.data.frame(go_rich_cc)
   go_rich.total <- rbind(bp_result, cc_result, mf_result)
 
-  go_rich.total <- [, c("ID", "Description", "GeneRation", "BgRation", "RichFactor", "pvalue", "p.adjust", "qvalue", "geneID", "Count", "Ontology")]
+  go_rich.total <- go_rich.total[, c("ID", "Description", "GeneRatio", "BgRatio", "RichFactor", "pvalue", "p.adjust", "qvalue", "geneID", "Count", "Ontology")]
 
   go_enrich_file_name <- paste0(output_dir, sub("_ID.txt", "_EnrichmentGO.xlsx", basename(deg_id_file)))
   cat("正在输出文件",go_enrich_file_name, "\n")
@@ -187,7 +187,7 @@ kegg_enrich <- function(deg_id_file, kegg2gene, kegg2name, output_dir) {
     output_dir,
     sub("_ID.txt", "_EnrichmentKEGG.xlsx", basename(deg_id_file))
   )
-  enrich_result <- [, c("ID", "Description", "GeneRation", "BgRation", "RichFactor", "pvalue", "p.adjust", "qvalue", "geneID", "Count", "Ontology")]
+  enrich_result <- enrich_result[, c("ID", "Description", "GeneRatio", "BgRatio", "RichFactor", "pvalue", "p.adjust", "qvalue", "geneID", "Count", "Ontology")]
   write.xlsx(enrich_result, go_enrich_file_name)
   # enrichplot::cnetplot(go_rich_bp,circular=FALSE,colorEdge = T,edge = F,color_category = "red", color_gene = "green",cex_category = 1,cex_label_category = 1)
 }
