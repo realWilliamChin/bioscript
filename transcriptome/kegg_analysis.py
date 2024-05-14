@@ -10,6 +10,11 @@ import subprocess
 from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
+from Rscript import draw_multigroup_heatmap
+from Rscript import draw_twogroup_heatmap
+from Rscript import draw_pathview
+from Rscript import anova_analysis
 
 
 def kid_optmial(input_df):
@@ -312,7 +317,7 @@ def get_ko_expression(ko, kegg_clean_file, expression_file):
         logger.critical(f"{expression_file} not found")
         sys.exit(1)
         
-    ko_list = pd.read_csv(args.ko_list, sep='\t', usecols=[0]).values.tolist()
+    ko_list = pd.read_csv(ko, sep='\t', usecols=[0]).values.tolist()
     logger.info(f"正在输出每个 ko_pathway 相关的基因表达量表：{len(ko_list)} 个 ko_pathway")
     for ko_num in ko_list:
         kegg_pathway_df = pd.read_csv(kegg_clean_file, sep='\t', names=['GeneID', 'Ko'], usecols=[0, 1], dtype=str)
@@ -325,64 +330,6 @@ def get_ko_expression(ko, kegg_clean_file, expression_file):
             logger.info(f"正在输出 {ko_num} 相关的基因表达量表，有 {expression_df.shape[0]} 个基因")
         else:
             logger.warning(f"{ko_num} 相关的基因表达量表为空")
-
-
-def draw_pathview(regulation, passed_path):
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/pathview/pathview.R \
-        -r {regulation} \
-        -p {passed_path}"
-    ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if ret.returncode != 0:
-        logger.error(f"{regulation} draw_pathview 画图失败")
-        logger.error(f"标准输出：{ret.stdout.decode()}")
-        logger.error(f"标准错误: {ret.stderr.decode()}")
-
-
-def draw_multigroup_heatmap(datafile):
-    """输入文件应该是 3 个 Sheet
-    Sheet 1: fpkm value
-    ID sampleA-A sampleA-B sampleA-C sampleB-A sampleB-B smapleB-C ...
-    geneA fpkm_value ...
-    geneB fpkm_value ...
-    ...
-    
-    Sheet 2: sample_annotation
-    sample group
-    sampleA sampleA-A
-    sampleA sampleA-B
-    ...
-    
-    Sheet 3: gene_annotation
-    gene Ontology
-    geneA groupA
-    geneB groupB
-    genec gorupB
-    ...
-    """
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/heatmap/heatmap_multigroup.r -f {datafile}"
-    ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if ret.returncode != 0:
-        logger.error(f"{datafile} multigroup_heatmap 画图失败")
-        logger.error(f"标准输出：{ret.stdout.decode()}")
-        logger.error(f"标准错误: {ret.stderr.decode()}")
-
-
-def draw_twogroup_heatmap(datafile, output_file):
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/heatmap/heatmap_twogroup.r -f {datafile} -o {output_file}"
-    ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if ret.returncode != 0:
-        logger.error(f"{datafile} twogroup_heatmap 画图失败")
-        logger.error(f"标准输出：{ret.stdout.decode()}")
-        logger.error(f"标准错误: {ret.stderr.decode()}")
-
-
-def anova_analysis(datafile, samples_file, output_file):
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/anova/anova.r -f {datafile} -s {samples_file} -o {output_file}"
-    ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if ret.returncode != 0:
-        logger.error(f"{datafile} twogroup_heatmap 画图失败")
-        logger.error(f"标准输出：{ret.stdout.decode()}")
-        logger.error(f"标准错误: {ret.stderr.decode()}")
 
 
 def parse_input():
