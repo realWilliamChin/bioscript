@@ -13,7 +13,7 @@ def parse_input():
     argparser.add_argument('-p', '--prefix', required=True, help='输出文件的前缀')
     argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'other'],
                            help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
-    argparser.add_argument('--re_pattern', default='gene-(.*?);', help='指定正则表达式，用来提取 geneid，默认为 gene-(.*?);')
+    argparser.add_argument('--re', default='gene-(.*?);', help='指定正则表达式，用来提取 geneid，默认为 gene-(.*?);')
     args = argparser.parse_args()
     
     if args.gfftype == 'other':
@@ -120,7 +120,7 @@ def main():
     gene_basicinfo_name = args.prefix + '_gene_basicinfo.txt'
     
     # 生成 gene_basicinfo 文件
-    get_basic_info(gff_file, gene_basicinfo_name, args.gfftype, args.re_pattern)
+    get_basic_info(gff_file, gene_basicinfo_name, args.gfftype, args.re)
     # 生成 gene_id 的文件
     get_all_id(gene_basicinfo_name, args.prefix)
     
