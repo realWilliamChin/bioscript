@@ -16,7 +16,7 @@ def parse_input():
     args.add_argument('-n', '--nr-blast-file', type=str, dest='input_file',
                       help='nr.blast file')
     args.add_argument('-b', '--basicinfo', type=str, dest='basicinfo',
-                           help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
+                           help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入，如果 basicinfo 文件 Gene_Def 都是 NA，怎不需要添加了')
     args.add_argument('-p', '--prefix', help='输出文件的前缀')
     
     args = args.parse_args()
