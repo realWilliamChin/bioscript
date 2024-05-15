@@ -6,8 +6,9 @@ import os, sys
 import pandas as pd
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
-from genedf_add_def import add_kns_def
+from genedf_add_knsdef import add_kns_def
 
 
 def parse_input():
