@@ -130,7 +130,7 @@ def other(args):
     ko_gene_df[['KEGG_ID', 'regulation']].to_csv(output_prefix + '_keggid_regulation.txt', sep='\t', index=False)
 
 
-def transcriptome_all_ko_gene_heatmap(ko_file, kegg_clean_file, fpkm_matrix_file, samples_file):
+def transcriptome_all_ko_gene_heatmap(ko_file, kegg_clean_file, expression_file, samples_file):
     """针对一些 KEGG_ID 的相关基因画出一个 heatmap 图
 
     Args:
@@ -140,7 +140,7 @@ def transcriptome_all_ko_gene_heatmap(ko_file, kegg_clean_file, fpkm_matrix_file
         samples_file (str): 样本描述文件，通常为 samples_described.txt 
     """
     # 对 expression fpkm matrix 文件只保留 fpkm 值
-    expression_df = pd.read_csv(fpkm_matrix_file, sep='\t', dtype={'GeneID': str})
+    expression_df = pd.read_csv(expression_file, sep='\t', dtype={'GeneID': str})
     expression_df = expression_df.drop_duplicates(subset='GeneID')
     expression_df_columns = expression_df.columns.tolist()
     expression_df_columns = [expression_df_columns[0]] + [x for x in expression_df_columns if x.endswith("_fpkm")]
@@ -340,14 +340,14 @@ def parse_input():
     argparser.add_argument('--kegg-clean', dest="kegg_clean", required=True, type=str, help='[必须]输入 kegg 注释出来的 KEGG_clean 文件')
     argparser.add_argument('--draw-pathview', dest='draw_pathview', action='store_true',
                            help='[可选]draw pathview picture')
+    argparser.add_argument('--expression', type=str,
+                        help='[其他可选，转录组必须]输入表达量（fpkm_and_reads_matrix.txt）文件, 输出每个 ko_pathway 相关的基因表达量表')
     
     # 针对其他
     group1 = argparser.add_argument_group('针对其他的使用参数')
     group1.add_argument('--kegg-genedef', dest="kegg_genedef", type=str, help='[必须]kegg_gene_def.txt')
     group1.add_argument('--basicinfo', type=str, help='[可选]basicinfo.txt')
     group1.add_argument('-o', '--output_prefix', type=str, help='output file prefix, 转录组不需要加这个参数')
-    group1.add_argument('--expression', type=str,
-                        help='[可选]输入表达量（fpkm_and_reads_matrix.txt）文件, 输出每个 ko_pathway 相关的基因表达量表')
     
     # 针对转录组，de results 结果 up down 的 id list 画 pahtview 图
     group2 = argparser.add_argument_group('针对转录组的使用参数，如果跑转录组的项目，下面必须的参数必须输入')
