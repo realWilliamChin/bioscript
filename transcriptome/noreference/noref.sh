@@ -465,8 +465,8 @@ exec_multi_deseq() {
         kns_def_file=$(find ${annotation_d} -maxdepth 1 -type f -name '*kns_gene_def.txt')
         python "${script_d}/de_results_add_def.py" \
         --kns "${kns_def_file}"
-        mv *_DEG_data.txt Analysis/Expression_data/
-        cat Analysis/DEG_summary.txt
+        mv *_DEG_data.txt DEG_analysis_results/Expression_data/
+        cat DEG_analysis_results/DEG_summary.txt
     done
     cd "${work_dir}"
 }

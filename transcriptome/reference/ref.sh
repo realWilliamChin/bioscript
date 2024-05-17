@@ -45,8 +45,8 @@ hisat2_alignment() {
     fi
 
     for ((i=0; i<sample_count; i++)); do
-        log INFO "正在比对第${i}个，使用线程数 ${num_threads}，${filename_1_list[i]} ${filename_2_list[i]} hisat alignment ... "
-        hisat2 -x 00_Database/${ref_specie} \
+        log INFO "正在比对第${i}个，使用线程数 ${num_threads}，${filename_1_list[i]} ${filename_2_list[i]} hisat2 alignment ... "
+        hisat2 -x ${database_d}/${ref_specie} \
             -p ${num_threads} \
             -I 200 -X 400 --fr \
             --min-intronlen 20 --max-intronlen 4000 \
@@ -166,6 +166,11 @@ exec_stringtie() {
     done
 
     log INFO "stringtie 处理完成"
+}
+
+### salmon
+exec_salmon() {
+    
 }
 
 
