@@ -21,10 +21,15 @@ bs_pos
 #bs_pos<-2
 bs_neg <- -bs_pos
 
-dir.create("Analysis")
-dir.create("Analysis/Expression_data")
-dir.create("Analysis/Expression_data_graphs")
-dir.create("Expression_data_evaluation")
+deg_dir <- "DEG_analysis_results"
+deg_exp_data_dir <- "DEG_analysis_results/Expression_data"
+deg_exp_graph_dir <- "DEG_analysis_results/Expression_data_graphs"
+exp_evaluation_dir <- "Expression_data_evaluation"
+
+dir.create(deg_dir)
+dir.create(deg_exp_data_dir)
+dir.create(deg_exp_graph_dir)
+dir.create(exp_evaluation_dir)
 
 read.table("fpkm_matrix_filtered.txt",sep="\t",header=T,row.names=1,check.names=F)->fpkm
 
@@ -114,18 +119,18 @@ for(i in seq_along(1:nrow(comp_info))){
     scale_color_manual(values=c("green", "grey","red")) +
     geom_vline(xintercept=c(bs_neg,bs_pos),lty=4,col="black",lwd=0.8) +
     geom_hline(yintercept = -log10(0.05),lty=4,col="black",lwd=0.8)+theme_base()
-  outfile.volcano=paste0("Analysis/Expression_data_graphs/",group_vs_group_name,"_volcano.jpeg")
+  outfile.volcano=paste0(deg_exp_graph_dir,"/",,group_vs_group_name,"_volcano.jpeg")
   ggsave(outfile.volcano,p.volcano,dpi=300,width=10,height=10)
   tmp.deg<-as.character(rownames(volcano)[volcano$regulation=="Up" | volcano$regulation=="Down" ])
   fpkm_tmp<-na.omit(fpkm.deg[tmp.deg,])
   fpkm_tmp<-log2(fpkm_tmp[rowSums(fpkm_tmp)>0,]+1)
   p.tmpdeg.heatmap<-pheatmap(fpkm_tmp,scale="row",cluster_cols=F,show_rownames=F)
-  outfile.tmpdeg.heatmap=paste0("Analysis/Expression_data_graphs/",group_vs_group_name,"_heatmap.jpeg")
+  outfile.tmpdeg.heatmap=paste0(deg_exp_graph_dir,"/",group_vs_group_name,"_heatmap.jpeg")
   ggsave(outfile.tmpdeg.heatmap,p.tmpdeg.heatmap,dpi=300,width=10,height=10)
-  outfile.Up_ID<-paste0("Analysis/", group_vs_group_name,"_Up_ID.txt")
+  outfile.Up_ID<-paste0(deg_dir,"/", group_vs_group_name,"_Up_ID.txt")
   UP_ID.dt<-data.frame(GeneID=as.character(rownames(volcano)[volcano$regulation=="Up"]))
   write.table(UP_ID.dt, file=outfile.Up_ID, sep='	', quote=FALSE,row.names=F, col.names=FALSE)
-  outfile.Down_ID<-paste0("Analysis/",group_vs_group_name,"_Down_ID.txt")
+  outfile.Down_ID<-paste0(deg_dir,"/",group_vs_group_name,"_Down_ID.txt")
   Down_ID.dt<-data.frame(GeneID=as.character(rownames(volcano)[volcano$regulation=="Down"]))
   write.table(Down_ID.dt, file=outfile.Down_ID, sep='	', quote=FALSE,row.names = F, col.names=FALSE)
 }
@@ -179,7 +184,7 @@ dev.off()
 #as.data.frame(matrix(stat.deg,nrow=nrow(comp_info),ncol=4,byrow=T),colnames=c("Groups","Total_DEGs","UP"))
 #stat.deg
 colnames(stat.deg)=c("Groups","Total DEGs","Up regulated","Down regulated")
-write.table(stat.deg,file="Analysis/DEG_summary.txt",sep="\t",quote=F,row.names=F)
+write.table(stat.deg,file=paste0(deg_dir,"/DEG_summary.txt"),sep="\t",quote=F,row.names=F)
 
 
 ##############################################################################################################
