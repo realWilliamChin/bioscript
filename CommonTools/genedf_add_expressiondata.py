@@ -10,7 +10,7 @@ def parse_input():
     parser.add_argument('-i', '--input', type=str, help='输入文件')
     parser.add_argument('-o', '--output', type=str, help='输出文件')
     parser.add_argument('-e', '--expression', type=str, help='表达量文件，合并的那个文件')
-    parser.add_argument('--col-on', type='str', help='根据哪个列合并')
+   # parser.add_argument('--col-on', type='str', help='根据哪个列合并')
     parser.add_argument('--only-fpkm', dest="only_fpkm", action="store_true", help='只合并 fpkm')
     parser.add_argument('--only-reads', dest="only_reads", action="store_true", help='只合并 reads')
     parser.add_argument('--def', action="store_true", help='合并加上定义')
@@ -21,9 +21,11 @@ def parse_input():
 def main():
     # TODO: 继续写，没写完，写了一半，不知道用什么方法写好了。
     args = parse_input()
-    input_df = pd.read_csv(args.input, args.expression)
-    if args.only_fpkm:
-        result_df = pd.merge(input_df, args.expression, on="GeneID", how='left')
+    input_df = pd.read_csv(args.input, sep='\t')
+    expression_df = pd.read_csv(args.expression, sep='\t')
+    #if args.only_fpkm:
+    result_df = pd.merge(input_df, expression_df, on="GeneID", how='left')
+    result_df.fillna(0, inplace=True)
     result_df.to_csv(args.output, sep='\t', index=False)
     
 
