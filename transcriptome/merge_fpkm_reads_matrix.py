@@ -27,8 +27,8 @@ def parse_input():
 
 
 def merge_fpkm_reads(fpkm_file, reads_file):
-    fpkm_df = pd.read_csv(fpkm_file, sep='\t')
-    reads_df = pd.read_csv(reads_file, sep='\t')
+    fpkm_df = pd.read_csv(fpkm_file, sep='\t', dtype={"GeneID": str})
+    reads_df = pd.read_csv(reads_file, sep='\t', dtype={"GeneID": str})
     # 对 GeneID 列进行重命名，如果是用其他方式写的 gene_id geneid 等等
     if 'gene' in fpkm_df.columns[0].lower() and 'id' in fpkm_df.columns[0].lower():
         fpkm_df.rename(columns={fpkm_df.columns[0]: 'GeneID'}, inplace=True)
