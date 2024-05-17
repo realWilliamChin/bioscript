@@ -4,6 +4,7 @@
 # Author        : WilliamGoGo
 import os, sys
 import pandas as pd
+from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools'))
@@ -27,8 +28,9 @@ def parse_input():
 
 def process_deresults(de_results_file, kegg_file, nr_file, swiss_file, kns_file):
     de_df = pd.read_csv(de_results_file, sep='\t', dtype={"GeneID": str})
-    de_matrix_df = pd.read_csv(de_results_file + '_readCounts.matrix', sep='\t', dtype={"GeneID": str})
-    de_df = pd.merge(left=de_df, right=de_matrix_df, on='GeneID', how='left')
+    de_reads_df = pd.read_csv(de_results_file + '_readCounts.matrix', sep='\t', dtype={"GeneID": str})
+    de_reads_df.columns = ['GeneID'] + [x + '_raw_reads' for x in de_reads_df.columns.tolist() if x.lower() != 'geneid']
+    de_df = pd.merge(left=de_df, right=de_reads_df, on='GeneID', how='left')
     # 排序 down，up，NOsig。down 的 FC 值从小到大，up 的 FC 值从大到小
     # 先分三份，再合并
     de_df_down = de_df[de_df['regulation'] == 'Down'].copy()
@@ -49,15 +51,17 @@ def main():
 
     for de_results_file in os.listdir():
         if de_results_file.endswith('DE_results'):
-            print(f'processing---{de_results_file}')
+            logger.info(f'processing---{de_results_file}')
             process_deresults(de_results_file, args.kegg, args.nr, args.swiss, args.kns)
     if args.kns or args.swiss or args.kegg or args.nr:
-        for up_down_id_file in os.listdir("Analysis"):
-            up_down_id_file = os.path.join("Analysis", up_down_id_file)
+        for up_down_id_file in os.listdir("DEG_analysis_results"):
+            up_down_id_file = os.path.join("DEG_analysis_results", up_down_id_file)
             if up_down_id_file.endswith('Down_ID.txt') or up_down_id_file.endswith('Up_ID.txt'):
                 up_down_id_df = pd.read_csv(up_down_id_file, sep='\t', names=['GeneID'], dtype={"GeneID": str})
                 result_df = add_kns_def(up_down_id_df, args.kegg, args.nr, args.swiss, args.kns)
                 result_df.to_csv(up_down_id_file.replace('.txt', '_def.txt'), sep='\t', index=False)
+
+    logger.success('Done!')
 
 
 if __name__ == '__main__':
