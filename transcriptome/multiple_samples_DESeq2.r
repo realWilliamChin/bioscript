@@ -119,7 +119,7 @@ for(i in seq_along(1:nrow(comp_info))){
     scale_color_manual(values=c("green", "grey","red")) +
     geom_vline(xintercept=c(bs_neg,bs_pos),lty=4,col="black",lwd=0.8) +
     geom_hline(yintercept = -log10(0.05),lty=4,col="black",lwd=0.8)+theme_base()
-  outfile.volcano=paste0(deg_exp_graph_dir,"/",,group_vs_group_name,"_volcano.jpeg")
+  outfile.volcano=paste0(deg_exp_graph_dir,"/",group_vs_group_name,"_volcano.jpeg")
   ggsave(outfile.volcano,p.volcano,dpi=300,width=10,height=10)
   tmp.deg<-as.character(rownames(volcano)[volcano$regulation=="Up" | volcano$regulation=="Down" ])
   fpkm_tmp<-na.omit(fpkm.deg[tmp.deg,])
