@@ -7,29 +7,60 @@ nr 注释程序
 生成 nr.blast 文件，nr_gene_def.txt 文件 和 nr_TF_def.txt 文件
 """
 import argparse
-import os
+import os, sys
+import subprocess
 import pandas as pd
+from loguru import logger
 
 
 def parse_input():
-    args = argparse.ArgumentParser(description='输入 nr.blast 文件的路径')
-    args.add_argument('-n', '--nr-blast-file', type=str, dest='input_file',
-                      help='nr.blast file')
-    args.add_argument('-b', '--basicinfo', type=str, dest='basicinfo',
-                           help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入，如果 basicinfo 文件 Gene_Def 都是 NA，怎不需要添加了')
-    args.add_argument('-p', '--prefix', help='输出文件的前缀')
+    parser = argparse.ArgumentParser(description='输入 nr.blast 文件的路径')
+    parser.add_argument('-n', '--blast', type=str, help='nr.blast file')
+    parser.add_argument('-b', '--basicinfo', type=str, dest='basicinfo', help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入，如果 basicinfo 文件 Gene_Def 都是 NA，怎不需要添加了')
+    parser.add_argument('-p', '--prefix', help='输出文件的前缀')
     
-    args = args.parse_args()
+    annotation = parser.add_argument_group('需要注释添加一下参数')
+    annotation.add_argument('--cds', help='输入需要去注释的 cds 文件（去重，名字精简）')
+    annotation.add_argument('-t', '--threads', default=30, type=int, help='运行 nr 注释线程数量(好像不咋管用)')
 
-    if not args.input_file:
-        args.input_file = [x for x in os.listdir() if x.endswith('nr.blast')][0]
-        print(f"未指定 nr 输入文件，默认使用 {args.input_file}")
+    
+    args = parser.parse_args()
 
-    if not args.prefix:
-        args.prefix = args.input_file.split('_nr.blast')[0]
-        print(f'未指定输出文件前缀，默认使用 {args.prefix}')
+    # if not args.input_file:
+    #     args.input_file = [x for x in os.listdir() if x.endswith('nr.blast')][0]
+    #     logger.warning(f"未指定 nr 输入文件，默认使用 {args.input_file}")
+
+    # if not args.prefix:
+    #     args.prefix = args.input_file.split('_nr.blast')[0]
+    #     logger.warning(f'未指定输出文件前缀，默认使用 {args.prefix}')
         
     return args
+
+
+def nr_annotation(fasta_file, blast_file, num_threads):
+    os.mkdir('./temp29ejfsajf')
+    anno_cmd = f'diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
+        --threads ${num_threads} \
+        --query {fasta_file} \
+        --out {blast_file} \
+        --outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle \
+        --sensitive \
+        --max-target-seqs 1 \
+        --evalue 1e-5 \
+        --id 30 \
+        --block-size 20.0 \
+        --tmpdir ./temp29ejfsajf\
+        --index-chunks 1'
+
+    ret = subprocess.run(anno_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if ret.returncode != 0:
+        logger.error(f"{fasta_file} nr 注释程序失败")
+        logger.error(f"标准输出：{ret.stdout.decode()}")
+        logger.error(f"标准错误: {ret.stderr.decode()}")
+        return False
+    else:
+        logger.success(f"{fasta_file} nr 注释成功，输出到 {blast_file}")
+    return True
 
 
 def nr(nr_blast_file, gene_basicinfo_file, output_name):
@@ -57,7 +88,7 @@ def nr(nr_blast_file, gene_basicinfo_file, output_name):
     nr_TF_def_df = nr_TF_def_df.sort_values(by='NR_Def', key=lambda x: x.str.lower())
     nr_TF_def_df.to_csv(output_name + '_nr_TF_def.txt', sep='\t', index=False)
 
-
+T
 def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
     gff_basicinfo_df = pd.read_csv(gene_basicinfo_file, sep='\t', usecols=['GeneID', 'Gene_Def'])
     print(f'总基因数量是 {gff_basicinfo_df.shape[0]} 个')
@@ -85,6 +116,12 @@ def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
 
 def main():
     args = parse_input()
+    
+    if args.cds:
+        ret = nr_annotation(args.cds, args.blast, args.threads)
+        if not ret:
+            sys.exit(1)
+    
     if not args.input_file:
         args.input_file = [x for x in os.listdir() if x.endswith('nr.blast')][0]
     nr(args.input_file, args.basicinfo, args.prefix)

@@ -3,18 +3,47 @@
 # Created Time  : 2/24/2023 5:30 PM
 # Author        : WilliamGoGo
 import os, sys
-import time
 import argparse
 import pandas as pd
 import numpy as np
+import subprocess
+from loguru import logger
 
 
 def parse_input():
-    argparser = argparse.ArgumentParser(description='')
-    argparser.add_argument('-b', '--blast', help='指定 swiss.blast 文件, 默认当前文件夹下的 _swiss.blast 文件')
-    argparser.add_argument('-p', '--prefix', help='生成文件的前缀(一般是种名加属名), 默认去掉 blast 作为前缀')
-    args = argparser.parse_args()
+    parser = argparse.ArgumentParser(description='swiss 注释')
+    parser.add_argument('-b', '--blast', help='指定 swiss.blast 文件名称')
+    
+    parse_blast = parser.add_argument_group('需要解析 blast 添加以下参数')
+    parse_blast.add_argument('-p', '--prefix', help='生成文件的前缀(一般是种名加属名), 默认去掉 blast 作为前缀')
+    
+    annotation = parser.add_argument_group('需要注释添加一下参数')
+    annotation.add_argument('--cds', help='输入需要去注释的 cds 文件（去重，名字精简）')
+    annotation.add_argument('-t', '--threads', default=30, type=int, help='运行 swiss 注释线程数量')
+    
+    args = parser.parse_args()
     return args
+
+
+def swiss_annotation(fasta_file, blast_file, num_threads):  
+    anno_cmd = f'/opt/biosoft/ncbi-blast-2.9.0+/bin/blastx \
+        -db /home/data/ref_data/Linux_centos_databases/2019_Unprot_databases/swissprot \
+        -query {fasta_file} \
+        -out {blast_file} \
+        -max_target_seqs 20 \
+        -evalue 1e-5 \
+        -num_threads {num_threads} \
+        -outfmt "6 qacc sacc pident qcovs qcovhsp ppos length mismatch gapopen qstart qend sstart send evalue bitscore stitle"'
+
+    ret = subprocess.run(anno_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if ret.returncode != 0:
+        logger.error(f"{fasta_file} swiss 注释程序失败")
+        logger.error(f"标准输出：{ret.stdout.decode()}")
+        logger.error(f"标准错误: {ret.stderr.decode()}")
+        return False
+    else:
+        logger.success(f"{fasta_file} swiss 注释成功，输出到 {blast_file}")
+    return True
 
 
 def _keep_goid(s):
@@ -59,6 +88,12 @@ def process_go(swiss_df, ref_df):
 
 def main():
     args = parse_input()
+    
+    if args.cds:
+        ret = swiss_annotation(args.cds, args.blast, args.threads)
+        if not ret:
+            sys.exit(1)
+    
     swiss_file = args.blast if args.blast else [x for x in os.listdir() if '_swiss.blast' in x][0]
     key_name = args.prefix + '_swiss' if args.prefix else swiss_file.replace('.blast', '')
     # 读取 swiss 参考文件和 blast 文件，并初始化
@@ -109,7 +144,7 @@ def main():
     result_df[1].to_csv(key_name + '_GO_CC_ID.txt', sep='\t', index=False, header=False)
     result_df[2].to_csv(key_name + '_GO_MF_ID.txt', sep='\t', index=False, header=False)
     
-    print('\nDone\n')
+    logger.success('Done')
 
 
 if __name__ == '__main__':
