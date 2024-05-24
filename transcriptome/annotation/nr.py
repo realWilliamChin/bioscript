@@ -88,7 +88,7 @@ def nr(nr_blast_file, gene_basicinfo_file, output_name):
     nr_TF_def_df = nr_TF_def_df.sort_values(by='NR_Def', key=lambda x: x.str.lower())
     nr_TF_def_df.to_csv(output_name + '_nr_TF_def.txt', sep='\t', index=False)
 
-T
+
 def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
     gff_basicinfo_df = pd.read_csv(gene_basicinfo_file, sep='\t', usecols=['GeneID', 'Gene_Def'])
     print(f'总基因数量是 {gff_basicinfo_df.shape[0]} 个')
@@ -122,9 +122,9 @@ def main():
         if not ret:
             sys.exit(1)
     
-    if not args.input_file:
-        args.input_file = [x for x in os.listdir() if x.endswith('nr.blast')][0]
-    nr(args.input_file, args.basicinfo, args.prefix)
+    if not args.blast:
+        args.blast = [x for x in os.listdir() if x.endswith('nr.blast')][0]
+    nr(args.blast, args.basicinfo, args.prefix)
     print('\nDone!\n')
 
 
