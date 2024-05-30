@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
+from matplotlib import ticker
 from loguru import logger
 
 
@@ -17,6 +18,19 @@ def parse_input():
     # parser.add_argument('-o', '--output', type=str, help='输出目录')
     
     return parser.parse_args()
+
+
+def sci_notation(x, pos):  
+    # 将浮点数转换为科学计数法的字符串  
+    a, b = '{:.0e}'.format(x).split('e')  
+    b = int(b)  
+    # return r'${} \times 10^{{{}}}$'.format(a, b)
+    if b < 10:
+        b = f'0{b}'
+    if str(a) == str(0):
+        return str(0)
+    else:
+        return f'{a}E+{b}'
 
 
 def main():
@@ -34,7 +48,7 @@ def main():
         data_df = data_df.drop(columns=['原始编号'])
         
         # 读取第一行，第三列的 wavelength 值
-        wavelength = pd.read_excel(args.input, engine='openpyxl', header=None)
+        wavelength = pd.read_excel(args.input, engine='openpyxl', header=None, sheet_name=sheet)
         wavelength = wavelength.iloc[0, 2]
 
         data_df_columns = data_df.columns.to_list()
@@ -65,15 +79,23 @@ def main():
             sample_df.drop([0], inplace=True)
             x_width = int(max_x * 2)
             y_height = int(max_y / 100000)
-            plt.figure(figsize=(2 + x_width, 2 + y_height))
+            
+            # plt.figure(figsize=(3 + x_width, 5 + y_height))
+            plt.figure(figsize=(15, 10))
             plt.xticks(np.arange(0, max_x + 1, step=0.5))
-            plt.yticks(np.arange(0, max_y + 100000, step=50000))
-            plt.xlim(-0.1, max_x + 1)
-            plt.ylim(-23000, max_y + 50000)
+            plt.yticks(np.arange(0, (max_y + 100000), step=(max_y / 10)))
+            plt.xlim(-(max_x / 20), max_x + (max_x / 20))
+            plt.ylim(-(max_y / 12), max_y + (max_y / 12))
             plt.plot(sample_df['time(min)'], sample_df['relative intension'], alpha=0.5, linewidth=1, label='acc', color='black')
+            # plt.ticklabel_format(style='sci',scilimits=(0,0),axis='y')
             plt.xlabel('Time (min)')
             plt.ylabel('Relative Intensity')
             plt.title(f'Chromagram ({wavelength} nm)')
+            
+            # 创建一个FuncFormatter实例，并将其应用于y轴的刻度  
+            formatter = ticker.FuncFormatter(sci_notation)  
+            plt.gca().yaxis.set_major_formatter(formatter) 
+            
             plt.savefig(f"{sheet}/{sample_name}_{input_name.replace('.xlsx', '')}_Chromagram.jpeg")
 
 
