@@ -81,17 +81,19 @@ def main():
             y_height = int(max_y / 100000)
             
             # plt.figure(figsize=(3 + x_width, 5 + y_height))
-            plt.figure(figsize=(15, 10))
+            plt.figure(figsize=(16, 9))
             plt.xticks(np.arange(0, max_x + 1, step=0.5))
             plt.yticks(np.arange(0, (max_y + 100000), step=(max_y / 10)))
             plt.xlim(-(max_x / 20), max_x + (max_x / 20))
             plt.ylim(-(max_y / 12), max_y + (max_y / 12))
-            plt.plot(sample_df['time(min)'], sample_df['relative intension'], alpha=0.5, linewidth=1, label='acc', color='black')
+            plt.plot(sample_df['time(min)'], sample_df['relative intension'], alpha=0.5, linewidth=1.5, label='acc', color='black')
             # plt.ticklabel_format(style='sci',scilimits=(0,0),axis='y')
-            plt.xlabel('Time (min)')
-            plt.ylabel('Relative Intensity')
-            plt.title(f'Chromagram ({wavelength} nm)')
-            
+            plt.xlabel('Time (min)', fontsize=14, labelpad=20)
+            plt.ylabel('Relative Intensity', fontsize=14, labelpad=20)
+            plt.title(f'Chromagram {wavelength}', fontsize=18, pad=30)
+                
+            plt.tick_params(axis='x', labelsize='large')
+            plt.tick_params(axis='y', labelsize='large')
             # 创建一个FuncFormatter实例，并将其应用于y轴的刻度  
             formatter = ticker.FuncFormatter(sci_notation)  
             plt.gca().yaxis.set_major_formatter(formatter) 
