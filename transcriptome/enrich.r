@@ -19,7 +19,7 @@ option_list <- list(
     help = "提供 swiss 注释出来的 gene_go.txt 文件", metavar = "character"
   ),
   make_option(c("--compare"),
-    type = "character", default = NULL,
+    type = "character", default = './compare_info.txt',
     help = "提供 compare_info.txt 文件", metavar = "character"
   ),
   make_option(c("--keggclean"),
@@ -27,12 +27,12 @@ option_list <- list(
     help = "提供 kegg 注释出来的 KEGG_clean.txt 文件", metavar = "integer"
   ),
   make_option(c("--datadir"),
-    type = "character", default = "./",
-    help = "提供 compareinfo up 和 down gene id 的目录，默认是当前目录", metavar = "character"
+    type = "character", default = "./DEG_analysis_results",
+    help = "提供 compareinfo up 和 down gene id 的目录，默认是./DEG_analysis_results", metavar = "character"
   ),
   make_option(c("--outputdir"),
-    type = "character", default = "./Enrichment",
-    help = "输出结果文件的目录，默认是当前目录", metavar = "character"
+    type = "character", default = "./Pathway_enrichment_analysis",
+    help = "输出结果文件的目录，默认是./Pathway_enrichment_analysis", metavar = "character"
   )
 )
 opt_parser <- OptionParser(option_list = option_list)
@@ -194,7 +194,7 @@ kegg_enrich <- function(deg_id_file, kegg2gene, kegg2name, output_dir) {
 
 # 加载GO注释描述文件,GOid\tdescriptiom\tGOclass(BP CC MF)
 go_class <- read.delim(
-  "/home/colddata/qinqiang/script/Rscript/enrichnet/go_term.list",
+  "/home/colddata/qinqiang/script/lib/go_term.list",
   header = FALSE,
   stringsAsFactors = FALSE
 )
@@ -212,7 +212,7 @@ kegg_clean <- read.table(kegg_clean,
 )
 kegg2gene <- kegg_clean[c("KEGG_Pathway", "GeneID")]
 kegg2gene$KEGG_Pathway <- sub(":.*", "", kegg2gene$KEGG_Pathway)
-kegg2name <- read.table("/home/colddata/qinqiang/script/Rscript/enrichnet/KO_id_pathway_name.txt", header = F, sep = "\t")
+kegg2name <- read.table("/home/colddata/qinqiang/script/lib/KO_id_pathway_name.txt", header = F, sep = "\t")
 # 差异基因导入
 comp_info <- read.table(compare_info, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
 for (i in seq_along(1:nrow(comp_info))) {
