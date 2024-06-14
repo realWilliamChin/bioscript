@@ -1,33 +1,26 @@
-'''
-Author: WilliamGoGo realwilliamchin@outlook.com
-Date: 2023-10-19 14:02:47
-LastEditors: WilliamGoGo realwilliamchin@outlook.com
-LastEditTime: 2023-10-19 14:02:47
-FilePath: /script/fasta/drop_duplicate.py
-Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
-'''
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Created Time  : 2023/06/14 17:37
 # Author        : William GoGo
 import argparse
 from Bio import SeqIO
+from loguru import logger
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='FASTA file formatter')
     parser.add_argument('-i', '--input', required=True, help='Input FASTA file')
     parser.add_argument('-o', '--output', required=True, help='Output FASTA file')
-    parser.add_argument('-p', '--prefix', default='.', help='')
+    parser.add_argument('-s', '--split', default='@@@', help='序列名以哪个字符串分割，默认不分割')
     return parser.parse_args()
 
 
-def filter_duplicates(fasta_file, prefix):
+def filter_duplicates(fasta_file, strsplit):
     sequences = {}
 
     # 读取 FASTA 文件，并将序列保存到字典中
     for record in SeqIO.parse(fasta_file, "fasta"):
         # sequence_id = record.id
-        sequence_id = record.id.rsplit(prefix, 1)[0]
+        sequence_id = record.id.split(strsplit, 1)[0]
         sequence = str(record.seq)
         length = len(sequence)
         
@@ -52,7 +45,7 @@ def write_sequences(output_file, sequences):
 
 def main():
     args = parse_arguments()
-    longest_sequences = filter_duplicates(args.input, args.prefix)
+    longest_sequences = filter_duplicates(args.input, args.split)
     write_sequences(args.output, longest_sequences)
 
 if __name__ == '__main__':
