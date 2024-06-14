@@ -12,7 +12,6 @@ def parse_input():
     argparser.add_argument('-f', '--fasta', required=True, help='fasta 文件')
     argparser.add_argument('-o', '--output', required=True, help='输出文件名')
     argparser.add_argument('-t', '--type', default='on', help='输入类型(on/off),默认为on，则包含那些id提出来，反之则提出来不包含那些id的序列')
-    # argparser.add_argument('--rename', action='store_true', help='输入文件idlist为两列，一列sourceid，另一列renameid')
     args = argparser.parse_args()
     return args
 
@@ -24,6 +23,7 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
     id_list = id_df['GeneID'].values.tolist()
     has_start_end = 'Start' in id_df.columns and 'End' in id_df.columns
     has_strand = 'Strand' in id_df.columns
+    has_targetid = 'TargetGeneID' in id_df.columns
     # 读取原始fasta文件并将序列存储到字典中
     fasta_sequences = {record.id: record for record in SeqIO.parse(fasta, 'fasta')}
 
@@ -50,8 +50,19 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
             elif save_type == 'off':
                 if row['GeneID'] not in fasta_sequences:
                     sequences.append(fasta_sequences[row['GeneID']])
-    
-    SeqIO.write(sequences, output, 'fasta')
+    if has_targetid:
+        new_sequences = []
+        id_df = id_df.set_index('GeneID')
+        for seq in sequences:
+            cur_seq_id = seq.id
+            target_id = id_df.loc[cur_seq_id]['TargetGeneID']
+            seq.id = target_id
+            seq.name = ''
+            seq.description = ''
+            new_sequences.append(seq)
+            SeqIO.write(new_sequences, output, 'fasta')
+    else:
+        SeqIO.write(sequences, output, 'fasta')
 
 
 def main():
