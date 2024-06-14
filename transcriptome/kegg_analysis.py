@@ -263,10 +263,11 @@ def transcriptome_each_ko_gene_heatmap(kegg_id_list, kegg_clean_file, expression
         each_kegg_id_gene_fpkm_df = each_kegg_id_gene_fpkm_df[each_kegg_id_gene_fpkm_df['p_value'] <= 0.05]
         each_kegg_id_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
         
+        # 2024_06_14 张老师：注释掉这个，不需要过滤 p 值
         # kegg 相关的 id 小于 10 个就跳过
-        if each_kegg_id_gene_fpkm_df.shape[0] < 10:
-            logger.warning(f'{each_kegg_id} 相关基因根据 p 值 < 0.05 筛选后数量小于 10 个，不对此画 heatmap 图')
-            continue
+        # if each_kegg_id_gene_fpkm_df.shape[0] < 10:
+        #    logger.warning(f'{each_kegg_id} 相关基因根据 p 值 < 0.05 筛选后数量小于 10 个，不对此画 heatmap 图')
+        #    continue
         
         # multigroup heatmap 输入文件
         kegg_id_gene_ko_heatmap_filename = f'{crt_kegg_id_dir}/{each_kegg_id}_ko_gene_heatmap.xlsx'
