@@ -15,8 +15,8 @@ from loguru import logger
 
 def parse_input():
     parser = argparse.ArgumentParser(description='输入 nr.blast 文件的路径')
-    parser.add_argument('-n', '--blast', type=str, help='nr.blast file')
-    parser.add_argument('-b', '--basicinfo', type=str, dest='basicinfo', help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入，如果 basicinfo 文件 Gene_Def 都是 NA，怎不需要添加了')
+    parser.add_argument('-b', '--blast', type=str, help='nr.blast file')
+    parser.add_argument('--basicinfo', type=str, dest='basicinfo', help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入，如果 basicinfo 文件 Gene_Def 都是 NA，怎不需要添加了')
     parser.add_argument('-p', '--prefix', help='输出文件的前缀')
     
     annotation = parser.add_argument_group('需要注释添加一下参数')
@@ -38,7 +38,7 @@ def parse_input():
 
 
 def nr_annotation(fasta_file, blast_file, num_threads):
-    os.mkdir('./temp29ejfsajf')
+    os.mkdir('./temp')
     anno_cmd = f'diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
         --threads ${num_threads} \
         --query {fasta_file} \
@@ -49,7 +49,7 @@ def nr_annotation(fasta_file, blast_file, num_threads):
         --evalue 1e-5 \
         --id 30 \
         --block-size 20.0 \
-        --tmpdir ./temp29ejfsajf\
+        --tmpdir ./temp\
         --index-chunks 1'
 
     ret = subprocess.run(anno_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -60,6 +60,7 @@ def nr_annotation(fasta_file, blast_file, num_threads):
         return False
     else:
         logger.success(f"{fasta_file} nr 注释成功，输出到 {blast_file}")
+    os.rmdir('./temp')
     return True
 
 
@@ -97,19 +98,19 @@ def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
     gene_protein_coding_df = gff_basicinfo_df[gff_basicinfo_df['Gene_Def'].str.contains('protein_coding')].copy()
     non_annotationed_df = gene_protein_coding_df[~gene_protein_coding_df['GeneID'].isin(nr_gene_def_df['GeneID'])]
     non_annotationed_df = non_annotationed_df.rename(columns={'Gene_Def': 'NR_Def'})
-    print(f'protein coding 没有注释上的有 {non_annotationed_df.shape[0]} 个')
+    logger.info(f'protein coding 没有注释上的有 {non_annotationed_df.shape[0]} 个')
     
     # 不是 protein_coding 的
     gene_non_protein_coding_df = gff_basicinfo_df[~gff_basicinfo_df['Gene_Def'].str.contains('protein_coding')].copy()
     gene_non_protein_coding_df = gene_non_protein_coding_df.rename(columns={'Gene_Def': 'NR_Def'})
-    print(f'不是 protein_coding 没有注释上的有 {gene_non_protein_coding_df.shape[0]} 个')
+    logger.info(f'不是 protein_coding 没有注释上的有 {gene_non_protein_coding_df.shape[0]} 个')
     
     result = pd.concat([nr_gene_def_df, non_annotationed_df, gene_non_protein_coding_df], axis=0)
     result = result.drop_duplicates(subset='GeneID', keep='first')
     result = result.sort_values(by='GeneID')
-    print(f'加上没有注释上的和不是 protein_coding 的有 {result.shape[0]} 个')
+    logger.info(f'加上没有注释上的和不是 protein_coding 的有 {result.shape[0]} 个')
     if gff_basicinfo_df.shape[0] == result.shape[0]:
-        print('\n注释结果正确！')
+        logger.success('\n注释结果正确！')
     
     return result
 
@@ -121,11 +122,11 @@ def main():
         ret = nr_annotation(args.cds, args.blast, args.threads)
         if not ret:
             sys.exit(1)
-    
-    if not args.blast:
-        args.blast = [x for x in os.listdir() if x.endswith('nr.blast')][0]
+    else:
+        if not args.blast:
+            args.blast = [x for x in os.listdir() if x.endswith('nr.blast')][0]
     nr(args.blast, args.basicinfo, args.prefix)
-    print('\nDone!\n')
+    logger.success('Done!')
 
 
 if __name__ == '__main__':
