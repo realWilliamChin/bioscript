@@ -146,7 +146,7 @@ exec_stringtie() {
         # stringtie 单线程，并行跑 
         # 检测当前运行多少 stringtie, 超过配置中的线程数则等待
         stringtie_psnum=$(echo $stringtie_psnum_cmd | bash)
-        while [[ $stringtie_psnum -ge $num_threads ]]; do
+        while [[ $stringtie_psnum -ge $(($num_threads - 15)) ]]; do
             sleep 1
             stringtie_psnum=$(echo $stringtie_psnum_cmd | bash)
         done
@@ -168,10 +168,11 @@ exec_stringtie() {
     log INFO "stringtie 处理完成"
 }
 
+# TODO: 没写完继续写
 ### salmon
-exec_salmon() {
+# exec_salmon() {
     
-}
+# }
 
 
 ###
@@ -296,8 +297,8 @@ fi
 # 执行流程
 if [[ "$(declare -p run 2>/dev/null)" =~ "declare -a" ]]; then
     for item in "${run[@]}"; do
-        $item
+        eval "$item"
     done
 else
-    $run
+    eval "$run"
 fi
