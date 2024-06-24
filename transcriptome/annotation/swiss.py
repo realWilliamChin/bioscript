@@ -18,7 +18,7 @@ def parse_input():
     parse_blast.add_argument('-p', '--prefix', help='生成文件的前缀(一般是种名加属名), 默认去掉 blast 作为前缀')
     
     annotation = parser.add_argument_group('需要注释添加一下参数')
-    annotation.add_argument('--cds', help='输入需要去注释的 cds 文件（去重，名字精简）')
+    annotation.add_argument('--fasta', help='输入需要去注释的 cds fasta 或 unigene fasta 文件（去重，名字精简）')
     annotation.add_argument('-t', '--threads', default=30, type=int, help='运行 swiss 注释线程数量')
     
     args = parser.parse_args()
@@ -89,8 +89,8 @@ def process_go(swiss_df, ref_df):
 def main():
     args = parse_input()
     
-    if args.cds:
-        ret = swiss_annotation(args.cds, args.blast, args.threads)
+    if args.fasta:
+        ret = swiss_annotation(args.fasta, args.blast, args.threads)
         if not ret:
             sys.exit(1)
     
