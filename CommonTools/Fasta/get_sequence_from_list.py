@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os, sys
 import argparse
 import pandas as pd
 from Bio import SeqIO
@@ -40,9 +41,12 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
                 sub_sequence = full_sequence.seq[start:end]
                 if has_strand and row['Strand'] == '-':
                     sub_sequence = sub_sequence.reverse_complement()
-                new_record = SeqRecord(sub_sequence, id = f"{row['GeneID']}_{row['QueryName']}_{start+1}_{end}",
-                                       description=f"{row['Strand']}")
+                if has_targetid:
+                    new_record = SeqRecord(sub_sequence, id=f"{row['TargetGeneID']}", name='', description='')
+                else:
+                    new_record = SeqRecord(sub_sequence, id=row['GeneID'], name='', description='')
                 sequences.append(new_record)
+
         else:
             if save_type == 'on':
                 if row['GeneID'] in fasta_sequences:
@@ -50,19 +54,19 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
             elif save_type == 'off':
                 if row['GeneID'] not in fasta_sequences:
                     sequences.append(fasta_sequences[row['GeneID']])
-    if has_targetid:
-        new_sequences = []
-        id_df = id_df.set_index('GeneID')
-        for seq in sequences:
-            cur_seq_id = seq.id
-            target_id = id_df.loc[cur_seq_id]['TargetGeneID']
-            seq.id = target_id
-            seq.name = ''
-            seq.description = ''
-            new_sequences.append(seq)
-            SeqIO.write(new_sequences, output, 'fasta')
-    else:
-        SeqIO.write(sequences, output, 'fasta')
+            if has_targetid:
+                new_sequences = []
+                id_df = id_df.set_index('GeneID')
+                for seq in sequences:
+                    cur_seq_id = seq.id
+                    target_id = id_df.loc[cur_seq_id]['TargetGeneID']
+                    seq.id = target_id
+                    seq.name = ''
+                    seq.description = ''
+                    new_sequences.append(seq)
+                    SeqIO.write(new_sequences, output, 'fasta')
+                sys.exit(0)
+    SeqIO.write(sequences, output, 'fasta')
 
 
 def main():
