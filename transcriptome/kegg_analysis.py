@@ -7,6 +7,7 @@ import sys
 import pandas as pd
 import argparse
 import subprocess
+import openpyxl
 from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
@@ -15,6 +16,11 @@ from Rscript import draw_multigroup_heatmap
 from Rscript import draw_twogroup_heatmap
 from Rscript import draw_pathview
 from Rscript import anova_analysis
+
+if sys.version_info < (3, 10):
+    logger.critical("Python 版本低于 3.10，请使用 conda 激活 python310 环境运行程序！")
+    logger.critical("当前 Python 版本为:", sys.version)
+    sys.exit(1)
 
 
 def kid_optmial(input_df):
@@ -130,70 +136,71 @@ def other(args):
     ko_gene_df[['KEGG_ID', 'regulation']].to_csv(output_prefix + '_keggid_regulation.txt', sep='\t', index=False)
 
 
-def transcriptome_all_ko_gene_heatmap(ko_file, kegg_clean_file, expression_file, samples_file):
-    """针对一些 KEGG_ID 的相关基因画出一个 heatmap 图
+# def transcriptome_all_ko_gene_heatmap(ko_file, kegg_clean_file, expression_file, samples_file):
+    # """针对一些 KEGG_ID 的相关基因画出一个 heatmap 图
 
-    Args:
-        ko_file (str): 张老师给的 KEGG_ID 文件
-        kegg_clean_file (str): kegg 注释出来的 KEGG_clean.txt
-        fpkm_matrix_file (str): fpkm 矩阵文件
-        samples_file (str): 样本描述文件，通常为 samples_described.txt 
-    """
-    # 对 expression fpkm matrix 文件只保留 fpkm 值
-    expression_df = pd.read_csv(expression_file, sep='\t', dtype={'GeneID': str})
-    expression_df = expression_df.drop_duplicates(subset='GeneID')
-    expression_df_columns = expression_df.columns.tolist()
-    expression_df_columns = [expression_df_columns[0]] + [x for x in expression_df_columns if x.endswith("_fpkm")]
-    expression_df = expression_df[expression_df_columns]
+    # Args:
+    #     ko_file (str): 张老师给的 KEGG_ID 文件
+    #     kegg_clean_file (str): kegg 注释出来的 KEGG_clean.txt
+    #     fpkm_matrix_file (str): fpkm 矩阵文件
+    #     samples_file (str): 样本描述文件，通常为 samples_described.txt 
+    # """
+    # # 对 expression fpkm matrix 文件只保留 fpkm 值
+    # expression_df = pd.read_csv(expression_file, sep='\t', dtype={'GeneID': str})
+    # expression_df = expression_df.drop_duplicates(subset='GeneID')
+    # expression_df_columns = expression_df.columns.tolist()
+    # expression_df_columns = [expression_df_columns[0]] + [x for x in expression_df_columns if x.endswith("_fpkm")]
+    # expression_df = expression_df[expression_df_columns]
     
-    onlyfpkm_expression_columns = [x.replace("_fpkm", "") for x in expression_df_columns]
-    expression_df.columns = onlyfpkm_expression_columns
+    # onlyfpkm_expression_columns = [x.replace("_fpkm", "") for x in expression_df_columns]
+    # expression_df.columns = onlyfpkm_expression_columns
     
-    samples_df = pd.read_csv(samples_file, sep='\t', usecols=[0, 1])
-    samples_df = samples_df[['sample', 'group']]
+    # samples_df = pd.read_csv(samples_file, sep='\t', usecols=[0, 1])
+    # samples_df = samples_df[['sample', 'group']]
     
-    ko_df = pd.read_csv(ko_file, sep='\t')
-    ko_df = ko_df[['KEGG_ID', 'Ontology']]  # 只保留有用的两列
+    # ko_df = pd.read_csv(ko_file, sep='\t')
+    # ko_df = ko_df[['KEGG_ID', 'Ontology']]  # 只保留有用的两列
     
-    kegg_pathway_df = pd.read_csv(kegg_clean_file, sep='\t', names=['GeneID', 'Ko'], usecols=[0, 1], dtype=str)
-    kegg_pathway_df['KEGG_ID'] = kegg_pathway_df['Ko'].str.split(':').str[0]
-    kegg_pathway_df = kegg_pathway_df.drop(columns=['Ko'])
+    # kegg_pathway_df = pd.read_csv(kegg_clean_file, sep='\t', names=['GeneID', 'Ko'], usecols=[0, 1], dtype=str)
+    # kegg_pathway_df['KEGG_ID'] = kegg_pathway_df['Ko'].str.split(':').str[0]
+    # kegg_pathway_df = kegg_pathway_df.drop(columns=['Ko'])
     
-    gene_df = pd.merge(left=kegg_pathway_df, right=ko_df, how='left', on='KEGG_ID')
-    gene_df = gene_df.dropna(subset=['Ontology', 'GeneID'])
-    gene_df = gene_df[gene_df['Ontology'] != 'Others']  # kegg 画图不需要 Others
-    # gene_df = gene_df.drop(columns=['KEGG_ID'])
+    # gene_df = pd.merge(left=kegg_pathway_df, right=ko_df, how='left', on='KEGG_ID')
+    # gene_df = gene_df.dropna(subset=['Ontology', 'GeneID'])
+    # gene_df = gene_df[gene_df['Ontology'] != 'Others']  # kegg 画图不需要 Others
+    # # gene_df = gene_df.drop(columns=['KEGG_ID'])
     
-    # 添加 fpkm
-    gene_fpkm_df = pd.merge(left=gene_df, right=expression_df, how='left', on='GeneID')
-    # gene_fpkm_df = gene_fpkm_df.drop(columns=['Ontology'])
+    # # 添加 fpkm
+    # gene_fpkm_df = pd.merge(left=gene_df, right=expression_df, how='left', on='GeneID')
+    # # gene_fpkm_df = gene_fpkm_df.drop(columns=['Ontology'])
     
-    # anova 计算
-    anova_file_name = 'all_ko_gene_anova_p.txt'
-    gene_fpkm_df[onlyfpkm_expression_columns].to_csv(anova_file_name, sep='\t', index=False)
-    anova_analysis(anova_file_name, samples_file, anova_file_name)
-    anova_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t')
-    anova_gene_fpkm_df = anova_gene_fpkm_df[anova_gene_fpkm_df['p_value'] <= 0.05]
-    anova_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
-    anova_gene_fpkm_df = pd.merge(anova_gene_fpkm_df, gene_df, on='GeneID', how='left')
-    anova_gene_fpkm_df = anova_gene_fpkm_df.sort_values(by=['Ontology'])
+    # # anova 计算
+    # anova_file_name = 'all_ko_gene_anova_p.txt'
+    # gene_fpkm_df[onlyfpkm_expression_columns].to_csv(anova_file_name, sep='\t', index=False)
+    # anova_analysis(anova_file_name, samples_file, anova_file_name)
+    # anova_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t')
+    # # 不需要对 p 值筛选画图，需要全部展示出来 (2024_06_19:张老师)
+    # # anova_gene_fpkm_df = anova_gene_fpkm_df[anova_gene_fpkm_df['p_value'] <= 0.05]
+    # anova_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
+    # anova_gene_fpkm_df = pd.merge(anova_gene_fpkm_df, gene_df, on='GeneID', how='left')
+    # anova_gene_fpkm_df = anova_gene_fpkm_df.sort_values(by=['Ontology'])
     
     
-    # multigroup_heatmap 输入文件
-    all_gene_ko_heatmap_filename = 'all_ko_gene_heatmap.xlsx'
-    with pd.ExcelWriter(all_gene_ko_heatmap_filename, engine='openpyxl') as writer:
-        anova_gene_fpkm_df[onlyfpkm_expression_columns].to_excel(writer, sheet_name="Sheet1", index=False)
-        samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
-        anova_gene_fpkm_df[['GeneID', 'Ontology']].to_excel(writer, sheet_name='Sheet3', index=False)
+    # # multigroup_heatmap 输入文件
+    # all_gene_ko_heatmap_filename = 'all_ko_gene_heatmap.xlsx'
+    # with pd.ExcelWriter(all_gene_ko_heatmap_filename, engine='openpyxl') as writer:
+    #     anova_gene_fpkm_df[onlyfpkm_expression_columns].to_excel(writer, sheet_name="Sheet1", index=False)
+    #     samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
+    #     anova_gene_fpkm_df[['GeneID', 'Ontology']].to_excel(writer, sheet_name='Sheet3', index=False)
     
-    draw_multigroup_heatmap(
-        all_gene_ko_heatmap_filename, 
-        all_gene_ko_heatmap_filename.replace('xlsx', '.jpeg'),
-        other_args="--cluster-rows"
-        )
+    # draw_multigroup_heatmap(
+    #     all_gene_ko_heatmap_filename, 
+    #     all_gene_ko_heatmap_filename.replace('xlsx', '.jpeg'),
+    #     other_args="--cluster-rows"
+    #     )
 
 
-def transcriptome_each_ko_gene_heatmap(kegg_id_list, kegg_clean_file, expression_file, samples_file, output_dir='.'):
+def transcriptome_each_ko_gene_heatmap(kegg_id_list, kegg_clean_file, expression_file, samples_file, output_dir='./'):
     """针对一些 KEGG_ID 的相关基因，每一个 KEGG_ID 画出一个 heatmap 图
 
     Args:
@@ -241,16 +248,20 @@ def transcriptome_each_ko_gene_heatmap(kegg_id_list, kegg_clean_file, expression
         kegg_pic_dir = os.path.join(crt_kegg_id_dir, 'KEGG_pathway_heatmap')
         if not os.path.exists(kegg_pic_dir):
             os.mkdir(kegg_pic_dir)
-        logger.info(f'正在对 {each_kegg_id} 的相关基因画 heatmap 图，结果输出到 {kegg_pic_dir}')
+        logger.info(f'正在对 {each_kegg_id} 的相关基因画 heatmap 图')
         each_kegg_id_df = kegg_pathway_df[kegg_pathway_df['KEGG_ID'] == each_kegg_id]
         
-        # kegg 相关的 id 小于 10 个就跳过
-        if each_kegg_id_df.shape[0] < 10:
-            logger.warning(f'{each_kegg_id} 相关基因数量小于 10 个，不对此画 heatmap 图')
+        # kegg 相关的 id 小于 3 个就跳过 (2024_06_14:张老师：从 10 改为 3)
+        if each_kegg_id_df.shape[0] < 3:
+            logger.warning(f'{each_kegg_id} 相关基因数量小于 3 个，不对此画 heatmap 图')
             continue
 
         # 添加 fpkm
         each_kegg_id_gene_fpkm_df = pd.merge(each_kegg_id_df, expression_df, on='GeneID', how='left')
+        each_kegg_id_gene_fpkm_df.dropna(how='any', axis=0, inplace=True) # 去除掉为空的行
+        if each_kegg_id_gene_fpkm_df.shape[0] == 0:
+            logger.error(f'{each_kegg_id} 相关基因表达量为空，跳过执行 multigroup heatmap')
+            continue
         
         # anova 计算输入文件
         anova_file_name = f'{crt_kegg_id_dir}/{each_kegg_id}_gene_anova_p.txt'
@@ -260,7 +271,7 @@ def transcriptome_each_ko_gene_heatmap(kegg_id_list, kegg_clean_file, expression
             logger.error(f'{each_kegg_id} anova 计算结果失败，跳过执行 multigroup heatmap')
             continue
         each_kegg_id_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t')
-        each_kegg_id_gene_fpkm_df = each_kegg_id_gene_fpkm_df[each_kegg_id_gene_fpkm_df['p_value'] <= 0.05]
+        # each_kegg_id_gene_fpkm_df = each_kegg_id_gene_fpkm_df[each_kegg_id_gene_fpkm_df['p_value'] <= 0.05]
         each_kegg_id_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
         
         # 2024_06_14 张老师：注释掉这个，不需要过滤 p 值
@@ -270,7 +281,7 @@ def transcriptome_each_ko_gene_heatmap(kegg_id_list, kegg_clean_file, expression
         #    continue
         
         # multigroup heatmap 输入文件
-        kegg_id_gene_ko_heatmap_filename = f'{crt_kegg_id_dir}/{each_kegg_id}_ko_gene_heatmap.xlsx'
+        kegg_id_gene_ko_heatmap_filename = os.path.join(kegg_pic_dir, f'{each_kegg_id}_ko_gene_heatmap.xlsx')
         with pd.ExcelWriter(kegg_id_gene_ko_heatmap_filename, engine='openpyxl') as writer:
             each_kegg_id_gene_fpkm_df[samples_list].to_excel(writer, sheet_name='Sheet1', index=False)
             samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
@@ -298,8 +309,8 @@ def transcriptome(args):
     ko_list = ko_df['KEGG_ID'].values.tolist()
     if 'KEGG_ID'.lower() in ko_list:
         ko_list = ko_list[1:]
-
-    transcriptome_each_ko_gene_heatmap(ko_list, args.kegg_clean, args.expression, args.samplesinfo)
+    if args.kogene_heatmap:
+        transcriptome_each_ko_gene_heatmap(ko_list, args.kegg_clean, args.expression, args.samplesinfo)
     
     deg_data_list = os.listdir(args.deg_data_dir)
     kegg_pathway_df = pd.read_csv(args.kegg_clean, sep='\t', names=['GeneID', 'Ko'], usecols=[0, 1], dtype=str)
@@ -314,18 +325,34 @@ def transcriptome(args):
         treat_group = deg_data_df.iloc[0, 1]
         control_group = deg_data_df.iloc[0, 2]
         compare_info = treat_group + '_vs_' + control_group
-        
         compare_info_dir = compare_info
-        deg_expression_data_dir = os.path.join(compare_info, 'DEG_expression_data')
-        kegg_heatmap_dir = os.path.join(compare_info, 'KEGG_heatmap')
-        kegg_pathway_graph_dir = os.path.join(compare_info, 'KEGG_pathway_graph')
+        
+        deg_expression_data_dir = os.path.join(compare_info_dir, 'DEG_expression_data')
+        kegg_heatmap_dir = os.path.join(compare_info_dir, 'KEGG_heatmap')
+        kegg_pathway_graph_dir = os.path.join(compare_info_dir, 'KEGG_pathway_graph')
         
         for each_dir in [compare_info_dir, deg_expression_data_dir, kegg_heatmap_dir, kegg_pathway_graph_dir]:
             if not os.path.exists(each_dir):
                 os.mkdir(each_dir)
             else:
                 logger.warning(f"{each_dir} 文件夹已存在，输出将覆盖原文件")
-                
+        
+        # deg_data_df['GeneID'].isin(gene_go_df[gene_go_df['GO_ID'].str.contains(go_id)]['GeneID'])
+        # 从 enrich 文件中提取 kegg 相关数据
+        enrich_data_up_file = os.path.join(args.enrich_dir, f'{compare_info}_Up_EnrichmentKEGG.xlsx')
+        enrich_data_Down_file = os.path.join(args.enrich_dir, f'{compare_info}_Down_EnrichmentKEGG.xlsx')
+        up_enrich_df = pd.read_excel(enrich_data_up_file, dtype=str, engine='openpyxl')
+        down_enrich_df = pd.read_excel(enrich_data_Down_file, dtype=str, engine='openpyxl')
+        # 提取包含 kolist 的行
+        kegg_up_enrich_df = up_enrich_df[up_enrich_df['ID'].isin(ko_list)]
+        kegg_down_enrich_df = down_enrich_df[down_enrich_df['ID'].isin(ko_list)]
+        # 输出到 compare_info_dir
+        kegg_upenrich_outfile = os.path.join(compare_info_dir, f'{compare_info}_Up_Enrich.xlsx')
+        kegg_downenrich_outfile = os.path.join(compare_info_dir, f'{compare_info}_Down_Enrich.xlsx')
+        kegg_up_enrich_df.to_excel(kegg_upenrich_outfile, index=False)
+        kegg_down_enrich_df.to_excel(kegg_downenrich_outfile, index=False)
+        
+        
         logger.info(f"====正在处理 {compare_info}====")
         up_df = deg_data_df[deg_data_df['regulation'] == 'Up']['GeneID']
         down_df = deg_data_df[deg_data_df['regulation'] == 'Down']['GeneID']
@@ -356,10 +383,10 @@ def transcriptome(args):
             ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['Ko'].str.contains(ko_number)]['GeneID'])]
             
             if ko_num_fpkm_expr_df.shape[0] == 0:
-                logger.warning(f"{ko_number} 在 {compare_info} 中相关的基因表达量表为空")
+                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表为空")
                 continue
             
-            ko_num_fpkm_expr_df_file = f"{compare_info}_{ko_number}_fpkm_expression.xlsx"
+            ko_num_fpkm_expr_df_file = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_fpkm_expression.xlsx")
             ko_num_fpkm_expr_pic_name = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_heatmap.jpeg")
             with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
                 ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
@@ -390,7 +417,7 @@ def transcriptome(args):
             draw_pathview(f"{compare_info}_regulation.txt", f"{compare_info}_ko_passed_path.txt")
         
         # 对每个比较组的文件进行整理
-        os.system(f"mv {compare_info}_*.xlsx {compare_info}")
+        # os.system(f"mv {compare_info}_*.xlsx {compare_info}")
         os.system(f"mv *.png {kegg_pathway_graph_dir}")
 
 
@@ -444,6 +471,8 @@ def parse_input():
     argparser.add_argument('--kegg-clean', dest="kegg_clean", required=True, type=str, help='[必须]输入 kegg 注释出来的 KEGG_clean 文件')
     argparser.add_argument('--draw-pathview', dest='draw_pathview', action='store_true',
                            help='[可选]draw pathview picture')
+    argparser.add_argument('--kogene-heatmap', dest='kogene_heatmap', action='store_true',
+                           help='[可选]draw kogene heatmap picture')
     argparser.add_argument('--expression', type=str,
                         help='[其他可选，转录组必须]输入表达量（fpkm_and_reads_matrix.txt）文件, 输出每个 ko_pathway 相关的基因表达量表')
     
@@ -457,6 +486,7 @@ def parse_input():
     group2 = argparser.add_argument_group('针对转录组的使用参数，如果跑转录组的项目，下面必须的参数必须输入')
     
     group2.add_argument('--deg-data-dir', dest='deg_data_dir', type=str, help='[必须]输入 DEG_data.txt 文件')
+    group2.add_argument('--enrich-dir', dest='enrich_dir', type=str, help='[必须]输入富集分析的文件夹')
     group2.add_argument('-s', '--samplesinfo', type=str, help='[必须]输入样品信息文件，如果有则添加到输出文件中')
     group2.add_argument('--output-dir', dest='output_dir', type=str, help='输出目录, 默认当前目录', default='.')
     
