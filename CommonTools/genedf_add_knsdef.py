@@ -32,7 +32,7 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
     传入表中必须包含 GeneID 列
     添加 NR_Def, Swiss_protein_ID, KEGG_ID, KEGG_Shortname, EC_number, KEGG_Description 列
     """
-    result_df = file_df
+    result_df = file_df.copy()
     source_shape = file_df.shape[0]
 
     if nr_file:
@@ -70,7 +70,8 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
         kns_df = pd.read_csv(kns_file, sep='\t', dtype={'GeneID': 'str'})
         result_df = pd.merge(left=result_df, right=kns_df, on='GeneID', how='left')
 
-    result_df.fillna(value='NA', inplace=True)
+    diff_col = list(set(result_df.columns) - set(file_df.columns))
+    result_df[diff_col] = result_df[diff_col].fillna(value='NA')
     result_shape = result_df.shape[0]
     
     if source_shape != result_shape:
