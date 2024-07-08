@@ -11,13 +11,81 @@ library(ggrepel)
 library(plyr)
 library(dplyr)
 library(tidyr)
-rm(list=ls())
+library(optparse)
+
+option_list <- list(
+  make_option(c("--fpkm"),
+    type = "character", default = "fpkm_matrix_filtered.txt",
+    help = "fpkm_matrix_filtered.txt", metavar = "character"
+  ),
+  make_option(c("--reads"),
+    type = "character", default = "reads_matrix_filtered.txt",
+    help = "提供 reads_matrix_filtered.txt 文件", metavar = "character"
+  ),
+  make_option(c("--samples"),
+    type = "character", default = "samples_described.txt",
+    help = "提供 samples_described.txt 文件", metavar = "integer"
+  ),
+  make_option(c("--compare"),
+    type = "character", default = "compare_info.txt",
+    help = "提供 compare_info.txt 文件", metavar = "character"
+  ),
+  make_option(c("--filtertype"),
+    type = "character", default = "padj",
+    help = "过滤类型，选择 padj 或者 pvalue，默认是 padj，如果差异太少，则可以尝试重新选择 padj", metavar = "character"
+  ),
+  make_option(c("--filtervalue"),
+    type = "double", default = 0.05,
+    help = "通常是 0.05 如果值太少，或者太多可以进行调整", metavar = "double"
+  ),
+  make_option(c("--outputdir"),
+    type = "character", default = "./",
+    help = "输出目录，默认当前目录", metavar = "character"
+  )
+)
+opt_parser <- OptionParser(option_list = option_list)
+opt <- parse_args(opt_parser)
+
+# Check that all required arguments are provided
+if (!file.exists(opt$fpkm)) {
+  print_help(opt_parser)
+  stop("请提供 fpkm_matrix_filtered.txt 文件", call. = FALSE)
+} else if (!file.exists(opt$reads)) {
+  print_help(opt_parser)
+  stop("请提供 reads_matrix_filtered.txt 文件", call. = FALSE)
+} else if (!file.exists(opt$samples)) {
+  print_help(opt_parser)
+  stop("请提供 samples_described.txt 文件", call. = FALSE)
+} else if (!file.exists(opt$compare)) {
+  print_help(opt_parser)
+  stop("请提供 compare_info.txt 文件", call. = FALSE)
+}
+
+# 处理输出文件夹
+if (!dir.exists(opt$outputdir)) {
+  dir.create(opt$outputdir)
+  cat("文件夹已创建：", opt$outputdir, "\n")
+} else {
+  cat("文件夹已存在，自动覆盖已有的文件：", opt$outputdir, "\n")
+}
+if (substr(opt$outputdir, nchar(opt$outputdir), nchar(opt$outputdir)) != "/") {
+  opt$outputdir <- paste0(opt$outputdir, "/")
+}
+
+# Assign the first argument to prefix
+fpkm_file <- opt$fpkm
+reads_file <- opt$reads
+samples_file <- opt$samples
+compare_file <- opt$compare
+filter_type <- opt$filtertype
+filter_value <- opt$filtervalue
+output_dir <- opt$outputdir
 
 # samples_file <- 'samples_described.txt'
 # comp_file <- 'compare_info.txt'
 # reads_file <- 'reads_matrix_filtered.txt'
 # fpkm_file <- 'fpkm_matrix_filtered.txt'
-draw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file) {
+draw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file, filter_type, filter_value, output_dir) {
   reads_data<-read.table(reads_file,sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F)
   reads_data<-na.omit(reads_data)
   comp_info<-read.table(comp_file,sep="\t",header=T,check.names=F,stringsAsFactors = F)
@@ -64,6 +132,7 @@ draw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file)
     
     volcano <- res
     volcano$padj <- ifelse(volcano$padj<0.000000000000001,0.000000000000001,volcano$padj)
+    volcano$pvalue <- ifelse(is.na(volcano$pvalue), 1, volcano$pvalue)
     #volcano$regulation = as.factor(ifelse(volcano$padj < 0.05 & abs(volcano$log2FoldChange) >= bs_pos, ifelse(volcano$log2FoldChange >=bs_pos ,'Up','Down'),'NoSignificant'))
     volcano$FC = 2^volcano$log2FoldChange
     fpkm.tmp <- fpkm.deg[rownames(volcano),]
@@ -72,10 +141,15 @@ draw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file)
     volcano <- cbind(as.data.frame(rownames(volcano)),volcano)
     colnames(volcano)[1] <- "GeneID"
     
+    if (filter_type == "padj") {
+      volcano_filter_col <- volcano$padj
+    } else {
+      volcano_filter_col <- volcano$pvalue
+    }
+
     result_numbers <- c()
     for (fc_num in deg_numbers) {
-      # 计算大于 fc 的基因数，padj < 0.05
-      gtfc_num <- nrow(volcano[abs(volcano$log2FoldChange) >= log2(fc_num) & volcano$padj < 0.05, ])
+      gtfc_num <- nrow(volcano[abs(volcano$log2FoldChange) >= log2(fc_num) & volcano_filter_col < filter_value, ])
       result_numbers <- c(result_numbers, gtfc_num)
     }
     new_row <- data.frame("group"=group_vs_group_name, "deg1"=result_numbers[1],
@@ -90,7 +164,7 @@ draw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file)
 
   row.names(deg_count_summary) <- deg_count_summary$group
   deg_count_summary$group <- NULL
-  write.table(deg_count_summary, 'all_deg_count_summary.txt', sep = '\t', quote = F, row.names = T, col.names = T)
+  write.table(deg_count_summary, paste0(output_dir, 'all_deg_count_summary.txt'), sep = '\t', quote = F, row.names = T, col.names = T)
 
   # 这里我们将行名转换为一个普通的列，假设行名代表样本名
   deg_count_summary <- data.frame(group = rownames(deg_count_summary), deg_count_summary)
@@ -131,6 +205,7 @@ draw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file)
   height <- 8.5
 
   # 保存图片
-  ggsave("deg_line_plot.jpeg", plot = p, width = width, height = height, dpi = 300)
+  ggsave(paste0(output_dir, "deg_line_plot.jpeg"), plot = p, width = width, height = height, dpi = 300)
 }
-draw_all_deg_summary('samples_described.txt', 'compare_info.txt', 'reads_matrix_filtered.txt', 'fpkm_matrix_filtered.txt')
+# draw_all_deg_summary('samples_described.txt', 'compare_info.txt', 'reads_matrix_filtered.txt', 'fpkm_matrix_filtered.txt')
+draw_all_deg_summary(samples_file, compare_file, reads_file, fpkm_file, filter_type, filter_value, output_dir)
