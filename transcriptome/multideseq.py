@@ -13,6 +13,7 @@ sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
 from genedf_add_knsdef import add_kns_def
+from check_SampDesAndCompInfo import check_sample_comp
 
 
 def parse_input():
@@ -25,6 +26,13 @@ def parse_input():
     parser.add_argument('--rlognum', type=float, help='输入 multipei sample deseq R 脚本输入参数')
     parser.add_argument('--genego', type=str, help='gene_go swiss 注释出来的文件')
     parser.add_argument('--keggclean', type=str, help='KEGG_clean.txt kegg 注释出来的文件')
+    
+    parser.add_argument('--samples', type=str, default='samples_described.txt', help='samples_described.txt')
+    parser.add_argument('--compare', type=str, default='compare_info.txt', help='compare_info.txt')
+    parser.add_argument('--fpkm', type=str, default='fpkm_matrix_filtered.txt', help='fpkm_matrix_filtered.txt')
+    parser.add_argument('--reads', type=str, default='reads_matrix_filtered.txt', help='reads_matrix_filtered.txt')
+    parser.add_argument('--filter-type', dest='filter_type', type=str, choices=['pvalue', 'padj'], default='padj')
+    parser.add_argument('--filter-value', dest='filter_value', type=str, choices=['pvalue', 'padj'], default='padj')
 
     args = parser.parse_args()
     
@@ -33,15 +41,36 @@ def parse_input():
     return args
 
 
-def transcriptome_r_deseq(work_dir, rlog_number):
+def transcriptome_r_deseq(work_dir, fpkm_file, reads_file, samples_file, compare_file, 
+                          filter_type, filter_value, deg_value, output_dir):
     os.chdir(work_dir)
-    logger.info(f"检测所需文件是否存在 'fpkm_matrix_filtered.txt', 'reads_matrix_filtered.txt', 'compare_info.txt', 'samples_described.txt'")
-    for f in ['fpkm_matrix_filtered.txt', 'reads_matrix_filtered.txt', 'compare_info.txt', 'samples_described.txt']:
-        if f not in os.listdir():
-            logger.critical(f'无法执行组间比较脚本，{f} 文件不存在')
-            sys.exit(1)
-    logger.info(f'运行 multiple_samples_DESeq2.r 脚本中，fc 值为 {rlog_number}')
-    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/multiple_samples_DESeq2.r {rlog_number}"
+    # samples_file = 'samples_described.txt'
+    # compare_file = 'compare_info.txt'
+    # fpkm_file = 'fpkm_matrix_filtered.txt'
+    # reads_file = 'reads_matrix_filtered.txt'
+    # logger.info(f"检测组间比较 R 脚本准备文件是否缺失")
+    # for f in [samples_file, compare_file, fpkm_file, reads_file]:
+    #     if f not in os.listdir():
+    #         logger.critical(f'无法执行组间比较脚本，{f} 文件不存在')
+    #         sys.exit(1)
+            
+    logger.info(f'检查 {samples_file} 和 {compare_file} 文件是否符合要求')
+    rep = check_sample_comp(samples_file, compare_file)
+    if rep == 1:
+        logger.critical(f'样本描述文件 {samples_file} 和比较文件 {compare_file} 不符合要求')
+        sys.exit(1)
+        
+    logger.info(f'运行 multiple_samples_DESeq2.r 脚本中，fc 值为 {deg_value}')
+    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/multiple_samples_DESeq2.r \
+        --degvalue {deg_value} \
+        --fpkm {fpkm_file} \
+        --reads {reads_file} \
+        --samples {samples_file} \
+        --compare {compare_file} \
+        --filtertype {filter_type} \
+        --filtervalue {filter_value} \
+        --degvalue {deg_value} \
+        --outputdir {output_dir}"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
         logger.error(f"multiple_samples_DESeq2 程序运行失败")
@@ -112,7 +141,8 @@ def main():
     
     # 运行 R 脚本
     if args.rlognum:
-        rep = transcriptome_r_deseq(args.workdir, args.rlognum)
+        rep = transcriptome_r_deseq(args.workdir, args.fpkm, args.reads, args.samples, args.compare, 
+                                    args.filter_type, args.filter_value, args.rlognum, args.workdir)
         if not rep:
             logger.critical(f'R 脚本运行失败')
             sys.exit(1)
