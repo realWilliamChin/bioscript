@@ -167,6 +167,7 @@ for (i in seq_along(1:nrow(comp_info))) {
   write.table(rnaseqMatrix, file = outfile.ma, sep = "	", quote = FALSE, row.names = F)
   volcano <- res
   volcano$padj <- ifelse(volcano$padj < 0.000000000000001, 0.000000000000001, volcano$padj)
+  volcano$pvalue <- ifelse(is.na(volcano$pvalue), 1, volcano$pvalue)
 
   if (filter_type == "padj") {
     volcano_filter_col <- volcano$padj
