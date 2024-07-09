@@ -110,7 +110,7 @@ def other(args):
         args.output_prefix, args.basicinfo
     )
     
-    ko_df = pd.read_csv(ko_file, sep='\t', names=['KEGG_ID'], dtype=str)
+    ko_df = pd.read_csv(ko_file, sep='\t', dtype=str)
     kegg_gene_def = pd.read_csv(kegg_gene_def_file, sep='\t', dtype=str)
     kegg_pathway_df = pd.read_csv(kegg_pathway_file, sep='\t', names=['GeneID', 'Ko'], dtype=str)
     kegg_pathway_df['KEGG_ID'] = kegg_pathway_df['Ko'].str.split(":").str[0]
