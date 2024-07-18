@@ -26,13 +26,15 @@ def parse_input():
     parser.add_argument('--rlognum', type=float, help='输入 multipei sample deseq R 脚本输入参数')
     parser.add_argument('--genego', type=str, help='gene_go swiss 注释出来的文件')
     parser.add_argument('--keggclean', type=str, help='KEGG_clean.txt kegg 注释出来的文件')
+    parser.add_argument('--degiddir', type=str, default='./DEG_analysis_results',
+                        help='默认 DEG_analysis_results 目录，读取所有 ID.txt 文件')
     
-    parser.add_argument('--samples', type=str, default='samples_described.txt', help='samples_described.txt')
-    parser.add_argument('--compare', type=str, default='compare_info.txt', help='compare_info.txt')
-    parser.add_argument('--fpkm', type=str, default='fpkm_matrix_filtered.txt', help='fpkm_matrix_filtered.txt')
-    parser.add_argument('--reads', type=str, default='reads_matrix_filtered.txt', help='reads_matrix_filtered.txt')
-    parser.add_argument('--filter-type', dest='filter_type', type=str, choices=['pvalue', 'padj'], default='padj')
-    parser.add_argument('--filter-value', dest='filter_value', type=str, choices=['pvalue', 'padj'], default='padj')
+    parser.add_argument('--samples', type=str, default='samples_described.txt', help='默认 samples_described.txt')
+    parser.add_argument('--compare', type=str, default='compare_info.txt', help='默认 compare_info.txt')
+    parser.add_argument('--fpkm', type=str, default='fpkm_matrix_filtered.txt', help='默认 fpkm_matrix_filtered.txt')
+    parser.add_argument('--reads', type=str, default='reads_matrix_filtered.txt', help='默认 reads_matrix_filtered.txt')
+    parser.add_argument('--filter-type', dest='filter_type', type=str, choices=['pvalue', 'padj'], default='padj' help='默认 padj')
+    parser.add_argument('--filter-value', dest='filter_value', type=float, default=0.05, help='默认 0.05')
 
     args = parser.parse_args()
     
@@ -81,15 +83,16 @@ def transcriptome_r_deseq(work_dir, fpkm_file, reads_file, samples_file, compare
         return True
 
 
-def transcriptome_enrich(work_dir, gene_go_file, kegg_clean_file):
+def transcriptome_enrich(work_dir, gene_go_file, kegg_clean_file, data_dir, compare_file):
     os.chdir(work_dir)
     logger.info(f'运行 enrich.r 脚本中...')
     cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/enrich.r \
         --genego {gene_go_file} \
-        --keggclean {kegg_clean_file}"
+        --keggclean {kegg_clean_file} \
+        --compare {compare_file}"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
-        logger.error(f"multiple_samples_DESeq2 程序运行失败")
+        logger.error(f"enrich.r 程序运行失败")
         logger.error(f"标准输出：{ret.stdout.decode()}")
         logger.error(f"标准错误: {ret.stderr.decode()}")
         return False
@@ -99,11 +102,11 @@ def transcriptome_enrich(work_dir, gene_go_file, kegg_clean_file):
 
 def transcriptome_enrich_distribution(work_dir):
     os.chdir(work_dir)
-    logger.info(f'运行 GO_enrich_distribution 脚本种')
-    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/Rscript/GO_enrich_distribution.r"
+    logger.info(f'运行 GO_enrich_distribution 脚本中')
+    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/GO_enrich_distribution.r"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
-        logger.error(f"multiple_samples_DESeq2 程序运行失败")
+        logger.error(f"GO_enrich_distribution.r 程序运行失败")
         logger.error(f"标准输出：{ret.stdout.decode()}")
         logger.error(f"标准错误: {ret.stderr.decode()}")
         return False
@@ -147,7 +150,7 @@ def main():
             logger.critical(f'R 脚本运行失败')
             sys.exit(1)
     if args.rlognum and args.genego and args.keggclean:
-        transcriptome_enrich(args.workdir, args.genego, args.keggclean)
+        transcriptome_enrich(args.workdir, args.genego, args.keggclean, args.degiddir, args.compare)
         transcriptome_enrich_distribution(os.path.join(args.workdir, 'Pathway_enrichment_analysis'))
         os.chdir(args.workdir)
     
@@ -168,6 +171,14 @@ def main():
             up_down_id_df = pd.read_csv(up_down_id_file, sep='\t', names=['GeneID'], dtype={"GeneID": str})
             result_df = add_kns_def(up_down_id_df, args.kegg, args.nr, args.swiss, args.kns)
             result_df.to_csv(up_down_id_file.replace('.txt', '_def.txt'), sep='\t', index=False)
+
+    png_file = 'deg_line_plot.jpeg'
+    count_summary_file = 'all_deg_count_summary.txt'
+    
+    if os.path.exists(png_file):
+        os.rename(png_file, os.path.join('Expression_data_evaluation', png_file))
+    if os.path.exists(count_summary_file):
+        os.rename(count_summary_file, os.path.join('Expression_data_evaluation', count_summary_file))
 
     logger.success('Done!')
 
