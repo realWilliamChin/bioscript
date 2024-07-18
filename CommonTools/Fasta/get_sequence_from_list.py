@@ -25,6 +25,7 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
     has_start_end = 'Start' in id_df.columns and 'End' in id_df.columns
     has_strand = 'Strand' in id_df.columns
     has_targetid = 'TargetGeneID' in id_df.columns
+    only_geneid = 'GeneID' in id_df.columns and 'TargetGeneID' not in id_df.columns and 'Start' not in id_df.columns and 'End' not in id_df.columns
     # 读取原始fasta文件并将序列存储到字典中
     fasta_sequences = {record.id: record for record in SeqIO.parse(fasta, 'fasta')}
 
@@ -47,25 +48,27 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
                     new_record = SeqRecord(sub_sequence, id=row['GeneID'], name='', description='')
                 sequences.append(new_record)
 
-        else:
+        elif only_geneid:
             if save_type == 'on':
                 if row['GeneID'] in fasta_sequences:
                     sequences.append(fasta_sequences[row['GeneID']])
             elif save_type == 'off':
                 if row['GeneID'] not in fasta_sequences:
                     sequences.append(fasta_sequences[row['GeneID']])
-            if has_targetid:
-                new_sequences = []
-                id_df = id_df.set_index('GeneID')
-                for seq in sequences:
-                    cur_seq_id = seq.id
-                    target_id = id_df.loc[cur_seq_id]['TargetGeneID']
-                    seq.id = target_id
-                    seq.name = ''
-                    seq.description = ''
-                    new_sequences.append(seq)
-                    SeqIO.write(new_sequences, output, 'fasta')
-                sys.exit(0)
+        elif has_targetid:
+                
+            # id_df = id_df.set_index('GeneID')
+            if row['GeneID'] in fasta_sequences:
+                new_record = SeqRecord(fasta_sequences[row['GeneID']].seq, id=row['TargetGeneID'], name='', description='')
+                # cur_seq_id = seq.id
+                # # target_id = id_df.loc[cur_seq_id]['TargetGeneID']
+                # target_id = id_df[id_df['GeneID'] == cur_seq_id]['TargetGeneID'].values[0]
+                # seq.id = target_id
+                # seq.name = ''
+                # seq.description = ''
+                sequences.append(new_record)
+            # SeqIO.write(new_sequences, output, 'fasta')
+            # sys.exit(0)
     SeqIO.write(sequences, output, 'fasta')
 
 
@@ -78,4 +81,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
