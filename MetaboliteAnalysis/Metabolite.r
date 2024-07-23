@@ -10,26 +10,29 @@ library(ropls)
 library(ggrepel)
 library(mixOmics)
 library(openxlsx)
+library(optparse)
 rm(list = ls())
 
-heatmap_plot <- function(data_frame, output_pic) {
-  # 常规使用 reads_data，z_score 使用 fpkm
-  # 化合物多于 100 的 ，show_rownames=F
-  if (nrow(data_frame) > 100) {
-    # all.heatmap<-pheatmap(reads_data,scale="row",cluster_cols=F,show_rownames=F, encoding = "UTF-8"
-    all.heatmap <- pheatmap(data_frame, show_rownames = F, encoding = "UTF-8")
-  } else {
-    all.heatmap <- pheatmap(data_frame, show_rownames = T, encoding = "UTF-8")
-    # all.heatmap<-pheatmap(reads_data,scale="row",cluster_cols=F,show_rownames=T, encoding = "UTF-8")
-  }
-  # ggsave(paste(output_dir, "All_metabolites_heatmap.jpeg", sep='/'),all.heatmap,dpi=300,width=20,height=10,limitsize=FALSE)
+
+heatmap_plot <- function(data_frame, output_pic, log2data = FALSE, log2pic_fname = NA, ...) {
+  data_frame <- data_frame[rowSums(data_frame != 0) > 0, ]
+  all.heatmap <- pheatmap(
+    data_frame,
+    show_rownames = nrow(data_frame) <= 100,
+    encoding = "UTF-8",
+    cluster_cols = FALSE,
+    scale = 'row',
+    ...
+  )
   ggsave(output_pic, all.heatmap, dpi = 300, width = 20, height = 10, limitsize = FALSE)
+
+  if (log2data) {
+    data_frame <- log2(data_frame + 1)
+    heatmap_plot(data_frame, log2pic_fname, log2data = FALSE, log2pic_fname = NA, ...)
+  }
 }
 
-
 correlation_plot <- function(data_frame, output_dir) {
-  # 使用 reads_data
-  # z_score 使用 fpkm
   data_frame <- na.omit(data_frame)
   data_frame <- data_frame + 0.000000001
   fpkm.m <- as.matrix(data_frame)
@@ -37,7 +40,6 @@ correlation_plot <- function(data_frame, output_dir) {
   correlation_df <- as.data.frame(fpkm.cor)
   correlation_df$ID <- rownames(correlation_df)
   correlation_df <- correlation_df[, c("ID", setdiff(names(correlation_df), "ID"))]
-  # write.table(correlation_df,"Metabolite_correlation.txt",sep="\t",quote=F,row.names=F)
   write.xlsx(correlation_df, paste(output_dir, "Metabolite_correlation.xlsx", sep = "/"), sheetName = "Sheet1", rowNames = FALSE)
   min(fpkm.cor)
   # 根据样本数量，设置图的大小
@@ -49,8 +51,7 @@ correlation_plot <- function(data_frame, output_dir) {
   dev.off()
 }
 
-
-pca_plot <- function(reads_data_frame = FALSE, fpkm_data_frame = FALSE, samples_file, output_dir) {
+pca_plot <- function(reads_data_frame = NA, fpkm_data_frame = NA, samples_file, output_dir) {
   if (is.data.frame(fpkm_data_frame)) {
     data_frame <- log2(fpkm_data_frame + 1)
   } else {
@@ -88,8 +89,7 @@ pca_plot <- function(reads_data_frame = FALSE, fpkm_data_frame = FALSE, samples_
   ggsave(paste(output_dir, "Metabolite_PCA_analysis.jpeg", sep = "/"), p, dpi = 300, width = 10, height = 10)
 }
 
-
-metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame = FALSE, definition_df = FALSE, output_dir) {
+metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame = NA, definition_df = NA, output_dir, log2data = FALSE) {
   # >>>>>> 多组分析中有多个组的
   # select_sample_info <- read.table("multigroup4_samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
   select_sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
@@ -104,12 +104,16 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
     metabolites <- as.matrix(fpkm_t)
   } else {
     select_reads <- reads_data_frame[, select_sample_info$sample, drop = FALSE]
+    select_reads <- select_reads[rowSums(select_reads != 0) > 0, ]
     reads_data_t <- t(select_reads)
     select_data_frame <- reads_data_frame[, select_sample_info$sample, drop = FALSE]
     metabolites <- as.matrix(reads_data_t)
   }
 
-  heatmap_plot(select_data_frame, paste0(output_dir, '/MultiGroup_Heatmap.jpeg'))
+  heatmap_plot(
+    select_data_frame, paste0(output_dir, '/MultiGroup_heatmap.jpeg'),
+    log2data = log2data ,log2pic_fname = paste0(output_dir, '/MultiGroup_log_heatmap.jpeg')
+    )
 
   # 如果代谢物的数量小于 10 用 4，10-20 用 6，20 以上用 10
   if (ncol(metabolites) < 10) {
@@ -120,7 +124,7 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
     ncomp <- 10
   }
 
-  df_plsda <- plsda(metabolites, groups, ncomp = ncomp)
+  df_plsda <- plsda(metabolites, groups, ncomp = 8)
 
   # scree plot
   scree_df <- as.data.frame(df_plsda$prop_expl_var$X)
@@ -138,7 +142,6 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
     geom_line(aes(group = 1), color = "red") +
     geom_point()
 
-  # ggsave(paste0(multigroup_dir, '/Metabolite_quantitation_scree_plot.jpeg'), scree_plot, width = ncomp * 0.7, height = 4)
   ggsave(paste0(output_dir, "/Metabolite_quantitation_scree_plot.jpeg"), scree_plot, width = ncomp * 0.7, height = 4)
 
   comp_load_df <- as.data.frame(df_plsda$loadings$X)
@@ -210,9 +213,6 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
   vip_values <- plsda_model@vipVn
   df.vip <- as.data.frame(vip_values)
 
-  # 整个多组
-  # reads_data_with_def <- cbind(reads_data_frame, VIP = df.vip$vip_values)
-  # 多个多组
   reads_data_with_def <- cbind(select_data_frame, VIP = df.vip$vip_values)
 
   reads_data_with_def$Metabolite <- rownames(reads_data_with_def)
@@ -243,8 +243,7 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
 }
 
 
-zujianfenxi <- function(compare_file, samples_file, reads_data_frame=FALSE, 
-                        fpkm_data_frame=FALSE, definition_df=FALSE, output_dir) {
+zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_frame=NA, definition_df=NA, output_dir, log2data=FALSE) {
   sample_info <- read.table(
     samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
   comp_info <- read.table(
@@ -278,10 +277,15 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame=FALSE,
     current_samples <- sample_info$sample[sample_info$group %in% groups]
 
     if (is.data.frame(fpkm_data_frame)) {
+      
       current_expression_fpkm_data <- fpkm[, current_samples, drop = FALSE]
+      rows_to_remove <- apply(current_expression_fpkm_data, 1, function(row) all(row == 0))
+      current_expression_fpkm_data <- current_expression_fpkm_data[!rows_to_remove, ]
     }
     current_expression_data <- reads_data_frame[, current_samples, drop = FALSE]
-
+    rows_to_remove <- apply(current_expression_data, 1, function(row) all(row == 0))
+    current_expression_data <- current_expression_data[!rows_to_remove, ]
+    
     # p_value_current_expression_data <- reads_data[, current_samples, drop = FALSE]
     # 检查因变量的水平数量
     y_factor <- factor(sample_info$group[sample_info$sample %in% current_samples])
@@ -325,11 +329,14 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame=FALSE,
       }
     )
 
+    
     # 组间 heatmap 图
     if (is.data.frame(fpkm_data_frame)) {
-      heatmap_plot(current_expression_fpkm_data, paste0(compare_path, "/", compare_name, "_heatmap.jpeg"))
+      heatmap_plot(current_expression_fpkm_data, paste0(compare_path, "/", compare_name, "_heatmap.jpeg"),
+      log2data = log2data, log2pic_fname = paste0(compare_path, "/", compare_name, "_log_heatmap.jpeg"))
     } else {
-      heatmap_plot(current_expression_data, paste0(compare_path, "/", compare_name, "_heatmap.jpeg"))
+      heatmap_plot(current_expression_data, paste0(compare_path, "/", compare_name, "_heatmap.jpeg"),
+      log2data = log2data, log2pic_fname = paste0(compare_path, "/", compare_name, "_log_heatmap.jpeg"))
     }
 
 
@@ -407,12 +414,7 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame=FALSE,
       # 检查模型是否有效
       if (inherits(opls_model, "opls")) {
         png(file_name)
-        try(
-          {
-            plot(opls_model, typeVc = plot_type)
-          },
-          silent = TRUE
-        )
+        try({plot(opls_model, typeVc = plot_type)},silent = TRUE)
         dev.off() # 确保关闭图形设备
       }
     }
@@ -448,59 +450,66 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame=FALSE,
   }
 }
 
+
+# =========== READ DATA =============
+
 zhengtifenxi_dir <- "03_代谢物整体分析/"
 chayifenxi_dir <- "04_代谢物差异分析/"
+zujianfenxi_dir <- paste(chayifenxi_dir, "组间分析", sep = "")
 
 dir.create("00_Background_materials")
 dir.create("01_原始质谱数据")
 dir.create("02_代谢物定量图数据")
 dir.create(zhengtifenxi_dir)
 dir.create(chayifenxi_dir)
+dir.create(zujianfenxi_dir)
 
 # 读取文件
-# reads_data<-read.table("All_sample_data.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F)
 reads_data <- read.xlsx("All_sample_data.xlsx", sheet = 1, rowNames = TRUE)
 sample_info <- read.table("samples_described.txt", sep = "\t", header = T, check.names = F, stringsAsFactors = F)
 
 # 按照 sample 样本列进行排序
 reads_data <- reads_data[sample_info$sample]
-# 数据预处理
 reads_data <- reads_data[rowSums(reads_data != 0) > 0, ]
 # 清理每个元素头尾的空格
 # reads_data <- apply(reads_data, 2, function(x) trimws(x, which = c("both")))
-# 检查是否油 NA，油则退出
 if (any(is.na(reads_data))) {
   print("检查数据，有 NA")
   quit()
 }
 # 如果需要合并定义则读取单独定义文件，没有则跳过
-# definition_df<-read.table("def.txt",sep="\t",row.names=1,header=T,check.names=F,stringsAsFactors = F,quote="")
 if (file.exists("Compound_def.xlsx")) {
   definition_df <- read.xlsx("Compound_def.xlsx", sheet = 1, rowNames = TRUE)
   definition_df$Metabolite <- rownames(definition_df)
 }
 
+# ============ RUN ================
+# definition_df = NA 或者 definition_df = definition_df
+# 整体分析
+zhengtifenxi_heatmap_pic_name <- paste(zhengtifenxi_dir, "All_metabolites_heatmap.jpeg", sep = "/")
+zhengtifenxi_log2heatmap_pic_name <- paste(zhengtifenxi_dir, "All_metabolites_log_heatmap.jpeg", sep = "/")
+heatmap_plot(reads_data, zhengtifenxi_heatmap_pic_name, log2data=FALSE, log2pic_fname=zhengtifenxi_log2heatmap_pic_name)
+correlation_plot(reads_data, zhengtifenxi_dir)
+pca_plot(reads_data_frame = reads_data, samples_file = "samples_described.txt", output_dir = zhengtifenxi_dir)
+# 多组分析
+multigroup_dir <- paste(chayifenxi_dir, "多组分析", sep = "/")
+dir.create(multigroup_dir)
+metabolite_analysis(samples_file="samples_described.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
+# 组间分析
+zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described.txt",
+            reads_data_frame = reads_data, fpkm_data_frame = FALSE,
+            definition_df=definition_df, output_dir = zujianfenxi_dir, log2data=FALSE)
+
+
+# ========== z-score RUN ============
 fpkm <- as.data.frame(t(apply(reads_data, 1, function(x) {
   (x - mean(x)) / (sd(x)**0.5)
 })))
-
-multigroup_dir <- paste(chayifenxi_dir, "多组分析2", sep = "/")
-dir.create(multigroup_dir)
-
-# 指定组间分析
-zujianfenxi_dir <- paste(chayifenxi_dir, "组间分析", sep = "")
-dir.create(zujianfenxi_dir)
-
-heatmap_plot(reads_data, paste(zhengtifenxi_dir, "All_metabolites_heatmap.jpeg", sep = "/"))
-correlation_plot(reads_data, zhengtifenxi_dir)
-pca_plot(reads_data_frame = reads_data, samples_file = "samples_described.txt", output_dir = zhengtifenxi_dir)
-metabolite_analysis(samples_file = "samples_described_multigroup1.txt", reads_data, definition_df = FALSE, output_dir = multigroup_dir)
-zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described.txt",
-            reads_data_frame = reads_data, fpkm_data_frame = FALSE,
-            definition_df=FALSE, output_dir = zujianfenxi_dir)
-
-heatmap_plot(data_frame = fpkm, output_pic = paste(zhengtifenxi_dir, "All_metabolites_heatmap.jpeg", sep = "/"))
+heatmap_plot(data_frame = fpkm, output_pic = paste(zhengtifenxi_dir, "All_metabolites_heatmap.jpeg", sep = "/"),log2data = FALSE)
 correlation_plot(data_frame = fpkm, output_dir = zhengtifenxi_dir)
-pca_plot(reads_data_frame = FALSE, fpkm_data_frame = fpkm, samples_file = "samples_described_multigroup3.txt", output_dir = zhengtifenxi_dir)
-metabolite_analysis(samples_file = "samples_described_multigroup3.txt", reads_data_frame = FALSE, fpkm_data_frame = fpkm, definition_df = definition_df, output_dir = multigroup_dir)
-zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described_multigroup3.txt", reads_data_frame = FALSE, fpkm_data_frame = fpkm, output_dir = zujianfenxi_dir)
+pca_plot(reads_data_frame = FALSE, fpkm_data_frame = fpkm, samples_file = "samples_described.txt", output_dir = zhengtifenxi_dir)
+# 多组分析
+multigroup_dir <- paste(chayifenxi_dir, "多组分析", sep = "/")
+dir.create(multigroup_dir)
+metabolite_analysis(samples_file="samples_described.txt", reads_data_frame=NA, fpkm_data_frame=fpkm, definition_df=definition_df, output_dir = multigroup_dir)
+zujianfenxi(compare_file="compare_info.txt", samples_file="samples_described.txt", reads_data_frame=reads_data, fpkm_data_frame=fpkm, output_dir=zujianfenxi_dir, log2data=FALSE)
