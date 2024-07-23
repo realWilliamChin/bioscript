@@ -15,7 +15,7 @@ sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
 from Rscript import draw_multigroup_heatmap
 from Rscript import draw_twogroup_heatmap
 from Rscript import draw_pathview
-from Rscript import anova_analysis
+# from Rscript import anova_analysis
 
 if sys.version_info < (3, 10):
     logger.critical("Python 版本低于 3.10，请使用 conda 激活 python310 环境运行程序！")
@@ -248,8 +248,8 @@ def transcriptome_each_ko_gene_heatmap(kegg_id_list, kegg_clean_file, expression
         kegg_pic_dir = os.path.join(crt_kegg_id_dir, 'KEGG_pathway_heatmap')
         if not os.path.exists(kegg_pic_dir):
             os.mkdir(kegg_pic_dir)
-        logger.info(f'正在对 {each_kegg_id} 的相关基因画 heatmap 图')
         each_kegg_id_df = kegg_pathway_df[kegg_pathway_df['KEGG_ID'] == each_kegg_id]
+        logger.info(f'尝试对 {each_kegg_id} 的相关基因画 heatmap 图，数量为 {each_kegg_id_df.shape[0]}')
         
         # kegg 相关的 id 小于 3 个就跳过 (2024_06_14:张老师：从 10 改为 3)
         if each_kegg_id_df.shape[0] < 3:
@@ -266,13 +266,13 @@ def transcriptome_each_ko_gene_heatmap(kegg_id_list, kegg_clean_file, expression
         # anova 计算输入文件
         anova_file_name = f'{crt_kegg_id_dir}/{each_kegg_id}_gene_anova_p.txt'
         each_kegg_id_gene_fpkm_df[samples_list].to_csv(anova_file_name, sep='\t', index=False)
-        anova_result = anova_analysis(anova_file_name, samples_file, anova_file_name)
-        if not anova_result:
-            logger.error(f'{each_kegg_id} anova 计算结果失败，跳过执行 multigroup heatmap')
-            continue
+        #anova_result = anova_analysis(anova_file_name, samples_file, anova_file_name)
+        #if not anova_result:
+        #    logger.error(f'{each_kegg_id} anova 计算结果失败，跳过执行 multigroup heatmap')
+        #    continue
         each_kegg_id_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t')
         # each_kegg_id_gene_fpkm_df = each_kegg_id_gene_fpkm_df[each_kegg_id_gene_fpkm_df['p_value'] <= 0.05]
-        each_kegg_id_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
+        #each_kegg_id_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
         
         # 2024_06_14 张老师：注释掉这个，不需要过滤 p 值
         # kegg 相关的 id 小于 10 个就跳过
@@ -366,7 +366,7 @@ def transcriptome(args):
         control_group_samples_name = samples_described_df[samples_described_df['group'].isin([control_group,])]['sample'].to_list()
         logger.debug(f"crt_group_samples: {crt_group_samples}")
         
-        heatmap_sheet2_df = pd.DataFrame(columns=['samples', 'group', 'colors'])
+        heatmap_sheet2_samplegroupcolor_df = pd.DataFrame(columns=['samples', 'group', 'colors'])
         for each_sample in crt_group_samples:
             if each_sample in treat_group_samples_name:
                 group = treat_group
@@ -376,21 +376,23 @@ def transcriptome(args):
                 color = args.control_color
             row_data = {'samples': each_sample, 'group': group, 'colors': color}
             row_df = pd.DataFrame([row_data])
-            heatmap_sheet2_df = pd.concat([heatmap_sheet2_df, row_df], ignore_index=True)
+            heatmap_sheet2_samplegroupcolor_df = pd.concat([heatmap_sheet2_samplegroupcolor_df, row_df], ignore_index=True)
             # heatmap_sheet2_df = heatmap_sheet2_df.append({'samples': each_sample, 'group': group, 'colors': color}, ignore_index=True)
 
         for ko_number in ko_list:
-            ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['Ko'].str.contains(ko_number)]['GeneID'])]
-            
+            ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['Ko'].str.contains(ko_number)]['GeneID'])].copy()
             if ko_num_fpkm_expr_df.shape[0] == 0:
                 logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表为空")
                 continue
+            # 去除掉除 GeneID 列之外全为空的行
+            ko_num_fpkm_expr_df.dropna(subset=crt_group_samples, how='all', inplace=True)
+            ko_num_fpkm_expr_df = ko_num_fpkm_expr_df.loc[~(ko_num_fpkm_expr_df[crt_group_samples] == 0).all(axis=1)]
             
             ko_num_fpkm_expr_df_file = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_fpkm_expression.xlsx")
             ko_num_fpkm_expr_pic_name = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_heatmap.jpeg")
             with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
                 ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
-                heatmap_sheet2_df.to_excel(writer, index=False, sheet_name='Sheet2')
+                heatmap_sheet2_samplegroupcolor_df.to_excel(writer, index=False, sheet_name='Sheet2')
             if ko_num_fpkm_expr_df.shape[0] > 1:
                 logger.info(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
                 draw_twogroup_heatmap(ko_num_fpkm_expr_df_file, ko_num_fpkm_expr_pic_name)
