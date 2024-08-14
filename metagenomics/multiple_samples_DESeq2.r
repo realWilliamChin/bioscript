@@ -51,7 +51,7 @@ dir.create(exp_evaluation_dir)
 
 
 table_type <- opt$tableType
-fpkm_file <- paste0(table_type, "_Summary_count.txt")
+fpkm_file <- paste0(table_type, "_relative_abundance.txt")
 reads_file <- paste0(table_type, ".txt")
 
 read.table(fpkm_file,sep="\t",header=T,row.names=1,check.names=F)->fpkm
@@ -120,7 +120,7 @@ for(i in seq_along(1:nrow(comp_info))){
   outfile.ma=paste0(group_vs_group_name,"_DE_results_readCounts.matrix")
   rnaseqMatrix<-cbind(as.data.frame(rownames(rnaseqMatrix)),rnaseqMatrix)
   colnames(rnaseqMatrix)[1]<-table_type
-  write.table(rnaseqMatrix, file=outfile.ma, sep='	', quote=FALSE,row.names=F)
+  write.table(rnaseqMatrix, file=outfile.ma, sep='	', quote=FALSE,row.names=F) 
   
   volcano<-res
   volcano$padj<-ifelse(volcano$padj<0.000000000000001,0.000000000000001,volcano$padj)
@@ -180,7 +180,7 @@ p<-ggplot(data.m,aes(x=sample,y=log2(fpkm),fill=sample))+
   theme(axis.title.x=element_text(size=20),axis.title.y=element_text(size=20),axis.text.x=element_text(size=rel(1.5),angle=90,hjus=1,vjust=.5))
 
 # boxplot 根据样本数量调整宽度
-boxplot_width <- (length(unique(data.m$sample)) - 1) / 2
+boxplot_width <- (length(unique(data.m$sample)) - 1) / 2 + 3
 ggsave(filename="Expression_data_evaluation/RA_boxplot.jpeg",plot=p,height=10,width=boxplot_width,dpi=300)
 d<-ggplot(data.m,aes(x=log10(fpkm),col=sample))+geom_density(aes(fill=sample),colour=NA,alpha=.2)+geom_line(stat="density",size=1.5)+xlab("log2(Relative_Abundance)")+theme_base()+theme(axis.title.x=element_text(size=20),axis.title.y=element_text(size=20),axis.text.x=element_text(size=rel(3)),axis.text.y=element_text(size=rel(3)))
 ggsave(filename="Expression_data_evaluation/RA_density.jpeg",plot=d,height=10,width=16.8,dpi=300)
