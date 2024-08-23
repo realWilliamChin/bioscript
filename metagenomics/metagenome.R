@@ -1,8 +1,14 @@
 #setwd("/home/colddata/qinqiang/Project/2024_01_24_songqian_hongjiyinzu/2024_03_11/group1/R")
-#dir()
 library(openxlsx)
 library(vegan)
 rm(list=ls())
+
+Alpha_analysis_dir = '01_Alpha_analysis/'
+Beta_analysis_dir = '02_Beta_analysis/'
+Classification_dir = '03_Classification_Distribution/'
+dir.create(Alpha_analysis_dir)
+dir.create(Beta_analysis_dir)
+dir.create(Classification_dir)
 
 convert_to_numeric <- function(df) {
   # 遍历DataFrame的每一列
@@ -103,7 +109,7 @@ for (i in 1:nrow(comp_info)) {
     paired_boxplot<-ggplot(alpha_box,aes(x=group,y=alpha_box[,1],fill=group))+geom_boxplot()+ylab(colnames(alpha_box)[1])+
       theme_base()+ggtitle(paste("P=",round(p.wilcox$p.value,digits=2),sep=""))+
       theme(plot.title=element_text(hjust=0.5,vjust=-6))
-    paired_outfile<-paste0(comp_info[i,1],"_vs_",comp_info[i,2],"_",colnames(alpha_box)[1],".jpeg")
+    paired_outfile<-paste0(Alpha_analysis_dir, comp_info[i,1],"_vs_",comp_info[i,2],"_",colnames(alpha_box)[1],".jpeg")
     ggsave(paired_outfile,paired_boxplot,dpi=300)
     p.paired<-c(p.paired,round(p.wilcox$p.value,digits=2))
     
@@ -118,7 +124,7 @@ rownames(p_paired_df)<-colnames(diversity_paired)[1:(ncol(diversity_paired)-1)]
 #write.xlsx(p_paired_df,"alpha_paired_p.xlsx",rowNames=T)
 #######将alpha指数及组与组之间的alpha指数比较结果输出到同一个excel文件
 alpha_list<-list("Sheet1"=diversity_indices,"alpha_paired_p"=p_paired_df)
-write.xlsx(alpha_list,"alpha_index_p.xlsx",rowNames=T)
+write.xlsx(alpha_list,paste0(Alpha_analysis_dir,"alpha_index_p.xlsx"),rowNames=T)
 #########################PCA 分析############################
 head(data)
 dim(data)
@@ -154,7 +160,7 @@ library(ggrepel)
 #group
 p<-p+geom_text_repel(data=pca_sample,aes(Dim.1, Dim.2, label=rownames(pca_sample)))
 p
-ggsave("PCA.jpeg",p,dpi=300,width=10,height=10)
+ggsave(paste0(Beta_analysis_dir, "PCA.jpeg"),p,dpi=300,width=10,height=10)
 #############################beta 多样性分析###################################
 library(FactoMineR)
 library(ggrepel)
@@ -162,10 +168,10 @@ library(plyr)
 library(ggthemes)
 library(vegan)
 distance <- vegdist(pca_data, method = 'bray')
-head(distance)
+#head(distance)
 dist.df<-as.data.frame(as.matrix(distance))
 head(dist.df)
-write.xlsx(dist.df,file = "bray_curtis_dist.xlsx",rowNames=T)
+write.xlsx(dist.df,file = paste0(Beta_analysis_dir, "bray_curtis_dist.xlsx"),rowNames=T)
 head(dist.df)
 pcoa <- cmdscale(distance, k = (nrow(pca_data) - 1), eig = TRUE)
 plot_data <- data.frame({pcoa$point})[1:2]
@@ -191,7 +197,7 @@ p.PCoA <- ggplot(data = plot_data, aes(x=PCoA1, y=PCoA2)) +
   labs(x=paste("PCoA 1 (", format(100 * eig[1] / sum(eig), digits=4), "%)", sep=""),
        y=paste("PCoA 2 (", format(100 * eig[2] / sum(eig), digits=4), "%)", sep=""))
 p.PCoA
-ggsave("Species_PCoA.jpeg",p.PCoA,dpi=320,height = 10,width=10)
+ggsave(paste0(Beta_analysis_dir,"Species_PCoA.jpeg"),p.PCoA,dpi=320,height = 10,width=10)
 #######################################
 ###############################NMDS 分析###############################
 df_nmds <- metaMDS(distance, k = 2)
@@ -236,21 +242,21 @@ p.NMDS<-ggplot(data=df_points,aes(x=NMDS1,y=NMDS2))+#指定数据、X轴、Y轴�
 
 p.NMDS
 
-ggsave("Species_NMDS.jpeg",p.NMDS,dpi=320,height = 10,width=10)
+ggsave(paste0(Beta_analysis_dir, "Species_NMDS.jpeg"),p.NMDS,dpi=320,height = 10,width=10)
 
 ##########################Anosim分析
 veg.dist<-distance
 group
 class(veg.dist)
-head(veg.dist)
+#head(veg.dist)
 species.ano<-anosim(veg.dist,grouping = group$group)
 print(species.ano)
 summary(species.ano)
-plot(species.ano)
-png(file="Anosim.png",width = 800,height = 800,res=100)
+plot(species.ano, xlab='Group', ylab='Rank of Distances')
+png(file=paste0(Beta_analysis_dir,"Anosim.png"),width = 800,height = 800,res=100)
 plot(species.ano)
 dev.off()
-ggsave("Anosim.jpeg",p.anosim)
+#ggsave(paste0(Beta_analysis_dir,"Anosim.jpeg"),p.anosim)
 
 #################################Adonis 非参数多元方差分析（PERMANOVA）
 
@@ -264,7 +270,7 @@ print(Adonis.result)
 p.PCoA.Adonis<-p.PCoA+ggtitle(paste("PCoA based on Bray-Curtis Distance", "\nAdonis: R2 =",
                      round(Adonis.result$R2[1], 2), "p =", Adonis.result$'Pr(>F)'[1]))
 
-ggsave("Species_PCoA_Adonis.jpeg",p.PCoA.Adonis,dpi=320,height = 10,width=10)
+ggsave(paste0(Beta_analysis_dir, "Species_PCoA_Adonis.jpeg"),p.PCoA.Adonis,dpi=320,height = 10,width=10)
 ########################堆积条形图######################
 ######################Phylum#################
 library(reshape2)
@@ -272,7 +278,7 @@ phylum_prop<-read.table("Phylum_Top15.txt",header=T,check.names=F,stringsAsFacto
 phylum_prop<-phylum_prop[,-ncol(phylum_prop)]
 colnames(phylum_prop)[1]<-"Phylum"
 colnames(phylum_prop)
-phylum_prop$Phylum<-('k__Bacteria\\|','',phylum_prop$Phylum)
+#phylum_prop$Phylum<-('k__Bacteria\\|','',phylum_prop$Phylum)
 head(phylum_prop)
 phylum_prop$Phylum <- factor(phylum_prop$Phylum, levels = rev(phylum_prop$Phylum))
 phylum_prop[2]
@@ -291,7 +297,7 @@ phylum_prop.plot<-ggplot(phylum_prop.melt, aes(x = variable, y = value)) +
                                "#CC99FF", "#FFFF66", "#CCE5FF", "#FF6666", "#FFCC66",
                                "#66FFCC", "#CC99CC", "#FF9966", "#99CCFF", "#CCCCFF",
                                "#B3E6B3"))
-ggsave("phylum_distribution.jpeg",phylum_prop.plot,dpi=320,width=30,height=20)
+ggsave(paste0(Classification_dir,"phylum_distribution.jpeg"),phylum_prop.plot,dpi=320,width=30,height=20)
 #############################Class#######################
 class_prop<-read.table("Class_Top15.txt",header=T,check.names=F,stringsAsFactors = F)
 class_prop<-class_prop[,-ncol(class_prop)]
@@ -316,7 +322,7 @@ class_prop.plot<-ggplot(class_prop.melt, aes(x = variable, y = value)) +
                                "#CC99FF", "#FFFF66", "#CCE5FF", "#FF6666", "#FFCC66",
                                "#66FFCC", "#CC99CC", "#FF9966", "#99CCFF", "#CCCCFF",
                                "#B3E6B3"))
-ggsave("class_distribution.jpeg",class_prop.plot,dpi=320,width=30,height=20)
+ggsave(paste0(Classification_dir, "class_distribution.jpeg"),class_prop.plot,dpi=320,width=30,height=20)
 ##########################################order##################################
 order_prop<-read.table("Order_Top15.txt",header=T,check.names=F,stringsAsFactors = F)
 order_prop<-order_prop[,-ncol(order_prop)]
@@ -341,7 +347,7 @@ order_prop.plot<-ggplot(order_prop.melt, aes(x = variable, y = value)) +
                                "#CC99FF", "#FFFF66", "#CCE5FF", "#FF6666", "#FFCC66",
                                "#66FFCC", "#CC99CC", "#FF9966", "#99CCFF", "#CCCCFF",
                                "#B3E6B3"))
-ggsave("order_distribution.jpeg",order_prop.plot,dpi=320,width=30,height=20)
+ggsave(paste0(Classification_dir, "order_distribution.jpeg"),order_prop.plot,dpi=320,width=30,height=20)
 ########################################family################################
 family_prop<-read.table("Family_Top15.txt",header=T,check.names=F,stringsAsFactors = F)
 family_prop<-family_prop[,-ncol(family_prop)]
@@ -366,7 +372,7 @@ family_prop.plot<-ggplot(family_prop.melt, aes(x = variable, y = value)) +
                                "#CC99FF", "#FFFF66", "#CCE5FF", "#FF6666", "#FFCC66",
                                "#66FFCC", "#CC99CC", "#FF9966", "#99CCFF", "#CCCCFF",
                                "#B3E6B3"))
-ggsave("family_distribution.jpeg",family_prop.plot,dpi=320,width=30,height=20)
+ggsave(paste0(Classification_dir, "family_distribution.jpeg"),family_prop.plot,dpi=320,width=30,height=20)
 
 #######################################genus#################################
 genus_prop<-read.table("Genus_Top15.txt",header=T,check.names=F,stringsAsFactors = F)
@@ -392,7 +398,7 @@ genus_prop.plot<-ggplot(genus_prop.melt, aes(x = variable, y = value)) +
                                "#CC99FF", "#FFFF66", "#CCE5FF", "#FF6666", "#FFCC66",
                                "#66FFCC", "#CC99CC", "#FF9966", "#99CCFF", "#CCCCFF",
                                "#B3E6B3"))
-ggsave("genus_distribution.jpeg",genus_prop.plot,dpi=320,width=30,height=20)
+ggsave(paste0(Classification_dir, "genus_distribution.jpeg"),genus_prop.plot,dpi=320,width=30,height=20)
 ###################################species#################################
 species_prop<-read.table("Species_Top15.txt",header=T,check.names=F,stringsAsFactors = F)
 species_prop<-species_prop[,-ncol(species_prop)]
@@ -417,35 +423,4 @@ species_prop.plot<-ggplot(species_prop.melt, aes(x = variable, y = value)) +
                                "#CC99FF", "#FFFF66", "#CCE5FF", "#FF6666", "#FFCC66",
                                "#66FFCC", "#CC99CC", "#FF9966", "#99CCFF", "#CCCCFF",
                                "#B3E6B3"))
-ggsave("species_distribution.jpeg",species_prop.plot,dpi=320,width=30,height=20)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ggsave(paste0(Classification_dir, "species_distribution.jpeg"),species_prop.plot,dpi=320,width=30,height=20)
