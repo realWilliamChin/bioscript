@@ -48,14 +48,23 @@ class EmailReceiver:
 
     def receive_mail(self, user, pswd):
         server = poplib.POP3(self.server, self.port)
-        try:
-            server.user(user)
-            server.pass_(pswd)
-            resp, mails, octets = server.list()
-            if len(mails) == 0:
-                raise RuntimeError('No mail found from eamil address!')
-        except Exception as e:
-            raise RuntimeError(f'Error message: {e}')
+        max_retry = 0
+        while True:
+            try:
+                server.user(user)
+                server.pass_(pswd)
+                resp, mails, octets = server.list()
+                if len(mails) == 0:
+                    raise RuntimeError('No mail found from eamil address!')
+                break
+            except Exception as e:
+                if max_retry <= 3:
+                    logger.warning(f'获取邮件错误，10s 后尝试重新获取')
+                    time.sleep(10)
+                    max_retry += 1
+                else:
+                    logger.critical(f'尝试 3 次失败')
+                    raise RuntimeError(f'Error message: {e}')
         
         # 从最近 3 封或 5 封邮件选取 @genome 的邮件，以防收取到其他邮件
         msg = None
@@ -295,10 +304,10 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
     # 校验是否同一个任务
     if job_ID != status_ID:
         logger.error('request_ID and status_ID are not the same!')
-    logger.info('Job is running wait for 5 minutes ...')
-    time.sleep(5*60)
+    logger.info('Job is running wait for 10 minutes ...')
+    time.sleep(10*60)
     
-    for t in range(1, 360):
+    for t in range(1, 60):
         mail_content = mail.receive_mail(username, password)
         
         if 'Annotation was completed' in mail_content['subject'] and 'kaas@genome.jp' in mail_content['from']:
@@ -330,12 +339,11 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
             
             break
         elif mail_content['date'] == mail_date:
-            if str(t / 5).split('.')[-1] == '0':
-                logger.info(f'Job is running, Have been waiting {t+5} minutes ...')
-            elif t == 360:
+            logger.info(f'Job is running, checked email {t} times(5mis) ...')
+            if t == 60:
                 logger.error(f'Job maybe error, Have been waiting 360 minutes ...')
                 sys.exit(1)
-            time.sleep(60)
+            time.sleep(300)
             t += 1
         else:
             logger.critical(f'Job Failed!\n{mail_content}')
@@ -441,19 +449,18 @@ def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads):
         ko03000_fpkm_reads_df.to_csv(key_name + '_ko03000_expression_data_def.txt', sep='\t', index=False)
 
 
+def split_fasta(fasta_file, split_parts: int):
+    split_cmd = f'seqkit split -p {split_parts} {fasta_file}'
+    logger.info(f'运行命令 {split_cmd}')
+    os.system(split_cmd)
+
+
 def parse_input():
     parser = argparse.ArgumentParser(description='kegg annotation，一次只能注释一个任务，除非添加其他邮箱')
     parser.add_argument('-f', '--fasta', help='输入 fasta file')
     parser.add_argument('-k', '--keg', type=str, help='指定 keg 文件')
     parser.add_argument('-l', '--org_lst', help='指定物种列表，以 ", " 分隔')
-    parser.add_argument('-u', '--username', default='dagongrenyyds@163.com',
-                        help='【默认就行】输入163邮箱用户名')
-    parser.add_argument('-p', '--password', default='IFBWCQOBTEOXODTK',
-                        help='【默认就行】输入163邮箱密码，密码非常规密码，查看获取方法 https://m.jqjq.net/jiqiao/108147.html')
-    parser.add_argument('-m', '--mail_type', default='163', choices=['163', 'qq'],
-                        help='【默认就行】输入邮箱类型 163 or qq，目前只支持 163 邮箱')
-    
-    
+    parser.add_argument('-s', '--split', type=int, help='切割 fasta 文件，如果太大的话')
     parser.add_argument('-t', '--type', type=str, help='指定物种类型，植物=plant, 动物=animal')
     parser.add_argument('--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
     
@@ -462,6 +469,14 @@ def parse_input():
                         help='指定 fpkm 文件, 用于对 ko03000 添加表达量生成新文件，如果不指定，则不生成 ko03000_expression_data 文件')
     parser.add_argument('--reads', type=str,
                         help='指定 reads 文件, 用于对 ko03000 添加表达量生成新文件, 如果指定需要 fpkm 和 reads 都存在')
+    
+    account_parser = parser.add_argument_group("其他邮箱账号参数")
+    account_parser.add_argument('-u', '--username', default='dagongrenyyds@163.com',
+                        help='【默认就行】输入163邮箱用户名')
+    account_parser.add_argument('-p', '--password', default='IFBWCQOBTEOXODTK',
+                        help='【默认就行】输入163邮箱密码，密码非常规密码，查看获取方法 https://m.jqjq.net/jiqiao/108147.html')
+    account_parser.add_argument('-m', '--mail_type', default='163', choices=['163', 'qq'],
+                        help='【默认就行】输入邮箱类型 163 or qq，目前只支持 163 邮箱')
     
     args = parser.parse_args()
     if args.keg or args.fasta:
@@ -472,6 +487,13 @@ def parse_input():
         except Exception:
             logger.critical('未输入 keg 文件名，尝试使用 keg 结尾文件未找到')
             sys.exit(1)
+    
+    if args.split == None:
+        pass
+    elif args.split == 1:
+        delattr(args, "split")
+    elif args.split >= 5:
+        logger.warning(f'fasta 文件分割大于 5 次，将会延长注释时间')
     
     # 检测 fpkm 和 reads 文件是否有效
     if args.fpkm or args.reads:
@@ -485,18 +507,23 @@ def parse_input():
     return parser.parse_args()
 
 
-def main():
+if __name__ == '__main__':
     args = parse_input()
-    if args.org_lst and args.fasta:
-        kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, args.keg)
-    if args.keg:
-        parse_keg(args.keg, args.type, args.allid, args.fpkm, args.reads)
+    keg_file = args.keg
+    if args.split:
+        split_fasta(args.fasta, args.split)
+        split_dir = f'{args.fasta}.split'
+        fasta_file_list = [f'{os.path.join(split_dir, x)}' for x in os.listdir(split_dir)]
+        for fasta_file in fasta_file_list:
+            keg_sp_file = f'{fasta_file.split(".")[-2]}_{keg_file}'
+            kegg_anno(args.mail_type, args.username, args.password, fasta_file, args.org_lst, keg_sp_file)
+        os.system(f'cat *.keg > {keg_file}')
+    elif args.org_lst and args.fasta:
+        kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, keg_file)
+
+    parse_keg(keg_file, args.type, args.allid, args.fpkm, args.reads)
     
     logger.success('Done!')
-
-
-if __name__ == '__main__':
-    main()
 
 
 
