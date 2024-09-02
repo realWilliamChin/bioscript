@@ -9,6 +9,7 @@ import argparse
 import requests
 import poplib
 import pandas as pd
+from Bio import SeqIO
 from lxml import etree
 from fake_useragent import UserAgent
 from email import encoders
@@ -304,8 +305,11 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
     # 校验是否同一个任务
     if job_ID != status_ID:
         logger.error('request_ID and status_ID are not the same!')
-    logger.info('Job is running wait for 10 minutes ...')
-    time.sleep(10*60)
+    
+    fasta_seq_num = len([record for record in SeqIO.parse(fasta_file, "fasta")])
+    wait_times = int(fasta_seq_num/1000)*60
+    logger.info(f'Job is running wait for {wait_times/60} minutes ...')
+    time.sleep(wait_times)
     
     for t in range(1, 60):
         mail_content = mail.receive_mail(username, password)
@@ -339,7 +343,7 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
             
             break
         elif mail_content['date'] == mail_date:
-            logger.info(f'Job is running, checked email {t} times(5mis) ...')
+            logger.info(f'Job is running, checked email {t} times(5min) ...')
             if t == 60:
                 logger.error(f'Job maybe error, Have been waiting 360 minutes ...')
                 sys.exit(1)
