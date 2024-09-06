@@ -124,7 +124,7 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
     ncomp <- 10
   }
 
-  df_plsda <- plsda(metabolites, groups, ncomp = 8)
+  df_plsda <- plsda(metabolites, groups, ncomp = ncomp)
 
   # scree plot
   scree_df <- as.data.frame(df_plsda$prop_expl_var$X)
@@ -176,11 +176,11 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
       point.padding = 0.5
     ) +
     labs(x = paste0("P1 (", x_label * 100, "%)"), y = paste0("P2 (", y_label * 100, "%)")) +
-    stat_ellipse(
-      data = df1, geom = "polygon", level = 0.95,
-      linetype = 2, linewidth = 0.5, aes(fill = group),
-      alpha = 0.2, show.legend = TRUE
-    ) +
+    #stat_ellipse(
+    #  data = df1, geom = "polygon", level = 0.95,
+    #  linetype = 2, linewidth = 0.5, aes(fill = group),
+    #  alpha = 0.2, show.legend = TRUE
+    #) +
     scale_color_discrete() +
     scale_fill_discrete() +
     theme(
@@ -306,11 +306,11 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_
     } else {
       transposed_expression_data <- t(current_expression_data)
     }
-
+    crossval_number <- length(row_number(transposed_expression_data)) - 1
     opls_model <- try(
       # crossvalI 默认是 7, crossvalI 需要小于等于两组样本的数量
-      opls(x = transposed_expression_data, y = y_factor, predI = 1, orthoI = 2, crossvalI = 5),
-      silent = TRUE
+      opls(x = transposed_expression_data, y = y_factor, predI = 1, orthoI = 2, crossvalI = crossval_number),
+      silent = FALSE
     )
 
     # 检查模型是否成功建立
@@ -494,11 +494,11 @@ pca_plot(reads_data_frame = reads_data, samples_file = "samples_described.txt", 
 # 多组分析
 multigroup_dir <- paste(chayifenxi_dir, "多组分析", sep = "/")
 dir.create(multigroup_dir)
-metabolite_analysis(samples_file="samples_described.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
+metabolite_analysis(samples_file="samples_described.txt", reads_data, definition_df=FALSE, output_dir=multigroup_dir)
 # 组间分析
 zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described.txt",
             reads_data_frame = reads_data, fpkm_data_frame = FALSE,
-            definition_df=definition_df, output_dir = zujianfenxi_dir, log2data=FALSE)
+            definition_df=FALSE, output_dir = zujianfenxi_dir, log2data=FALSE)
 
 
 # ========== z-score RUN ============
