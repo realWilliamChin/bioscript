@@ -7,18 +7,21 @@ import pandas as pd
 
 
 def parse_input():
-    argparser = argparse.ArgumentParser(description='对各种表添加基因定义文件，指定 --kns 则无需指定 -k,-n,-s')
-    argparser.add_argument('--kns', help='输入 kns_def 文件，添加 KEGG_ID, KEGG_GeneID, NR_Def, Swiss_protein_ID')
-    argparser.add_argument('-k', '--kegg', help='KEGG_gene_def 文件，会添加 KEGG_ID 和 KEGG_Shortname 列')
-    argparser.add_argument('-n', '--nr', help='NR_gene_def 文件')
-    argparser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
-    argparser.add_argument('-i', '--input', help='输入文件，可根据文件后缀格式类型读取，txt是tab分隔')
-    argparser.add_argument('--input-sep', dest='input_sep', help='自定义文件分隔符，默认制表符')
-    argparser.add_argument('--input-header', default='GeneID', dest='input_header',
-                           help="默认 GeneID 添加定义，如果有其他列名，请写出列名，如果没有列名，输入列的位置，从 0 开始数，列名不可以是数字")
-    argparser.add_argument('-o', '--output', default='output.txt', help='输出文件')
+    parser = argparse.ArgumentParser(description='对各种表添加基因定义文件，指定 --kns 则无需指定 -k,-n,-s')
+    parser.add_argument('--kns', help='输入 kns_def 文件，添加 KEGG_ID, KEGG_GeneID, NR_Def, Swiss_protein_ID')
+    parser.add_argument('-k', '--kegg', help='KEGG_gene_def 文件，会添加 KEGG_ID 和 KEGG_Shortname 列')
+    parser.add_argument('-n', '--nr', help='NR_gene_def 文件')
+    parser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
+    parser.add_argument('-i', '--input', help='输入文件，可根据文件后缀格式类型读取，txt是tab分隔')
+    parser.add_argument('--input-sep', dest='input_sep', help='自定义文件分隔符，默认制表符')
+    parser.add_argument('--input-header', default='GeneID', dest='input_header',
+                        help="默认 GeneID 添加定义，如果有其他列名，请写出列名，如果没有列名，输入列的位置，从 0 开始数，列名不可以是数字")
+    parser.add_argument('-o', '--output', default='output.txt', help='输出文件')
     
-    args = argparser.parse_args()
+    add_expression = parser.add_argument_group(title="指定添加 expression 的参数")
+    add_expression.add_argument('-e', '--expression', type=str, help='表达量文件，通常是 fpkm_reads_matrix_data_def.txt')
+    
+    args = parser.parse_args()
     
     if args.input_sep:
         pass
@@ -90,6 +93,20 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
     return result_df
 
 
+def add_expression_data(input_file_df, expression_data):
+    expression_df = pd.read_csv(expression_data, sep='\t', dtype={'GeneID':str})
+    expression_df_numeric_cols = expression_df.select_dtypes(include=['number']).columns
+    expression_df_string_cols = expression_df.select_dtypes(include=['object']).columns
+    expression_df[expression_df_numeric_cols] = expression_df[expression_df_numeric_cols].fillna(0)
+    expression_df[expression_df_string_cols] = expression_df[expression_df_string_cols].fillna('NA')
+
+    result_df = pd.merge(input_file_df, expression_df, on="GeneID", how='left')
+    result_df.fillna(0, inplace=True)
+    # result_df.to_csv(args.output, sep='\t', index=False)
+    
+    return result_df
+
+
 def main():
     args = parse_input()
     
@@ -107,10 +124,14 @@ def main():
     else:
         print('输入的 input_header 有误，请检查')
         exit(1)
-    # source_key_col_name = str(df.columns[args.input_col])
+    
     df.rename(columns={args.input_header: 'GeneID'}, inplace=True)
     df['GeneID'] = df["GeneID"].astype(str)
-    result_df = add_kns_def(df, args.kegg, args.nr, args.swiss, args.kns)
+    
+    if args.expression:
+        result_df = add_expression_data(df, args.expression)
+    else:
+        result_df = add_kns_def(df, args.kegg, args.nr, args.swiss, args.kns)
     
     if args.output.endswith('.xlsx'):
         result_df = result_df.rename(columns={'GeneID': args.input_header})
