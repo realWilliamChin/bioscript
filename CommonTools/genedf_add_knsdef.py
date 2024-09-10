@@ -12,14 +12,22 @@ def parse_input():
     argparser.add_argument('-k', '--kegg', help='KEGG_gene_def 文件，会添加 KEGG_ID 和 KEGG_Shortname 列')
     argparser.add_argument('-n', '--nr', help='NR_gene_def 文件')
     argparser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
-    argparser.add_argument('-i', '--input', help='输入文件')
-    argparser.add_argument('--input-sep', dest='input_sep', default='\t',
-                           help='输入文件分隔符，默认制表符')
+    argparser.add_argument('-i', '--input', help='输入文件，可根据文件后缀格式类型读取，txt是tab分隔')
+    argparser.add_argument('--input-sep', dest='input_sep', help='自定义文件分隔符，默认制表符')
     argparser.add_argument('--input-header', default='GeneID', dest='input_header',
                            help="默认 GeneID 添加定义，如果有其他列名，请写出列名，如果没有列名，输入列的位置，从 0 开始数，列名不可以是数字")
     argparser.add_argument('-o', '--output', default='output.txt', help='输出文件')
     
     args = argparser.parse_args()
+    
+    if args.input_sep:
+        pass
+    elif args.input.endswith('.txt'):
+        args.input_sep = '\t'
+    elif args.input.endswith('.csv'):
+        args.input_sep = ','
+    elif args.input.endswith('.tsv'):
+        args.input_sep = '\t'
     
     if args.kns:
         args.kegg, args.nr, args.swiss = None, None, None
@@ -89,8 +97,10 @@ def main():
         args.input_header = int(args.input_header)
     except ValueError:
         pass
-
-    if type(args.input_header) == str:
+    
+    if args.input.endswith('.xlsx'):
+        df = pd.read_excel(args.input, engine='openpyxl')
+    elif type(args.input_header) == str:
         df = pd.read_csv(args.input, sep=args.input_sep)
     elif type(args.input_header) == int:
         df = pd.read_csv(args.input, sep=args.input_sep, header=None)
@@ -102,6 +112,9 @@ def main():
     df['GeneID'] = df["GeneID"].astype(str)
     result_df = add_kns_def(df, args.kegg, args.nr, args.swiss, args.kns)
     
+    if args.output.endswith('.xlsx'):
+        result_df = result_df.rename(columns={'GeneID': args.input_header})
+        result_df.to_excel(args.output, index=False, engine='openpyxl')
     if type(args.input_header) == str:
         result_df = result_df.rename(columns={'GeneID': args.input_header})
         result_df.to_csv(args.output, sep='\t', index=False)
