@@ -11,7 +11,7 @@ import openpyxl
 
 def parse_input():
     p = argparse.ArgumentParser()
-    p.add_argument('-i', '--input', help='输入 group.txt 文件')
+    p.add_argument('-i', '--input', help='输入 group.txt 文件, group\tcompare\ngroup1\tA_vs_B')
     p.add_argument('-d', '--datadir', help='Enrichment 文件目录')
     p.add_argument('-o', '--outputdir', help='输出文件目录')
     
@@ -53,10 +53,12 @@ if __name__ == '__main__':
             compare_up_go_df['Regulation'] = 'Up'
             compare_down_go_df['Regulation'] = 'Down'
             compare_go_df = pd.concat([compare_up_go_df, compare_down_go_df], ignore_index=True)
+            compare_go_df['Compare_group_name'] = compare
             
             compare_up_kegg_df['Regulation'] = 'Up'
             compare_down_kegg_df['Regulation'] = 'Down'
             compare_kegg_df = pd.concat([compare_up_kegg_df, compare_down_kegg_df], ignore_index=True)
+            compare_kegg_df['Compare_group_name'] = compare
 
             if go_df.empty:
                 go_df = compare_go_df[(compare_go_df['Count'] > 1) & (compare_go_df['pvalue'] < 0.05)]
@@ -66,9 +68,9 @@ if __name__ == '__main__':
                 compare_kegg_df = compare_kegg_df[(compare_kegg_df['Count'] > 1) & (compare_kegg_df['pvalue'] < 0.05)]
                 go_df = pd.concat([go_df, compare_go_df], ignore_index=True)
                 kegg_df = pd.concat([kegg_df, compare_kegg_df], ignore_index=True)
-        go_df_filename = os.path.join(args.outputdir, f'{group_name}_GO_Enrichment.csv')
-        kegg_df_filename = os.path.join(args.outputdir, f'{group_name}_KEGG_Enrichment.csv')
-        go_df.to_csv(go_df_filename, index=False)
-        kegg_df.to_csv(kegg_df_filename, index=False)
+        go_df_filename = os.path.join(args.outputdir, f'{group_name}_EnrichmentGO.xlsx')
+        kegg_df_filename = os.path.join(args.outputdir, f'{group_name}_EnrichmentKEGG.xlsx')
+        go_df.to_excel(go_df_filename, index=False, engine='openpyxl')
+        kegg_df.to_excel(kegg_df_filename, index=False, engine='openpyxl')
     
     
