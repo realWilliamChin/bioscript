@@ -35,7 +35,8 @@ def main():
     df.sort_values(by=[df.columns[0], df.columns[index_last_second]], ascending=[True, False], inplace=True)
     df.drop_duplicates(subset=[0], keep='first', inplace=True)
     if args.column_names:
-        df.to_csv(outfile, sep='\t', index=False, header=args.column_names)
+        column_names = [x.strip() for x in args.column_names.split(',')]
+        df.to_csv(outfile, sep='\t', index=False, header=column_names)
     else:
         df.to_csv(outfile, sep='\t', index=False, header=None)
 
