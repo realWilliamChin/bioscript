@@ -1,11 +1,15 @@
 library(Mfuzz)
 library(factoextra)
 library(cluster)
-setwd("/home/colddata/qinqiang/work/00_No_Reference/2023_07_04_niubangduoniansheng_redo/Timelapse/2023_11_29_group2")
+setwd("/home/colddata/qinqiang/script/examples/")
 rm(list=ls())
-protein <- read.delim('fpkm_matrix_filter_timelapse.txt', row.names = 1, check.names = FALSE,header=T)
-colnames(protein)
+protein <- read.delim('fpkm_matrix_filtered.txt', row.names = 1, check.names = FALSE,header=T)
+samples_described <- read.table('group1_samples_described.txt', sep = '\t', check.names = FALSE,header=T)
+protein <- protein[, c(samples_described$sample)]
+# protein 每三组向量计算平均值
+protein <- rowMeans(protein, by = 3)
 
+colnames(protein)
 ####protein<-protein[,-9]
 dim(protein)
 class(protein)
@@ -24,7 +28,7 @@ png("kmeans_number.jpeg")
 plot(1:15, wss, type="b", xlab="Number of Clusters",ylab="Within groups sum of squares")
 dev.off()
 ############# select the cluster numbers according to the picture: kmeans_number.jpeg############
-cluster_num <- 8 ###########check the number and change it everytime
+cluster_num <- 8 ###########check the number and change it everytime 
 dim(df)
 mfuzz_class <- new('ExpressionSet',exprs = protein)
 mfuzz_class <- filter.NA(mfuzz_class, thres = 0.25)
@@ -33,20 +37,7 @@ mfuzz_class <- filter.std(mfuzz_class, min.std = 0)
 mfuzz_class <- standardise(mfuzz_class)
 set.seed(123)
 mfuzz_cluster <- mfuzz(mfuzz_class, c = cluster_num, m = mestimate(mfuzz_class))
-# 保存 timelapse 图片，设置图片大小
-mfrow_row <- floor(sqrt(cluster_num))
-mfrow_col <- ceiling(cluster_num / mfrow_row)
-# 根据 cluster_num 设置图片的大小
-timelapse_width <- 5 * mfrow_col
-timelapse_height <- 5 * mfrow_row
-png("timelapse.png", width = timelapse_width, height = timelapse_height, units = 'in', res = 300)
-mfuzz.plot2(mfuzz_class, cl = mfuzz_cluster, mfrow = c(mfrow_row, mfrow_col), time.labels = colnames(protein),x11 = FALSE)
-dev.off()
-for(i in 1:cluster_num){
-  out_pic<-paste0("cluster",i,".png")
-  png(out_pic)
-  mfuzz.plot2(mfuzz_class, cl = mfuzz_cluster, mfrow = c(1, 1),time.labels = colnames(protein),single = i,x11 = FALSE)
-  dev.off()}
+mfuzz.plot2(mfuzz_class, cl = mfuzz_cluster, mfrow = c(3, 3), time.labels = colnames(protein))
 cluster_size <- mfuzz_cluster$size
 names(cluster_size) <- 1:cluster_num
 cluster_size
