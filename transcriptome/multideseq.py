@@ -11,19 +11,18 @@ from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools'))
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
-from genedf_add_knsdef import add_kns_def
+from genedf_add_expression_and_def import add_kns_def
 from check_SampDesAndCompInfo import check_sample_comp
 
 
 def parse_input():
     parser = argparse.ArgumentParser(description='输入 kegg, nr, swiss file 的路径')
     parser.add_argument('-w', '--workdir', type=str, help='输入工作目录，默认当前目录', default='./')
-    parser.add_argument('-k', '--kegg', type=str, help='kegg file')
-    parser.add_argument('-n', '--nr', type=str, help='nr file')
-    parser.add_argument('-s', '--swiss', type=str, help='swiss file')
-    parser.add_argument('--kns', type=str, default=False, help='输入 kns_def.txt，则不用输入上面的三个')
-    parser.add_argument('--rlognum', type=float, help='输入 multipei sample deseq R 脚本输入参数')
+    parser.add_argument('-k', '--kegg', type=str, help='kegg_gene_def file')
+    parser.add_argument('-n', '--nr', type=str, help='nr_gene_def file')
+    parser.add_argument('-s', '--swiss', type=str, help='swiss_gene_def file')
+    parser.add_argument('--kns', type=str, help='输入 kns_def.txt，则不用输入上面的三个')
+    parser.add_argument('--degvalue', type=float, help='deg value FC 值小于多少')
     parser.add_argument('--genego', type=str, help='gene_go swiss 注释出来的文件')
     parser.add_argument('--keggclean', type=str, help='KEGG_clean.txt kegg 注释出来的文件')
     parser.add_argument('--degiddir', type=str, default='./DEG_analysis_results',
@@ -33,7 +32,7 @@ def parse_input():
     parser.add_argument('--compare', type=str, default='compare_info.txt', help='默认 compare_info.txt')
     parser.add_argument('--fpkm', type=str, default='fpkm_matrix_filtered.txt', help='默认 fpkm_matrix_filtered.txt')
     parser.add_argument('--reads', type=str, default='reads_matrix_filtered.txt', help='默认 reads_matrix_filtered.txt')
-    parser.add_argument('--filter-type', dest='filter_type', type=str, choices=['pvalue', 'padj'], default='padj' help='默认 padj')
+    parser.add_argument('--filter-type', dest='filter_type', type=str, choices=['pvalue', 'padj'], default='padj', help='默认 padj')
     parser.add_argument('--filter-value', dest='filter_value', type=float, default=0.05, help='默认 0.05')
 
     args = parser.parse_args()
@@ -143,13 +142,13 @@ def main():
     args = parse_input()
     
     # 运行 R 脚本
-    if args.rlognum:
+    if args.degvalue:
         rep = transcriptome_r_deseq(args.workdir, args.fpkm, args.reads, args.samples, args.compare, 
-                                    args.filter_type, args.filter_value, args.rlognum, args.workdir)
+                                    args.filter_type, args.filter_value, args.degvalue, args.workdir)
         if not rep:
             logger.critical(f'R 脚本运行失败')
             sys.exit(1)
-    if args.rlognum and args.genego and args.keggclean:
+    if args.degvalue and args.genego and args.keggclean:
         transcriptome_enrich(args.workdir, args.genego, args.keggclean, args.degiddir, args.compare)
         transcriptome_enrich_distribution(os.path.join(args.workdir, 'Pathway_enrichment_analysis'))
         os.chdir(args.workdir)
