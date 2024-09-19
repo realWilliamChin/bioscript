@@ -85,7 +85,7 @@ compare_file <- opt$compare
 filter_type <- opt$filtertype
 filter_value <- opt$filtervalue
 deg_value <- opt$degvalue
-bs_pos <- deg_value
+bs_pos <- log2(deg_value)
 output_dir <- opt$outputdir
 bs_neg <- -bs_pos
 
