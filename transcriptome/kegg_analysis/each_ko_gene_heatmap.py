@@ -6,8 +6,6 @@ import os
 import sys
 import pandas as pd
 import argparse
-import subprocess
-import openpyxl
 from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
@@ -49,20 +47,10 @@ def each_ko_gene_heatmap(kegg_id_list, kegg_clean_df, fpkm_matrix_df, samples_df
     # 对 expression fpkm matrix 文件只保留 fpkm 值
     fpkm_matrix_df['GeneID'] = fpkm_matrix_df['GeneID'].astype(str)
     
-    # ko_df = pd.read_csv(ko_file, sep='\t')
-    # ko_df = ko_df[['KEGG_ID',]]  # 只保留有用的两列
-    
     # kegg_pathway_df = kegg_clean_df['GeneID', 'KEGG_Pathway']
     kegg_clean_df['KEGG_ID'] = kegg_clean_df['KEGG_Pathway'].str.split(':').str[0]
     kegg_clean_df = kegg_clean_df.drop(columns=['KEGG_Pathway'])
     kegg_clean_df = kegg_clean_df.drop_duplicates(subset=['GeneID'])
-    
-    # gene_df = pd.merge(left=kegg_pathway_df, right=ko_df, how='left', on='KEGG_ID')
-    # gene_df = gene_df.dropna(subset=['GeneID'])                                                                                                                                                                                                                                                                                                                            
-        
-    # crt_kegg_id_dir = os.path.join(output_dir, 'All_groups_KEGG_analysis')
-    # if not os.path.exists(crt_kegg_id_dir):
-    #     os.mkdir(crt_kegg_id_dir)
         
     # kegg_id_list = gene_df['KEGG_ID'].values.tolist()
     for each_kegg_id in kegg_id_list:
@@ -81,23 +69,6 @@ def each_ko_gene_heatmap(kegg_id_list, kegg_clean_df, fpkm_matrix_df, samples_df
         if each_kegg_id_gene_fpkm_df.shape[0] == 0:
             logger.error(f'{each_kegg_id} 相关基因表达量为空，跳过执行 multigroup heatmap')
             continue
-        
-        # anova 计算输入文件
-        # anova_file_name = f'{output_dir}/{each_kegg_id}_gene_anova_p.txt'
-        # each_kegg_id_gene_fpkm_df[samples_list].to_csv(anova_file_name, sep='\t', index=False)
-        #anova_result = anova_analysis(anova_file_name, samples_file, anova_file_name)
-        #if not anova_result:
-        #    logger.error(f'{each_kegg_id} anova 计算结果失败，跳过执行 multigroup heatmap')
-        #    continue
-        # each_kegg_id_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t')
-        # each_kegg_id_gene_fpkm_df = each_kegg_id_gene_fpkm_df[each_kegg_id_gene_fpkm_df['p_value'] <= 0.05]
-        #each_kegg_id_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
-        
-        # 2024_06_14 张老师：注释掉这个，不需要过滤 p 值
-        # kegg 相关的 id 小于 10 个就跳过
-        # if each_kegg_id_gene_fpkm_df.shape[0] < 10:
-        #    logger.warning(f'{each_kegg_id} 相关基因根据 p 值 < 0.05 筛选后数量小于 10 个，不对此画 heatmap 图')
-        #    continue
         
         # multigroup heatmap 输入文件
         kegg_id_gene_ko_heatmap_filename = os.path.join(output_dir, f'{each_kegg_id}_ko_gene_heatmap.xlsx')
