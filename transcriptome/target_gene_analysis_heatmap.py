@@ -39,8 +39,8 @@ def group_vs_group_heatmap(group_target_gene_file, samples_file):
     group_vs_group_heatmap_fname = group_target_gene_file.replace('_def.txt', '_heatmap.xlsx')
     group_vs_group_heatmap_pname = group_target_gene_file.replace('_def.txt', '_heatmap.jpeg')
     
-    group1 = df.iloc[0, 3]
-    group2 = df.iloc[0, 4]
+    group1 = df.head(1)['sampleA'].values[0]
+    group2 = df.head(1)['sampleB'].values[0]
     samples_df = pd.read_csv(samples_file, sep='\t', usecols=[0, 1])
     samples_df = samples_df[['sample', 'group']]
     samples_df = samples_df[samples_df['group'].isin([group1, group2])]
@@ -102,29 +102,29 @@ def main():
     
     draw_multigroup_heatmap(all_gene_ko_heatmap_filename, heatmap_filename, other_args='--no-cluster-rows')
     
-    
-    deg_data_list = os.listdir(args.deg_data_dir)
-    for deg_data_file in deg_data_list:
-        
-        if not deg_data_file.endswith('_DEG_data.txt'):
-            continue
+    if args.deg_data_dir:
+        deg_data_list = os.listdir(args.deg_data_dir)
+        for deg_data_file in deg_data_list:
+            
+            if not deg_data_file.endswith('_DEG_data.txt'):
+                continue
 
-        compare_name = os.path.basename(deg_data_file).replace('_DEG_data.txt', '')
-        logger.info(f'正在找相关基因添加定义 {compare_name}')
-        deg_data_file = os.path.join(args.deg_data_dir, deg_data_file)
-        deg_data_df = pd.read_csv(deg_data_file, sep='\t', dtype={'GeneID': str})
+            compare_name = os.path.basename(deg_data_file).replace('_DEG_data.txt', '')
+            logger.info(f'正在找相关基因添加定义 {compare_name}')
+            deg_data_file = os.path.join(args.deg_data_dir, deg_data_file)
+            deg_data_df = pd.read_csv(deg_data_file, sep='\t', dtype={'GeneID': str})
 
-        # result_df = pd.merge(deg_data_df, right=target_gene_def_df, on='GeneID', how='left', suffixes=('_df1', '_df2'))
-        result_df = pd.merge(target_gene_def_df, right=deg_data_df, on='GeneID', how='inner', suffixes=('_df1', '_df2'))
-        cols_to_drop = [col for col in result_df.columns if col.endswith('_df1')]
-        result_df.drop(columns=cols_to_drop, inplace=True)
-        result_df.columns = [col.replace('_df2', '') for col in result_df.columns]
-        result_df.set_index('GeneID')
-        # result_df.dropna(inplace=True)
-        result_df.to_csv(f'{compare_name}_target_gene_def.txt', sep='\t', index=False)
-        
-        logger.info(f'正在画 {compare_name} heatmap')
-        group_vs_group_heatmap(f'{compare_name}_target_gene_def.txt', samples_file)
+            # result_df = pd.merge(deg_data_df, right=target_gene_def_df, on='GeneID', how='left', suffixes=('_df1', '_df2'))
+            result_df = pd.merge(target_gene_def_df, right=deg_data_df, on='GeneID', how='inner', suffixes=('_df1', '_df2'))
+            cols_to_drop = [col for col in result_df.columns if col.endswith('_df1')]
+            result_df.drop(columns=cols_to_drop, inplace=True)
+            result_df.columns = [col.replace('_df2', '') for col in result_df.columns]
+            result_df.set_index('GeneID')
+            # result_df.dropna(inplace=True)
+            result_df.to_csv(f'{compare_name}_target_gene_def.txt', sep='\t', index=False)
+            
+            logger.info(f'正在画 {compare_name} heatmap')
+            group_vs_group_heatmap(f'{compare_name}_target_gene_def.txt', samples_file)
     
     logger.success("Done")
 
