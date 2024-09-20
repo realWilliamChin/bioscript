@@ -483,6 +483,11 @@ def parse_input():
                         help='【默认就行】输入邮箱类型 163 or qq，目前只支持 163 邮箱')
     
     args = parser.parse_args()
+    
+    if args.fasta and not args.keg:
+        logger.critical('未输入 keg 文件名')
+        sys.exit(1)
+    
     if args.keg or args.fasta:
         pass
     else:
