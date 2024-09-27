@@ -4,6 +4,7 @@
 # Author        : William GoGo
 import argparse
 import pandas as pd
+from loguru import logger
 
 
 def parse_input():
@@ -17,6 +18,7 @@ def parse_input():
     parser.add_argument('--input-header', default='GeneID', dest='input_header',
                         help="默认 GeneID 添加定义，如果有其他列名，请写出列名，如果没有列名，输入列的位置，从 0 开始数，列名不可以是数字")
     parser.add_argument('-o', '--output', default='output.txt', help='输出文件')
+    parser.add_argument('--merge-how', default='left', dest='merge_how', help='合并方式，默认 left')
     
     add_expression = parser.add_argument_group(title="指定添加 expression 的参数")
     add_expression.add_argument('-e', '--expression', type=str, help='表达量文件，通常是 fpkm_reads_matrix_data_def.txt')
@@ -86,22 +88,22 @@ def add_kns_def(file_df, kegg_file=None, nr_file=None, swiss_file=None, kns_file
     result_shape = result_df.shape[0]
     
     if source_shape != result_shape:
-        print(f"原表行数{source_shape}, 结果表行数{result_shape}, 可能输入文件基因 ID 有重复，或注释文件有重复")
+        logger.info(f"原表行数{source_shape}, 结果表行数{result_shape}, 可能输入文件基因 ID 有重复，或注释文件有重复")
         result_df.drop_duplicates(subset='GeneID', inplace=True)
-        print('已自动去重处理')
+        logger.info('已自动去重处理')
 
     return result_df
 
 
-def add_expression_data(input_file_df, expression_data):
+def add_expression_data(input_file_df, expression_data, merge_how):
     expression_df = pd.read_csv(expression_data, sep='\t', dtype={'GeneID':str})
     expression_df_numeric_cols = expression_df.select_dtypes(include=['number']).columns
     expression_df_string_cols = expression_df.select_dtypes(include=['object']).columns
     expression_df[expression_df_numeric_cols] = expression_df[expression_df_numeric_cols].fillna(0)
     expression_df[expression_df_string_cols] = expression_df[expression_df_string_cols].fillna('NA')
 
-    result_df = pd.merge(input_file_df, expression_df, on="GeneID", how='left')
-    result_df.fillna(0, inplace=True)
+    result_df = pd.merge(input_file_df, expression_df, on="GeneID", how=merge_how)
+    # result_df.fillna(0, inplace=True)
     # result_df.to_csv(args.output, sep='\t', index=False)
     
     return result_df
@@ -129,7 +131,7 @@ def main():
     df['GeneID'] = df["GeneID"].astype(str)
     
     if args.expression:
-        result_df = add_expression_data(df, args.expression)
+        result_df = add_expression_data(df, args.expression, args.merge_how)
     else:
         result_df = add_kns_def(df, args.kegg, args.nr, args.swiss, args.kns)
     
@@ -142,7 +144,7 @@ def main():
     elif type(args.input_header) == int:
         result_df.to_csv(args.output, sep='\t', index=False, header=True)
         
-    print('\nDone!\n')
+    logger.success('\nDone!\n')
 
 
 if __name__ == '__main__':
