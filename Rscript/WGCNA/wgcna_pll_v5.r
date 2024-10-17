@@ -1,4 +1,4 @@
-setwd("/home/colddata/qinqiang/Project/2024_01_17_xing/09_WGCNA/group2")
+setwd("/home/colddata/qinqiang/Project/2024_08_06_plant_malaoshi_beiyi/Euphorbia_peplus/WGCNA")
 library(DESeq2)
 library(WGCNA)
 library(genefilter)
@@ -9,9 +9,8 @@ options(stringsAsFactors = FALSE)
 getwd()
 rm(list=ls())
 ###############读入raw data，DESeq normalize之后保存备份#####################
-sp_name<-"group2"
-infile1<-paste0(sp_name,"_reads_matrix_filtered.txt",sep="")
-infile2<-paste0(sp_name,"_samples_described.txt",sep="")
+infile1<-"reads_matrix_filtered.txt"
+infile2<-"samples_described.txt"
 
 dir.create("Analysis_color_module_barplot")
 dir.create("Analysis_results")
@@ -58,7 +57,7 @@ rownames(normalized_counts)
 head(normalized_counts)
 normalized_counts<-cbind(as.data.frame(rownames(normalized_counts)),normalized_counts)
 colnames(normalized_counts)[1]<-"GeneID"
-outfile1<-paste0("Raw_data/",sp_name,"_DESeq_counts.txt",sep="")
+outfile1<-paste0("Raw_data/","DESeq_counts.txt",sep="")
 write.table(normalized_counts, file=outfile1, sep="\t", quote=F, col.names=T,row.names = F)
 dim(normalized_counts)
 ################################anova分析筛选变化大的基因##########################
@@ -86,7 +85,7 @@ normalized_counts$BH_p_value<-p.aj
 df.rname<-data.frame(GeneID=rownames(normalized_counts))
 normalized_counts<-cbind(df.rname,normalized_counts)
 head(normalized_counts)
-outfile2<-paste0("Raw_data/",sp_name,"_DESeq_anova_p.txt",sep="")
+outfile2<-paste0("Raw_data/","DESeq_anova_p.txt",sep="")
 write.table(normalized_counts,outfile2,sep="\t",quote=F,row.names = F)
 ###################################获得wgcna的输入数据############################
 dim(normalized_counts)
@@ -177,7 +176,7 @@ dev.off()
 sft$powerEstimate
 #如果上一步最佳估计的结果是[1] NA，自己根据绘制的图，选择一个最佳的power，选择wgcna-02-1.pdf右边图里下降曲线变平滑的那个值
 #这里一个具体的例子，选了10.但是不同的数据，肯定是不同的。
-sft$powerEstimate<-8
+sft$powerEstimate<-10
 #一步法构建共表达矩阵,注意这个power值的选择，此power值应选择wgcna-02-1.pdf右边图里下降曲线变平滑处的值
 net = blockwiseModules(datExpr, power = sft$powerEstimate, TOMType = "unsigned", minModuleSize = 30, reassignThreshold =0, mergeCutHeight = 0.25, numericLabels = TRUE, pamRespectsDendro = FALSE, saveTOMs = TRUE,  saveTOMFileBase = "fpkmTOM", verbose = 3)
 table(net$colors)
@@ -253,11 +252,11 @@ METree = hclust(as.dist(MEDiss), method = "average");
 #sizeGrWindow(7, 6)
 #png("Clustering_of_module_eigengenes1.png",width = 800,height = 600)
 
-png("Analysis_results/Clustering_of_module_eigengenes1_0.39.png",width = 800,height = 600)
+png("Analysis_results/Clustering_of_module_eigengenes1_0.6.png",width = 800,height = 600)
 plot(METree, main = "Clustering of module eigengenes",     xlab = "", sub = "")
 #######################这个地方需要手动选择理想的cutoff,这个值越大，模块数越少##################################
 ##################MEDissThres值的选择根据Clustering_of_module_eigengenes1.png图来决定，值越大，模块数越少
-MEDissThres = 0.39
+MEDissThres = 0.6
 
 # Plot the cut line into the dendrogram
 abline(h=MEDissThres, col = "red")
@@ -265,7 +264,7 @@ abline(h=MEDissThres, col = "red")
 dev.off()
 
 # Call an automatic merging function MEDissThres=0.1
-MEDissThres = 0.39
+MEDissThres = 0.6
 merge = mergeCloseModules(datExpr, dynamicColors, cutHeight = MEDissThres, verbose = 3)
 str(merge)
 # The merged module colors
@@ -468,8 +467,8 @@ dim(textMatrix) <- dim(moduleTraitCor)
 textMatrix
 pdf("Analysis_color_module_barplot/step4_Module-trait-relationship_heatmap.pdf",
     width = 2*length(colnames(design)), 
-    height = 1*length(names(MEs_new)) )
-par(mar=c(5, 9, 3, 3)) #留白：下、左、上、右
+    height = 1.2*length(names(MEs_new)) )
+par(mar=c(7, 9, 3, 3)) #留白：下、左、上、右
 labeledHeatmap(Matrix = moduleTraitCor,
                xLabels = colnames(design),
                yLabels = names(MEs_new),

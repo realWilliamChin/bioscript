@@ -109,13 +109,13 @@ ggsave("cog_function_count.jpg",cog.p,dpi=320,width=18,height=12)
 
 ######################################################
 ######################################nr annotation count picture species#####
-species<-read.table("species_count.txt",sep="\t",header=F,check.names = F)
+species<-read.table("species_count_Top10.txt",sep="\t",header=F,check.names = F)
 #species
 colnames(species)<-c("Species","Count")
 sp.p<-ggplot(species, aes(x = "", y = Count, fill = Species)) + geom_bar(stat = "identity") + coord_polar(theta = "y") +
   theme_base()+theme(panel.grid = element_blank(), axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank())+
   scale_fill_discrete(breaks = species$Species)+ggtitle("Species distribution")
-ggsave("nr_sp_distribution.jpeg",sp.p,dpi=320,width=10)
+ggsave("nr_sp_distribution_Top10.jpeg",sp.p,dpi=320,width=10)
 ####################################nr annotation identity picture###########################################
 
 id.nr<-read.table("identity.txt",sep="\t",header=F)

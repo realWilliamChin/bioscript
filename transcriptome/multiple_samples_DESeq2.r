@@ -40,7 +40,7 @@ option_list <- list(
     help = "通常是 0.05 如果值太少，或者太多可以进行调整", metavar = "double"
   ),
   make_option(c("--degvalue"),
-    type = "double", default = 1.00,
+    type = "double", default = 2.00,
     help = "deg 值", metavar = "double"
   ),
   make_option(c("--outputdir"),
@@ -84,7 +84,8 @@ samples_file <- opt$samples
 compare_file <- opt$compare
 filter_type <- opt$filtertype
 filter_value <- opt$filtervalue
-bs_pos <- opt$degvalue
+deg_value <- opt$degvalue
+bs_pos <- log2(deg_value)
 output_dir <- opt$outputdir
 bs_neg <- -bs_pos
 
@@ -271,7 +272,12 @@ dev.off()
 # as.data.frame(matrix(stat.deg,nrow=nrow(comp_info),ncol=4,byrow=T),colnames=c("Groups","Total_DEGs","UP"))
 # stat.deg
 colnames(stat.deg) <- c("Groups", "Total DEGs", "Up regulated", "Down regulated")
-write.table(stat.deg, file = paste0(deg_dir, "DEG_summary.txt"), sep = "\t", quote = F, row.names = F)
+
+deg_first_line <- paste0("# 筛选条件：",filter_type, " < ",filter_value,"; FoldChange > ",deg_value,"\n")
+# write.lines(deg_first_line, paste0(deg_dir, "DEG_summary.txt"))
+cat(deg_first_line, file = paste0(deg_dir, "DEG_summary.txt"))
+
+write.table(stat.deg, file = paste0(deg_dir, "DEG_summary.txt"), sep = "\t", quote = F, row.names = F, append = TRUE)
 
 
 ##############################################################################################################

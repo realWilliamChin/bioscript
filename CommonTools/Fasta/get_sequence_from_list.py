@@ -52,9 +52,7 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
             if save_type == 'on':
                 if row['GeneID'] in fasta_sequences:
                     sequences.append(fasta_sequences[row['GeneID']])
-            elif save_type == 'off':
-                if row['GeneID'] not in fasta_sequences:
-                    sequences.append(fasta_sequences[row['GeneID']])
+
         elif has_targetid:
                 
             # id_df = id_df.set_index('GeneID')
@@ -69,6 +67,13 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
                 sequences.append(new_record)
             # SeqIO.write(new_sequences, output, 'fasta')
             # sys.exit(0)
+    if only_geneid and save_type == 'off':
+        # 获取所有不在id_df中的GeneID
+        all_gene_ids = set(fasta_sequences.keys())
+        target_gene_ids = set(id_df['GeneID'])
+        for gene_id in all_gene_ids - target_gene_ids:
+            sequences.append(fasta_sequences[gene_id])
+
     SeqIO.write(sequences, output, 'fasta')
 
 

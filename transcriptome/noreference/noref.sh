@@ -148,7 +148,7 @@ exec_pinjie() {
     
     log INFO "已生成 Trinity.fasta"
     log INFO "正在执行 extract_longest_isoforms_from_TrinityFasta.pl"
-    perl /home/train/trainingStuff/bin/extract_longest_isoforms_from_TrinityFasta.pl \
+    perl /home/colddata/qinqiang/script/transcriptome/noreference/extract_longest_isoforms_from_TrinityFasta.pl \
     ${assemble_trinity_d}/Trinity.fasta \
     >${assemble_trinity_d}/unigene_longest.fasta
     if [[ ! -f ${assemble_trinity_d}/unigene_longest.fasta ]]; then
@@ -217,52 +217,26 @@ exec_swiss() {
     if [[ ! -d ${annotation_d} ]]; then
         mkdir ${annotation_d}
     fi
-    log INFO "执行 Annotation - Swiss 步骤"
-    /opt/biosoft/ncbi-blast-2.9.0+/bin/blastx \
-        -db /home/data/ref_data/Linux_centos_databases/2019_Unprot_databases/swissprot \
-        -query ${assemble_trinity_d}/${specie}_unigene.fasta \
-        -out ${annotation_d}/${specie}_swiss.blast \
-        -max_target_seqs 20 \
-        -evalue 1e-5 \
-        -num_threads ${num_threads} \
-        -outfmt "6 qacc sacc pident qcovs qcovhsp ppos length mismatch gapopen qstart qend sstart send evalue bitscore stitle"
-    # 如果 swiss 注释成功，则对 swiss blast 结果进行处理
-    if [[ -f ${annotation_d}/${specie}_swiss.blast ]]; then
-        cd ${annotation_d}
-        python ${script_d}/swiss.py
-        cd ${work_dir} || exit
-    else
-        log ERROR "swiss blast 失败"
-    fi
+    cd ${annotation_d}
+    python /home/colddata/qinqiang/script/transcriptome/annotation/swiss.py \
+        -b ${specie}_swiss.blast \
+        -p ${specie} \
+        --fasta ${assemble_trinity_d}/${specie}_unigene.fasta \
+        -t ${num_threads}
+    cd ${work_dir} || exit
 }
 
 ## nr
 exec_nr() {
     log INFO "执行 Annotation - nr 步骤"
-    if [[ ! -d ${annotation_d}/temp ]]; then
-        mkdir ${annotation_d}/temp
-    fi
-    diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
-        --threads ${num_threads} \
-        --query ${assemble_trinity_d}/${specie}_unigene.fasta \
-        --out ${annotation_d}/${specie}_nr.blast \
-        --outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle \
-        --sensitive \
-        --max-target-seqs 1 \
-        --evalue 1e-5 \
-        --id 30 \
-        --block-size 20.0 \
-        --tmpdir ${annotation_d}/temp \
-        --index-chunks 1
-    # 如果 nr 执行成功，则对 nr 结果进行处理
-    if [[ -f ${annotation_d}/${specie}_nr.blast ]]; then
-        cd ${annotation_d} || exit
-        python ${script_d}/nr.py
-        cd ${work_dir} || exit
-        log INFO "nr 注释完成"
-    else
-        log ERROR "nr 注释失败"
-    fi
+    cd ${annotation_d} || exit
+    python /home/colddata/qinqiang/script/transcriptome/annotation/nr.py \
+        -b ${specie}_nr.blast \
+        -p ${specie} \
+        --fasta ${assemble_trinity_d}/${specie}_unigene.fasta \
+        -t ${num_threads}
+    cd ${work_dir} || exit
+    log INFO "nr 注释完成"
 }
 
 ### cog
@@ -300,50 +274,26 @@ exec_kegg() {
     
     log INFO "[KEGG]执行 kegg 注释步骤"
     # 判断 $specie${annotation_d}.fasta 是否大于 50000 条，如果大于 50000 条，则需要分批生成 keg 文件
-    if [[ $(grep -c '>' ${assemble_trinity_d}/${specie}_unigene.fasta) -gt 50000 ]]; then
-        log INFO "[KEGG]unigene.fasta 文件大于 50000 条，切割进行注释"
-        split -l 100000 ${assemble_trinity_d}/${specie}_unigene.fasta ${annotation_d}/${specie}_unigene.fasta_
-        for i in $(ls ${annotation_d} | grep "${specie}_unigene.fasta_"); do
-            log INFO "[KEGG]正在生成 ${i} 的 keg 文件"
-            python ${script_d}/kegg_annotation.py \
-                -f ${annotation_d}/${i} \
-                -o ${annotation_d}/${i}_keg \
-                -l "${kegg_org}" >>${log_d}/kegg.log
-            # 检查文件是否生成
-            if [[ -f ${annotation_d}/${i}_keg ]]; then
-                cat ${annotation_d}/${i}_keg >>${annotation_d}/${specie}.keg
-            elif [[ ! -f ${annotation_d}/${i}_keg ]]; then
-                log ERROR "[KEGG]${i} 的 keg 文件生成失败"
-            fi
-        done
-    else
-        log INFO "[KEGG]unigene.fasta 文件小于 50000 条，直接进行注释"
-        python ${script_d}/kegg_annotation.py \
-            -f ${assemble_trinity_d}/${specie}_unigene.fasta \
-            -o ${annotation_d}/${specie}.keg \
-            -l "${kegg_org}"
-    fi
-    
-    # 拿着 $specie_unigene.fasta 去 kegg 网站生成 keg 文件，再做下面的东西 -t plant/animal 动物或植物
-    cd ${annotation_d} || exit
-    if [[ -f ${work_dir}/${specie}_all_gene_id.txt ]]; then
-        python ${script_d}/kegg.py -t ${specie_type} -i ${work_dir}/${specie}_all_gene_id.txt
-    else
-        log WARNING "[KEGG]未检测到 ${work_dir}/${specie}_all_gene_id.txt 文件，将不会生成 ${specie}_shortname.txt"
-        python ${script_d}/kegg.py -t ${specie_type}
-    fi
-    cd ${work_dir} || exit
+    unigene_count=$(grep -c '>' ${assemble_trinity_d}/${specie}_unigene.fasta)
+    split_count=$((unigene_count / 50000))
+    python ${script_d}/kegg_annotation.py \
+        -f ${assemble_trinity_d}/${specie}_unigene.fasta \
+        -k ${annotation_d}/${specie}.keg \
+        -l "${kegg_org}" \
+        -s $split_count \
+        --allid ${work_dir}/${specie}_all_gene_id.txt
 }
 
 merge_kns_def() {
     kegg_gene_def=$(realpath -s ${annotation_d}/*KEGG_gene_def.txt)
     nr_gene_def=$(realpath -s ${annotation_d}/*nr_gene_def.txt)
     swiss_gene_def=$(realpath -s ${annotation_d}/*swiss_gene_def.txt)
-    python ${script_d}/kns_def_merge.py \
+    python /home/colddata/qinqiang/script/transcriptome/genedf_add_expression_and_def.py \
         -k ${kegg_gene_def} \
         -n ${nr_gene_def} \
         -s ${swiss_gene_def} \
         -i ${work_dir}/${specie}_all_gene_id.txt \
+        --input-header 0 \
         -o ${annotation_d}/${specie}_kns_gene_def.txt
     if [[ ! -f ${annotation_d}/${specie}_kns_gene_def.txt ]]; then
         log INFO "${annotation_d}/${specie}_kns_gene_def.txt 合并失败"
@@ -368,7 +318,8 @@ exec_annotation_report() {
     tail -n +2 ${specie}_nr_uniq.blast \
         | awk -F '[][]' '{print $(NF-1)}' | sort | uniq -c | sort -nr \
         | awk '{ column1 = substr($0, 1, 7); column2 = substr($0, 8); gsub(/^[[:space:]]+|[[:space:]]+$/, "", column1); gsub(/^[[:space:]]+|[[:space:]]+$/, "", column2); print column2"\t"column1 }' \
-        | head > annotation_report/species_count.txt
+        > annotation_report/species_count.txt
+    head -n 10 annotation_report/species_count.txt > annotation_report/species_count_Top10.txt
     python ${script_d}/cog_count.py -c ${specie}.emapper.annotations -o annotation_report
     cp *GO*ID.txt annotation_report/
     
@@ -379,7 +330,7 @@ exec_annotation_report() {
     # annotation_report.r 画图所需的全部文件
     file_list=(
         "all_gene_id.txt" "KEGG_clean.txt" "GO_ID.list" "KEGG_ID.list" "COG_ID.list"
-        "Swiss_ID.list" "NR_ID.list" "identity.txt" "evalue.txt" "species_count.txt"
+        "Swiss_ID.list" "NR_ID.list" "identity.txt" "evalue.txt" "species_count_Top10.txt" "species_count.txt"
         "COG_count.txt" "swiss_GO_BP_ID.txt" "swiss_GO_CC_ID.txt" swiss_GO_MF_ID.txt
     )
     
@@ -405,70 +356,6 @@ exec_annotation_report() {
         cd ${work_dir}
         return 1
     fi
-}
-
-
-### multi deseq
-### 需要创建一个 compare.txt 和 samples_described.txt
-exec_multi_deseq() {
-    if [[ ! -d ${multideseq_d} ]]; then
-        mkdir ${multideseq_d}
-    fi
-    
-    # 查看工作目录有多少个 compare_info_{group}.txt 文件
-    comp_file_list=($(find ${work_dir} -maxdepth 1 -type f -name 'compare_info*' | sort))
-    if [ ${#comp_file_list[@]} -eq 0 ]; then
-        log ERROR "没有找到 compare_info_{group}.txt 或 compare_info.txt 文件，不执行此步骤"
-        return 1
-    fi
-    
-    for comp_file in "${comp_file_list[@]}"; do
-        # 从文件名中提取组名
-        comp_group=$(echo "${comp_file}" | sed 's/.*compare_info_//' | sed 's/\.txt//')
-        
-        # 检查文件名是否为 'compare_info.txt'
-        if [ "${comp_file##*/}" = 'compare_info.txt' ]; then
-            comp_group="default"
-        fi
-        
-        # 设置目录路径
-        comp_multideseq="${multideseq_d}/${comp_group}_${rlog_number}"
-        
-        if [ ! -d "${comp_multideseq}" ]; then
-            mkdir -p "${comp_multideseq}"
-        else
-            log ERROR "${comp_multideseq} 目录已存在，请手动删除后再执行此步骤"
-            continue
-        fi
-        
-        # 复制所需文件
-        cd ${comp_multideseq} || return 1
-        mycp ${mapping_d}/*matrix_filtered.txt ${comp_multideseq}
-        cp ${comp_file} ${comp_multideseq}/compare_info.txt
-        cut -f 1,2 ${samples_described_f} > ${comp_multideseq}/samples_described.txt
-        
-        # 挑出指定样本
-        log INFO "从 compare_info 中的组名中挑出 sampels_described.txt、reads 和 fpkm 文件的指定样本"
-        python ${script_d}/filter_samples_from_comp.py
-        python ${script_d}/check_SampDesAndCompInfo.py
-        python ${script_d}/reorder_genetable_with_samplesdes.py \
-            -f fpkm_matrix_filtered.txt \
-            -o fpkm_matrix_filtered.txt
-        python ${script_d}/reorder_genetable_with_samplesdes.py \
-            -f reads_matrix_filtered.txt \
-            -o reads_matrix_filtered.txt
-        
-        # 执行流程
-        log INFO "正在执行 ${comp_group} multi_deseq 流程，Rlog number 为 ${rlog_number}"
-        Rscript "${script_d}/multiple_samples_DESeq2.r" "${rlog_number}"
-        log INFO "正在给 multideseq 程序生成的文件添加定义"
-        kns_def_file=$(find ${annotation_d} -maxdepth 1 -type f -name '*kns_gene_def.txt')
-        python "${script_d}/de_results_add_def.py" \
-        --kns "${kns_def_file}"
-        mv *_DEG_data.txt DEG_analysis_results/Expression_data/
-        cat DEG_analysis_results/DEG_summary.txt
-    done
-    cd "${work_dir}"
 }
 
 
@@ -688,38 +575,12 @@ jiaofu_prepare() {
     mycp ${annotation_d}/*_gene_def.txt ${jiaofu}/00_Reference_genome_annotation_files/
     mycp ${assemble_trinity_d}/${specie}_unigene.fasta ${jiaofu}/00_Reference_genome_annotation_files/
     
-    # 这个不用了
-    # log INFO "copy files to 00_测序质控文件"
-    # mycp ${cleandata_d}/fastqc/*.zip ${jiaofu}/00_测序质控文件
-    
     log INFO "copy files to 01_Original_expression_data"
     mycp ${mapping_d}/*_data_def.txt ${jiaofu}/01_Original_expression_data
     
-    # TODO: 这段儿需要更新
-    # 检测多个 compare_info 创建多个组间比较交付目录
-    # compare_count=$(ls -i compare_info*.txt | wc -l)
-    # if [ $compare_count -gt 1 ]; then
-    #     for compare_gourp in $(find ${multideseq_d} -maxdepth1 -type d | tail -n +2); do
-    #         log INFO "copy ${compare_group} files to 02_DEG_analysis"
-            
-    #     done
-    # else
-    #     log INFO "copy files to 02_DEG_analysis"
-    # fi
-    
-    # Prep_files
     log INFO "\ncopy files to Prep_files"
     mycp ${assemble_trinity_d}/assemble_stat_report.txt ${jiaofu}/Prep_files
     
-    # wego
-    # log INFO "\ncopy files to wego"
-    # cp ${annotation_d}/*GO*ID.txt "$wego"
-    # cp ${annotation_d}/*idNo_def.txt "$wego"/all_geneid_GO.txt
-    # cp ${multideseq_d}/*Down_ID.txt "$wego"
-    # cp ${multideseq_d}/*Up_ID.txt "$wego"
-    # cd ${wego} || exit
-    # python ${script_d}/wego.py
-    # rm *Down_ID.txt *Up_ID.txt *GO*ID.txt
     cd ${word_dir} || exit
 }
 
@@ -733,8 +594,7 @@ assemble_trinity_d=${work_dir}/03_Assemble_trinity
 annotation_d=${work_dir}/04_Annotation
 reference_d=${work_dir}/05_Reference
 mapping_d=${work_dir}/06_Mapping_mapping
-multideseq_d=${work_dir}/07_Multi_DESeq
-biogrid_d=${work_dir}/08_Biogrid
+biogrid_d=${work_dir}/07_Biogrid
 jiaofu=${work_dir}/jiaofu_prepare
 
 samples_described_f=${work_dir}/samples_described.txt
@@ -760,7 +620,6 @@ annotation_d:\t\t${annotation_d}
 cleandata_d:\t\t${cleandata_d}
 bam_d:\t\t\t${bam_d}
 mapping_d:\t\t${mapping_d}
-multideseq:\t\t${multideseq_d}
 jiaofu:\t\t\t${jiaofu}
 
 samples_described_f:\t${samples_described_f}

@@ -117,29 +117,56 @@ go_enrich <- function(deg_id_file, output_dir) {
     maxGSSize = 1000
   )
 
-  bp_result <- go_rich_bp@result
-  mf_result <- go_rich_mf@result
-  cc_result <- go_rich_cc@result
+  value_counts = 0
+  if (length(go_rich_bp@result) != 0) {
+    bp_result <- go_rich_bp@result
+    bp_result$GeneRatio <- sapply(bp_result$GeneRatio, calculate_ratio)
+    bp_result$BgRatio <- sapply(bp_result$BgRatio, calculate_ratio)
+    bp_result$RichFactor <- bp_result$GeneRatio / bp_result$BgRatio
+    bp_result$Ontology <- rep("BP", nrow(bp_result))
+    # go_rich.bp <- as.data.frame(bp_result)
+    go_rich.total <- as.data.frame(bp_result)
+    value_counts = 1
+  }
 
-  bp_result$GeneRatio <- sapply(bp_result$GeneRatio, calculate_ratio)
-  bp_result$BgRatio <- sapply(bp_result$BgRatio, calculate_ratio)
-  bp_result$RichFactor <- bp_result$GeneRatio / bp_result$BgRatio
-  bp_result$Ontology <- rep("BP", nrow(bp_result))
+  if (length(go_rich_cc@result) != 0) {
+    cc_result <- go_rich_cc@result
+    cc_result$GeneRatio <- sapply(cc_result$GeneRatio, calculate_ratio)
+    cc_result$BgRatio <- sapply(cc_result$BgRatio, calculate_ratio)
+    cc_result$RichFactor <- cc_result$GeneRatio / cc_result$BgRatio
+    cc_result$Ontology <- rep("CC", nrow(cc_result))
+    # go_rich.cc <- as.data.frame(go_rich_cc)
+    if (is.data.frame(go_rich.total)) {
+      go_rich.total <- rbind(go_rich.total, cc_result)
+    } else {
+      go_rich.total <- as.data.frame(cc_result)
+    }
+    value_counts = 1
+  }
 
-  mf_result$GeneRatio <- sapply(mf_result$GeneRatio, calculate_ratio)
-  mf_result$BgRatio <- sapply(mf_result$BgRatio, calculate_ratio)
-  mf_result$RichFactor <- mf_result$GeneRatio / mf_result$BgRatio
-  mf_result$Ontology <- rep("MF", nrow(mf_result))
+  if (length(go_rich_mf@result) != 0) {
+    mf_result <- go_rich_mf@result
+    mf_result$GeneRatio <- sapply(mf_result$GeneRatio, calculate_ratio)
+    mf_result$BgRatio <- sapply(mf_result$BgRatio, calculate_ratio)
+    mf_result$RichFactor <- mf_result$GeneRatio / mf_result$BgRatio
+    mf_result$Ontology <- rep("MF", nrow(mf_result))
+    # go_rich.mf <- as.data.frame(go_rich_mf)
+    if (is.data.frame(go_rich.total)) {
+      go_rich.total <- rbind(go_rich.total, mf_result)
+    } else {
+      go_rich.total <- as.data.frame(mf_result)
+    }
+    value_counts = 1
+  }
+  
+  # go_rich.total <- rbind(bp_result, cc_result, mf_result)
 
-  cc_result$GeneRatio <- sapply(cc_result$GeneRatio, calculate_ratio)
-  cc_result$BgRatio <- sapply(cc_result$BgRatio, calculate_ratio)
-  cc_result$RichFactor <- cc_result$GeneRatio / cc_result$BgRatio
-  cc_result$Ontology <- rep("CC", nrow(cc_result))
-
-  go_rich.bp <- as.data.frame(go_rich_bp)
-  go_rich.mf <- as.data.frame(go_rich_mf)
-  go_rich.cc <- as.data.frame(go_rich_cc)
-  go_rich.total <- rbind(bp_result, cc_result, mf_result)
+  # 检测是否存在 go_rich.total 的一个 dataframe 且不为空
+  # TODO: 检测不到，还是会出错
+  if (value_counts == 0) {
+    print("没有富集到任何的GO信息\n")
+    return()
+  }
 
   go_rich.total <- go_rich.total[, c("ID", "Description", "GeneRatio", "BgRatio", "RichFactor", "pvalue", "p.adjust", "qvalue", "geneID", "Count", "Ontology")]
 
@@ -174,6 +201,10 @@ kegg_enrich <- function(deg_id_file, kegg2gene, kegg2name, output_dir) {
     TERM2GENE = kegg2gene, TERM2NAME = kegg2name, pvalueCutoff = 1,
     pAdjustMethod = "BH", qvalueCutoff = 1, minGSSize = 1, maxGSSize = 1000
   )
+  if (length(enrichment@result) == 0) {
+    cat("没有富集到任何的KEGG信息\n")
+    return()
+  }
   # # 绘制条形图,绘制气泡图
   # barplot(enrichment)
   # dotplot(enrichment)

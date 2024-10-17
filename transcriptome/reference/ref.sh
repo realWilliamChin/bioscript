@@ -4,169 +4,35 @@
 
 ### 比对
 hisat2_alignment() {
-    samplename_list=($(tail -n+2 ${samples_described_f} | grep -v '^$' | cut -f 2))
-    filename_1_list=($(tail -n+2 ${samples_described_f} | grep -v '^$' | cut -f 3))
-    filename_2_list=($(tail -n+2 ${samples_described_f} | grep -v '^$' | cut -f 4))
-    sample_count=${#filename_1_list[@]}
-    log INFO "即将比对的样本数量是 $sample_count"
-
-    # 检查 filename_1_list 和 filename_2_list 的文件是否存在
-    log INFO "检查 ${samples_described_f} 中的文件是否存在"
-    for ((i=0; i<sample_count; i++)); do
-        file_1="${cleandata_d}/${filename_1_list[i]}"
-        file_2="${cleandata_d}/${filename_2_list[i]}"
-
-        if [[ ! -e "$file_1" ]]; then
-            log ERROR "未找到文件: $file_1"
-            ls -l "$file_1"  # 添加调试信息
-            exit 1
-        fi
-
-        if [[ ! -e "$file_2" ]]; then
-            log ERROR "未找到文件: $file_2"
-            ls -l "$file_2"  # 添加调试信息
-            exit 1
-        fi
-    done
-    log INFO "检查完成，无错误"
-
-    # 检查比对的参考基因组的库是否存在
-    if [[ ! -f ${database_d}/${ref_specie}.1.ht2 ]]; then
-        log ERROR "未找到 ${database_d}/${ref_specie} 相关库文件"
-        exit 1
-    fi
-
-    # 创建 ${bam_d} 和 ${mapping_d} 目录
-    if [[ ! -d ${bam_d} ]]; then
-        mkdir ${bam_d}
-    fi
-    if [[ ! -d ${mapping_d} ]]; then
-        mkdir ${mapping_d}
-    fi
-
-    for ((i=0; i<sample_count; i++)); do
-        log INFO "正在比对第${i}个，使用线程数 ${num_threads}，${filename_1_list[i]} ${filename_2_list[i]} hisat2 alignment ... "
-        hisat2 -x ${database_d}/${ref_specie} \
-            -p ${num_threads} \
-            -I 200 -X 400 --fr \
-            --min-intronlen 20 --max-intronlen 4000 \
-            -1 ${cleandata_d}/${filename_1_list[i]} \
-            -2 ${cleandata_d}/${filename_2_list[i]} \
-            2> ${mapping_d}/${samplename_list[i]}_mapping.txt | \
-            samtools sort --threads ${num_threads} -O BAM -o - > ${bam_d}/${samplename_list[i]}.bam
-
-        tail -n 1 ${mapping_d}/${samplename_list[i]}_mapping.txt
-    done
-
-    log INFO "hisat2 mapping summary"
-    cd ${mapping_d} || exit
-    python ${script}/hisat2_mapping_summary.py -s ${samples_described_f}
+    gff_file=$(find ${database_d} -maxdepth 1 -type f -name '*.g*f*' | head -n 1)
+    python /home/colddata/qinqiang/script/transcriptome/reference/hisat2_alignment.py \
+        hisat2 \   # 这里是 alignment 类型，选择 hisat2 或者 bowtie2
+        -s ${samples_described_f} \
+        --gff ${gff_file}
+        --md ${mapping_d} \
+        --cd ${cleandata_d} \
+        --bd ${bam_d} \
+        --ref ${database_d}/${ref_specie} \
+        --cpu ${num_threads}
+        
     cat ${mapping_d}/mapping_summary.txt
     cd ${work_dir} || exit
 }
 
 bowtie2_alignment() {
-    # 创建 ${bam_d} 和 ${mapping_d} 目录
-    if [[ ! -d ${bam_d} ]]; then
-        mkdir ${bam_d}
-    fi
-    if [[ ! -d ${mapping_d} ]]; then
-        mkdir ${mapping_d}
-    fi
-
-    samplename_list=($(tail -n+2 ${samples_described_f} | grep -v '^$' | cut -f 2))
-    filename_1_list=($(tail -n+2 ${samples_described_f} | grep -v '^$' | cut -f 3))
-    filename_2_list=($(tail -n+2 ${samples_described_f} | grep -v '^$' | cut -f 4))
-    sample_count=${#filename_1_list[@]}
-    log INFO "即将比对的样本数量是 $sample_count"
-
-    # 检查 filename_1_list 和 filename_2_list 的文件是否存在
-    log INFO "检查 ${samples_described_f} 中的文件是否存在"
-    for ((i=0; i<sample_count; i++)); do
-        if [[ ! -e "${cleandata_d}/${filename_1_list[i]}" ]]; then
-            log ERROR "未找到 ${cleandata_d}/${filename_1_list[i]} 文件"
-            exit 1
-        fi
-        if [[ ! -e "${cleandata_d}/${filename_2_list[i]}" ]]; then
-            log ERROR "未找到 ${cleandata_d}/${filename_2_list[i]} 文件"
-            exit 1
-        fi
-    done
-    log INFO "检查完成，无错误"
-
-    # 检查比对的参考基因组的库是否存在
-    if [[ ! -f ${database_d}/${ref_specie}.1.bt2 ]]; then
-        log ERROR "未找到 ${database_d}/${ref_specie} 相关库文件"
-        exit 1
-    fi
-
-    for ((i=0; i<sample_count; i++)); do
-        # 创建单独的 样本 bam 目录，存放没比对上的 fastq 和比对上的 fastq 文件
-        if [ ! -d ${bam_d}/${samplename_list[i]} ]; then
-            mkdir ${bam_d}/${samplename_list[i]}
-        fi
-
-        log INFO "正在比对第${i}个，使用线程数 ${num_threads}，${filename_1_list[i]} ${filename_2_list[i]} bowtie2 alignment ... "
-        bowtie2 -x ${database_d}/${ref_specie} \
-            -p ${num_threads} \
-            -1 ${cleandata_d}/${filename_1_list[i]} \
-            -2 ${cleandata_d}/${filename_2_list[i]} \
-            --un-conc-gz ${bam_d}/${samplename_list[i]}/ \
-            --al-conc-gz ${bam_d}/${samplename_list[i]}/ \
-            2> ${mapping_d}/${samplename_list[i]}_mapping.txt \
-            | samtools view -@ ${num_threads} -bu - \
-            | samtools sort -@ ${num_threads} -o ${bam_d}/${samplename_list[i]}.bam
-
-        tail -n 1 ${mapping_d}/${samplename_list[i]}_mapping.txt
-    done
-    cd ${mapping_d} || exit
-    python ${script}/hisat2_mapping_summary.py -s ${samples_described_f}
+    python /home/colddata/qinqiang/script/transcriptome/reference/hisat2_alignment.py \
+        bowtie2 \   # 这里是 alignment 类型，选择 hisat2 或者 bowtie2
+        -s ${samples_described_f} \
+        --md ${mapping_d} \
+        --cd ${cleandata_d} \
+        --bd ${bam_d} \
+        --ref ${database_d}/${ref_specie} \
+        --cpu ${num_threads}
+        
+    cat ${mapping_d}/mapping_summary.txt
     cd ${work_dir} || exit
 }
 
-### stringtie
-exec_stringtie() {
-    # 执行前检查
-    # 检查 gff 文件是否存在
-    gff_file=$(find ${database_d} -maxdepth 1 -type f -name '*.g*f*' | head -n 1)
-    if [[ ! -f ${gff_file} ]]; then
-        log ERROR "未找到基因注释文件，gff 或 gtf，优先使用 gtf 文件"
-        exit 1
-    else
-        log INFO "基因注释文件使用 ${gff_file}"
-    fi
-
-    log INFO "执行 stringtie 步骤"
-    samplename_list=($(tail -n+2 ${samples_described_f} | grep -v '^$' | cut -f 2))
-    sample_count=${#samplename_list[@]}
-
-    # 循环 samplename_list 进行 stringtie 处理
-    stringtie_psnum_cmd="ps -ef | grep stringtie | grep ${work_dir} | wc -l"
-    cut -f 2 ${samples_described_f} | grep -v '^$' | tail -n+2 | while read samplename; do
-        # stringtie 单线程，并行跑 
-        # 检测当前运行多少 stringtie, 超过配置中的线程数则等待
-        stringtie_psnum=$(echo $stringtie_psnum_cmd | bash)
-        while [[ $stringtie_psnum -ge $(($num_threads - 15)) ]]; do
-            sleep 1
-            stringtie_psnum=$(echo $stringtie_psnum_cmd | bash)
-        done
-        log INFO "stringtie processing ${samplename}"
-        echo "nohup stringtie -e -B \
-            -G ${gff_file} \
-            -A ${bam_d}/fpkm/${samplename}_fpkm.txt \
-            -o ${bam_d}/ballgown/${samplename}/${samplename}.gtf \
-            ${bam_d}/${samplename}.bam > ${log_d}/stringtie_${ref_specie}_${samplename}.log 2>&1 &" | bash
-    done
-
-    # 检测 stringtie 还在运行，则等待 stringtie 运行完成
-    stringtie_psnum=$(echo $stringtie_psnum_cmd | bash)
-    while [[ $stringtie_psnum -gt 0 ]]; do
-        sleep 1
-        stringtie_psnum=$(echo $stringtie_psnum_cmd | bash)
-    done
-
-    log INFO "stringtie 处理完成"
-}
 
 # TODO: 没写完继续写
 ### salmon
@@ -240,12 +106,11 @@ exec_all() {
     hisat2_alignment
     exec_stringtie
     process_fpkm_reads
-    exec_multi_deseq
     jiaofu_prepare
 }
 
 # 目录变量
-script=/home/colddata/qinqiang/ProjectScript/02_Reference
+script_d=/home/colddata/qinqiang/ProjectScript/02_Reference
 work_dir=$(pwd)
 log_d=${work_dir}/log
 database_d=${work_dir}/00_Database

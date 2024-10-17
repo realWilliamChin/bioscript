@@ -99,23 +99,12 @@ exec_swiss() {
     if [[ ! -d ${prep_fs}/swiss ]]; then
         mkdir -p ${prep_fs}/swiss
     fi
-    
-    /opt/biosoft/ncbi-blast-2.9.0+/bin/blastx \
-        -db /home/data/ref_data/Linux_centos_databases/2019_Unprot_databases/swissprot \
-        -query ${cds_gene_sequence_file} \
-        -out ${prep_fs}/swiss/${specie}_swiss.blast \
-        -max_target_seqs 20 \
-        -evalue 1e-5 \
-        -num_threads ${num_threads} \
-        -outfmt "6 qacc sacc pident qcovs qcovhsp ppos length mismatch gapopen qstart qend sstart send evalue bitscore stitle"
-    # 如果 swiss 注释成功，则对 swiss blast 结果进行处理
-    if [[ -f ${prep_fs}/swiss/${specie}_swiss.blast ]]; then
-        cd ${prep_fs}/swiss
-        python ${script}/swiss.py
-        cd ${work_dir} || exit
-    else
-        log ERROR "swiss blast 失败"
-    fi
+
+    python /home/colddata/qinqiang/script/transcriptome/annotation/swiss.py \
+        -b ${prep_fs}/swiss/${specie}_swiss.blast \
+        -p ${prep_fs}/swiss/${specie} \
+        --fasta ${cds_gene_sequence_file} \
+        -t ${num_threads}
 }
 
 ## nr
@@ -124,34 +113,13 @@ exec_nr() {
     if [[ ! -d ${prep_fs}/nr/temp ]]; then
         mkdir -p ${prep_fs}/nr/temp
     fi
-    diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
-        --threads ${num_threads} \
-        --query ${cds_gene_sequence_file} \
-        --out ${prep_fs}/nr/${specie}_nr.blast \
-        --outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle \
-        --sensitive \
-        --max-target-seqs 1 \
-        --evalue 1e-5 \
-        --id 30 \
-        --block-size 20.0 \
-        --tmpdir ${prep_fs}/nr/temp \
-        --index-chunks 1
-    # 如果 nr 执行成功，则对 nr 结果进行处理
-    if [[ -f ${prep_fs}/nr/${specie}_nr.blast || $? -eq 0 ]]; then
-        cd ${prep_fs}/nr || exit
-        python ${script}/nr.py -b ${reference_genome_fs}/${specie}_gene_basicinfo.txt
-        if [[ $? -eq 0 ]]; then
-            cd ${work_dir} || exit
-            log INFO "nr 注释完成"
-            return 0
-        else
-            log ERROR "nr 注释失败"
-            return 1
-        fi
-    else
-        log ERROR "nr 注释失败"
-        return 1
-    fi
+
+    python /home/colddata/qinqiang/script/transcriptome/annotation/nr.py \
+        -b ${prep_fs}/nr/${specie}_nr.blast \
+        --basicinfo ${reference_genome_fs}/${specie}_gene_basicinfo.txt \
+        -p ${prep_fs}/nr/${specie} \
+        --fasta ${cds_gene_sequence_file} \
+        -t ${num_threads}
 }
 
 ### kegg
@@ -161,43 +129,15 @@ exec_kegg() {
     if [[ ! -d ${prep_fs}/kegg ]]; then
         mkdir -p ${prep_fs}/kegg
     fi
-    # 判断 $cds_gene_sequence_file 是否大于 50000 条，如果大于 50000 条，则需要分批生成 keg 文件
-    if [[ $(grep -c '>' ${cds_gene_sequence_file}) -gt 50000 ]]; then
-        log INFO "[KEGG]cds.fasta 文件大于 50000 条，切割进行注释"
-        split -l 100000 ${cds_gene_sequence_file} ${annotation_d}/${specie}.fasta_
-        for i in $(ls ${annotation_d} | grep "${specie}.fasta_"); do
-            log INFO "[KEGG]正在生成 ${i} 的 keg 文件"
-            python ${script}/kegg_annotation.py \
-                -f ${annotation_d}/${i} \
-                -o ${annotation_d}/${i}_keg \
-                -l "${kegg_org}" >> ${annotation_d}/${i}_keg.log 2>&1
-            # 检查文件是否生成
-            if [[ -f ${annotation_d}/${i}_keg ]]; then
-                cat ${annotation_d}/${i}_keg >> ${annotation_d}/${specie}.keg
-            elif [[ ! -f ${annotation_d}/${i}_keg ]]; then
-                log ERROR "[KEGG]${i} 的 keg 文件生成失败"
-            fi
-        done
-    else
-        log INFO "[KEGG]cds.fasta 文件小于 50000 条，直接进行注释"
-        python ${script}/kegg_annotation.py \
-            -f ${cds_gene_sequence_file} \
-            -o ${annotation_d}/${specie}.keg \
-            -l "${kegg_org}" >> ${annotation_d}/${specie}.keg.log 2>&1
-    fi
-
-    # 拿着 $cds_gene_sequence_file 去 kegg 网站生成 keg 文件，再做下面的东西 -t plant/animal 动物或植物
-    cd ${annotation_d} || exit
-    if [[ -f ${reference_genome_fs}/${specie}_all_gene_id.txt ]]; then
-        python ${script}/kegg.py \
-            -t ${specie_type} \
-            -i ${reference_genome_fs}/${specie}_all_gene_id.txt
-    else
-        log WARNING "[KEGG]未检测到 ${reference_genome_fs}/${specie}_all_gene_id.txt 文件，将不会生成 ${specie}_shortname.txt"
-        python ${script}/kegg.py \
-            -t ${specie_type}
-    fi
-    cd ${work_dir} || exit
+    
+    gene_count=$(grep -c '>' ${cds_gene_sequence_file})
+    split_count=$((gene_count / 50000))
+    python ${script_d}/kegg_annotation.py \
+        -f ${cds_gene_sequence_file} \
+        -k ${annotation_d}/${specie}.keg \
+        -l "${kegg_org}" \
+        -s $split_count \
+        --allid ${reference_genome_fs}/${specie}_all_gene_id.txt
 }
 
 merge_kns_def() {
@@ -209,11 +149,12 @@ merge_kns_def() {
     nr_gene_def=$(realpath -s ${prep_fs}/nr/*nr_gene_def.txt)
     swiss_gene_def=$(realpath -s ${prep_fs}/swiss/*swiss_gene_def.txt)
     log INFO "正在合并 kegg swiss nr 基因注释，使用${kegg_gene_def}, ${nr_gene_def}, ${swiss_gene_def}"
-    python ${script}/kns_def_merge.py \
+    python /home/colddata/qinqiang/script/transcriptome/genedf_add_expression_and_def.py \
         -k ${kegg_gene_def} \
         -n ${nr_gene_def} \
         -s ${swiss_gene_def} \
         -i ${reference_genome_fs}/${specie}_all_gene_id.txt \
+        --input-header 0 \
         -o ${prep_fs}/${specie}_kns_gene_def.txt
     if [[ ! -f ${prep_fs}/${specie}_kns_gene_def.txt || $? -ne 0 ]]; then
         log ERROR "${prep_fs}/${specie}_kns_gene_def.txt 合并失败"

@@ -44,6 +44,8 @@ for (i in infiles) {
       ylab(colnames(data)[1]) +
       theme_base()
     ggsave(paste0(bubble_dir, "/", out.name, "_enrich_GOBP_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
+  } else {
+    message(paste0(out.name, "没有显著富集的GOBP通路。"))
   }
 
   dt.cc <- dt[dt$Ontology == "CC", ]
@@ -62,6 +64,8 @@ for (i in infiles) {
       ylab(colnames(data)[1]) +
       theme_base()
     ggsave(paste0(bubble_dir, "/", out.name, "_enrich_GOCC_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
+  } else {
+    message(paste0(out.name, "没有显著富集的GOCC通路。"))
   }
 
   dt.mf <- dt[dt$Ontology == "MF", ]
@@ -80,6 +84,8 @@ for (i in infiles) {
       ylab(colnames(data)[1]) +
       theme_base()
     ggsave(paste0(bubble_dir, "/", out.name, "_enrich_GOMF_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
+  } else {
+    message(paste0(out.name, "没有显著富集的GOMF通路"))
   }
 
   kegg_file <- gsub("_EnrichmentGO.xlsx", "_EnrichmentKEGG.xlsx", i)
@@ -100,6 +106,8 @@ for (i in infiles) {
       ylab(colnames(data)[1]) +
       theme_base()
     ggsave(paste0(bubble_dir, "/", out.name, "_enrich_KEGG_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
+  } else {
+    message(paste0(out.name, "没有显著富集的KEGG通路。"))
   }
 
   dt.bp <- head(dt.bp[order(dt.bp$pvalue), ], n = 10)

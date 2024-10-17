@@ -1,4 +1,4 @@
-#!/home/train/miniconda3/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created Time  : 2023/07/14 16:50
 # Author        : William GoGo
@@ -8,6 +8,8 @@ import os, sys
 import argparse
 import requests
 import poplib
+import pandas as pd
+from Bio import SeqIO
 from lxml import etree
 from fake_useragent import UserAgent
 from email import encoders
@@ -15,6 +17,11 @@ from email.header import Header, decode_header
 from email.mime.text import MIMEText
 from email.parser import Parser
 from email.utils import parseaddr, formataddr
+from loguru import logger
+
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
+from merge_fpkm_reads_matrix import merge_fpkm_reads
 
 
 class EmailReceiver:
@@ -42,14 +49,23 @@ class EmailReceiver:
 
     def receive_mail(self, user, pswd):
         server = poplib.POP3(self.server, self.port)
-        try:
-            server.user(user)
-            server.pass_(pswd)
-            resp, mails, octets = server.list()
-            if len(mails) == 0:
-                raise RuntimeError('No mail found from eamil address!')
-        except Exception as e:
-            raise RuntimeError(f'Error message: {e}')
+        max_retry = 0
+        while True:
+            try:
+                server.user(user)
+                server.pass_(pswd)
+                resp, mails, octets = server.list()
+                if len(mails) == 0:
+                    raise RuntimeError('No mail found from eamil address!')
+                break
+            except Exception as e:
+                if max_retry <= 3:
+                    logger.warning(f'获取邮件错误，10s 后尝试重新获取')
+                    time.sleep(10)
+                    max_retry += 1
+                else:
+                    logger.critical(f'尝试 3 次失败')
+                    raise RuntimeError(f'Error message: {e}')
         
         # 从最近 3 封或 5 封邮件选取 @genome 的邮件，以防收取到其他邮件
         msg = None
@@ -188,13 +204,13 @@ def upload_fasta_to_kegg(fasta_file, org_lst, eamil_address):
                            ]).strip("'")
     
     # upload file
-    print(f'uploading {fasta_file_name}...')
+    logger.info(f'uploading {fasta_file_name}...')
     response = requests.post(upload_file_url, headers=headers, data=payload)
     if response.status_code == 200:
-        print(f'uploaded {fasta_file_name}...')
+        logger.info(f'uploaded {fasta_file_name}...')
     else:
-        print(f'upload failed {fasta_file_name}!')
-        print(response.text)
+        logger.critical(f'upload failed {fasta_file_name}!')
+        logger.critical(response.text)
         exit(1)
     html = etree.HTML(response.text)
     
@@ -205,12 +221,12 @@ def upload_fasta_to_kegg(fasta_file, org_lst, eamil_address):
     # res_element = html.xpath('//p[@class="res"]/text()')[0]
     # right_res = f'An email has been sent to {eamil_address} for confirmation.'
     if sub_element == right_sub:
-        print('upload success!')
+        logger.success('upload success!')
     elif 'Sorry' in sub_element:
-        print(f'upload failed!\nerror message: {sub_element}')
+        logger.critical(f'upload failed!\nerror message: {sub_element}')
         sys.exit(1)
     else:
-        print(f'upload failed!\n{response.text}')
+        logger.critical(f'upload failed!\n{response.text}')
         sys.exit(1)
     
 
@@ -228,26 +244,10 @@ def email_link_click(link):
             max_retry += 1
             time.sleep(3)
     sys.exit(1)
-    
-
-def parse_input():
-    argparser = argparse.ArgumentParser(description='kegg annotation，一次只能注释一个任务，除非添加其他邮箱')
-    argparser.add_argument('-f', '--fasta', required=True,
-                           help='输入 fasta file')
-    argparser.add_argument('-o', '--output', default='kegg_annotation.keg',
-                           help='指定输出文件名')
-    argparser.add_argument('-l', '--org_lst', required=True,
-                           help='指定物种列表，以 ", " 分隔')
-    argparser.add_argument('-u', '--username', default='dagongrenyyds@163.com',
-                           help='【默认就行】输入163邮箱用户名')
-    argparser.add_argument('-p', '--password', default='IFBWCQOBTEOXODTK',
-                           help='【默认就行】输入163邮箱密码，密码非常规密码，查看获取方法 https://m.jqjq.net/jiqiao/108147.html')
-    argparser.add_argument('-m', '--mail_type', default='163', choices=['163', 'qq'],
-                           help='【默认就行】输入邮箱类型 163 or qq，目前只支持 163 邮箱')
-    return argparser.parse_args()
 
 
-def kegg_anno(mail_type, username, password, fasta_file, org_lst, output_filename):
+def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_filename):
+    logger.info(f"fasta file: {fasta_file}\norg_list：{org_lst}")
     mail = EmailReceiver(f'imap.{mail_type}.com', 110)
     # step.1 submit fasta file to kegg and get request_ID and job status
     mail_content = mail.receive_mail(username, password)
@@ -267,18 +267,18 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst, output_filenam
             submit_resp = email_link_click(submit_link)
             submit_status = etree.HTML(submit_resp).xpath('//h1/text()')[0]
             if submit_status == 'Submitted':
-                print(f'Job requesting ID:{job_ID} ...')
+                logger.info(f'Job requesting ID:{job_ID} ...')
                 mail_date = mail_content['date']
                 break
             else:
-                print(f'Job request Failed! not Submitted ID:{job_ID}!')
+                logger.critical(f'Job request Failed! not Submitted ID:{job_ID}!')
                 sys.exit(1)
         elif mail_content['date'] == mail_date:
-            print(f'receiving job request email {t+1} times ...')
+            logger.info(f'receiving job request email {t+1} times ...')
             time.sleep(5)
             t += 1
         else:
-            print(f'Job request Failed!\n{mail_content}')
+            logger.critical(f'Job request Failed!\n{mail_content}')
             sys.exit(1)
             
     # step.2 获取任务提交状态
@@ -288,34 +288,37 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst, output_filenam
     for t in range(0, 12):
         mail_content = mail.receive_mail(username, password)
         if 'KAAS - Accepted' == mail_content['subject'] and mail_content['from'] == '<kaas@genome.jp>':
-            print(f'Job Accepted ID:{job_ID}!')
+            logger.info(f'Job Accepted ID:{job_ID}!')
             status_link = re.findall(r"https://.*user.*", mail_content['text'])[0]
             status_ID = status_link.split('&')[-2].split('=')[-1]
             mail_date = mail_content['date']
             break
         elif mail_content['date'] == mail_date:
-            print(f'get job status {t+1} times')
+            logger.info(f'get job status {t+1} times')
             time.sleep(30)
             t += 1
         else:
-            print(f'Job Accept Failed!\n{mail_content}')
+            logger.critical(f'Job Accept Failed!\n{mail_content}')
             sys.exit(1)
             
     # step.3 获取任务完成状态
     # 校验是否同一个任务
     if job_ID != status_ID:
-        print('request_ID and status_ID are not the same!')
-    print('Job is running wait for 5 minutes ...')
-    time.sleep(5*60)
+        logger.error('request_ID and status_ID are not the same!')
     
-    for t in range(1, 360):
+    fasta_seq_num = len([record for record in SeqIO.parse(fasta_file, "fasta")])
+    wait_times = int(fasta_seq_num/1000)*60
+    logger.info(f'Job is running wait for {wait_times/60} minutes ...')
+    time.sleep(wait_times)
+    
+    for t in range(1, 60):
         mail_content = mail.receive_mail(username, password)
         
         if 'Annotation was completed' in mail_content['subject'] and 'kaas@genome.jp' in mail_content['from']:
-            print('Job Complete!')
+            logger.success('Job Complete!')
             
             # you should click this link then you can download the file
-            print(f'downloading {output_filename} ...')
+            logger.info(f'downloading {output_filename} ...')
             visit_link = f'https://www.genome.jp/kaas-bin/kaas_main?mode=brite&id={job_ID}&key={job_key}'
             email_link_click(visit_link)
             time.sleep(5)
@@ -325,39 +328,212 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst, output_filenam
             resp = email_link_click(download_link)
             
             # check file if correct
-            print('checking file ...')
+            logger.info('checking file ...')
             if resp.split('\n')[0] == '+D\tKO':
-                print('checking file done ...')
+                logger.info('checking file done ...')
             else:
                 resp_file_header = resp.split('\n')[0:5]
-                print(f'get file failed!, file is not correct ID{job_ID},key{job_key}!\n{resp_file_header}')
+                logger.critical(f'get file failed!, file is not correct ID{job_ID},key{job_key}!\n{resp_file_header}')
                 sys.exit(1)
                 
             # output file
             with open(output_filename, 'w') as kegg_annotation:
                 kegg_annotation.write(resp)
-            print(f'download success! {output_filename} is ready!')
+            logger.success(f'download success! {output_filename} is ready!')
             
             break
         elif mail_content['date'] == mail_date:
-            if str(t / 5).split('.')[-1] == '0':
-                print(f'Job is running, Have been waiting {t+5} minutes ...')
-            elif t == 360:
-                print(f'Job maybe error, Have been waiting 360 minutes ...')
+            logger.info(f'Job is running, checked email {t} times(5min) ...')
+            if t == 60:
+                logger.error(f'Job maybe error, Have been waiting 360 minutes ...')
                 sys.exit(1)
-            time.sleep(60)
+            time.sleep(300)
             t += 1
         else:
-            print(f'Job Failed!\n{mail_content}')
+            logger.critical(f'Job Failed!\n{mail_content}')
             sys.exit(1)
 
 
-def main():
-    args = parse_input()
-    print(f"fasta file: {args.fasta}\norg_list：{args.org_lst}")
-    kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, args.output)
+def ko03000(kegg_gene_df, kegg_tier3_df):
+    ko03000_def_df_file = '/home/colddata/qinqiang/script/transcriptome/annotation/ko03000_def.txt'
+    ko03000_def_df = pd.read_csv(ko03000_def_df_file, sep='\t')
+    ko03000_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03000")]['GeneID'].tolist()
+    ko03022_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03022")]['GeneID'].tolist()
+    
+    ko03000_df = kegg_gene_df[kegg_gene_df['GeneID'].isin(ko03000_geneid_list)][['GeneID', 'KEGG_ID']].copy()
+    ko03022_df = kegg_gene_df[kegg_gene_df['GeneID'].isin(ko03022_geneid_list)][['GeneID', 'KEGG_ID']].copy()
+    # ko03000_df = ko03000_df
+    ko03000_df = pd.merge(left=ko03000_df, right=ko03000_def_df, on='KEGG_ID', how='left')
+    
+    return ko03000_df, ko03022_df
+
+
+def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads):
+    key_name = keg_file.replace('.keg', '')
+    kegg_file = keg_file.replace('.keg','_KEGG_original.txt')
+    # 初始处理 keg 文件
+    command = 'perl /home/colddata/chen/03_transcript/annotation/kegg/kaas_parse_keg_file.pl -i {} -o {}'.format(keg_file, kegg_file)
+    os.system(command)
+    
+    # 使用 python 处理 keg 文件
+    # process_keg(keg_file, kegg_file)
+    
+    with open(kegg_file,'r') as f1:
+        kegg_clean_file = key_name + '_KEGG_clean.txt'
+        f2 = open(kegg_clean_file, 'w')
+        
+        # 植物物种过滤动物的一些注释
+        if specie_type == 'plant':
+            for each_line in f1:
+                if 'A09160' in each_line:
+                    continue
+                if 'A09190' in each_line:
+                    continue
+                if 'A09150' in each_line:
+                    if '09158:Development and regeneration' not in each_line and '09159:Environmental adaptation' not in each_line:
+                        continue
+                f2.write(each_line)
+                
+        # 其他物种暂时不用过滤，直接写入
+        else:
+            for each_line in f1:
+                f2.write(each_line)
+        f2.close()
+    
+    # 生成 KEGG_gene_def 文件
+    kegg_gene_def_titles = ['GeneID', 'Pathway', 'Level2', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number']
+    kegg_clean_df = pd.read_csv(kegg_clean_file, sep='\t', header=None, names=kegg_gene_def_titles, dtype={"GeneID": str})
+    gene_def_df = kegg_clean_df.drop(columns=['Pathway', 'Level2', 'Level1']).copy()
+    gene_def_df.drop_duplicates(subset=['GeneID', 'KEGG_ID'], keep='first', inplace=True)
+    logger.info('生成 KEGG_gene_def 文件，去重前的数量:{}，去重后的数量:{}'.format(kegg_clean_df.shape[0]-1, gene_def_df.shape[0]-1))
+    gene_def_df['EC_number'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[1].str.replace(']', '').str.split(' ', expand=True)[0]
+    gene_def_df['KEGG_def'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[0].str.strip()
+    gene_def_df.fillna(value='NA', inplace=True)
+    # Gene_shortname 不能设置空为 NA，设置为空（张老师说的）好像是某个软件识别 NA 会有问题
+    gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0].fillna(value='')
+    gene_def_df.drop(columns='Description EC_number', inplace=True)
+    gene_def_df.to_csv(key_name + '_KEGG_gene_def.txt', sep='\t', index=False)
+    
+    # 如果指定了 -i allgeneid 文件，则生成 all_gene_id + KEGG gene_short_name 新文件
+    if all_id_file:
+        all_gene_df = pd.read_csv(all_id_file, sep='\t', names=['GeneID'], dtype={"GeneID": str})
+        all_gene_df = pd.merge(left=all_gene_df, right=gene_def_df[['GeneID', 'Gene_shortname']], on='GeneID', how='left')
+        all_gene_df.fillna(value='', inplace=True)
+        all_gene_df.to_csv(key_name + '_shortname.txt', sep='\t', index=False)
+    
+    # 生成 tier2 文件
+    tier2_name = key_name + '_KEGG_tier2.txt'
+    tier2_df = kegg_clean_df.copy()
+    tier2_df.drop(columns=['Pathway', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number'], inplace=True)
+    tier2_df['Level2'] = tier2_df['Level2'].str.replace('\\','').str.replace(' / ', '_').str.replace('/', '_').str.replace(', ', '').str.replace(',', '_')
+    tier2_df.drop_duplicates(keep='first', inplace=True)
+    tier2_df.to_csv(tier2_name, sep='\t', index=False, header=None)
+    
+    # tier3 文件，后来改名 KEGG.txt 了
+    # geneid \t ko pathway
+    # no header
+    tier3_name = key_name + '_KEGG.txt'
+    tier3_df = kegg_clean_df.copy()
+    tier3_df.drop(columns=['Level2', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number'], inplace=True)
+    tier3_df['Pathway'] = tier3_df['Pathway'].str.replace('\\','').str.replace(' / ', '_').str.replace('/', '_').str.replace(', ', '').str.replace(',', '_')
+    tier3_df.drop_duplicates(keep='first', inplace=True)
+    tier3_df.to_csv(tier3_name, sep='\t', index=False, header=None)
+    
+    # ko03022_basal_transcription_factor.txt (子集) from tier3
+    # 比对 ko03000_def.txt 加上定义
+    ko03000_df, ko03022_df = ko03000(gene_def_df, tier3_df)
+    ko03000_df.to_csv(key_name + '_ko03000_transcription_factors.txt', sep='\t', index=False)
+    ko03022_df.to_csv(key_name + '_ko03022_basal_transcription_factor.txt', sep='\t', index=False)
+    
+    # ko03000 需要增加表达量，生成新文件 (2024_02_22)
+    if fpkm and reads:
+        ko03000_fpkm_reads_df = merge_fpkm_reads(fpkm, reads)
+        ko03000_fpkm_reads_df = pd.merge(ko03000_fpkm_reads_df, ko03000_df, on='GeneID', how='inner')
+        # ko03000_fpkm_reads_df = ko03000_fpkm_reads_df[ko03000_fpkm_reads_df['GeneID'].isin(ko03000_df['GeneID'])]
+        ko03000_fpkm_reads_df.to_csv(key_name + '_ko03000_expression_data_def.txt', sep='\t', index=False)
+
+
+def split_fasta(fasta_file, split_parts: int):
+    split_cmd = f'seqkit split -p {split_parts} {fasta_file}'
+    logger.info(f'运行命令 {split_cmd}')
+    os.system(split_cmd)
+
+
+def parse_input():
+    parser = argparse.ArgumentParser(description='kegg annotation，一次只能注释一个任务，除非添加其他邮箱')
+    parser.add_argument('-f', '--fasta', help='输入 fasta file')
+    parser.add_argument('-k', '--keg', type=str, help='指定 keg 文件')
+    parser.add_argument('-l', '--org_lst', help='指定物种列表，以 ", " 分隔')
+    parser.add_argument('-s', '--split', type=int, help='切割 fasta 文件，如果太大的话')
+    parser.add_argument('-t', '--type', type=str, help='指定物种类型，植物=plant, 动物=animal')
+    parser.add_argument('--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
+    
+    # 这两个参数用于生成 ko03000_expression_data.txt 文件
+    parser.add_argument('--fpkm', type=str,
+                        help='指定 fpkm 文件, 用于对 ko03000 添加表达量生成新文件，如果不指定，则不生成 ko03000_expression_data 文件')
+    parser.add_argument('--reads', type=str,
+                        help='指定 reads 文件, 用于对 ko03000 添加表达量生成新文件, 如果指定需要 fpkm 和 reads 都存在')
+    
+    account_parser = parser.add_argument_group("其他邮箱账号参数")
+    account_parser.add_argument('-u', '--username', default='dagongrenyyds@163.com',
+                        help='【默认就行】输入163邮箱用户名')
+    account_parser.add_argument('-p', '--password', default='IFBWCQOBTEOXODTK',
+                        help='【默认就行】输入163邮箱密码，密码非常规密码，查看获取方法 https://m.jqjq.net/jiqiao/108147.html')
+    account_parser.add_argument('-m', '--mail_type', default='163', choices=['163', 'qq'],
+                        help='【默认就行】输入邮箱类型 163 or qq，目前只支持 163 邮箱')
+    
+    args = parser.parse_args()
+    
+    if args.fasta and not args.keg:
+        logger.critical('未输入 keg 文件名')
+        sys.exit(1)
+    
+    if args.keg or args.fasta:
+        pass
+    else:
+        try:
+            args.keg = [x for x in os.listdir() if x.endswith('.keg')][0]
+        except Exception:
+            logger.critical('未输入 keg 文件名，尝试使用 keg 结尾文件未找到')
+            sys.exit(1)
+    
+    if args.split == None:
+        pass
+    elif args.split == 1:
+        delattr(args, "split")
+    elif args.split >= 5:
+        logger.warning(f'fasta 文件分割大于 5 次，将会延长注释时间')
+    
+    # 检测 fpkm 和 reads 文件是否有效
+    if args.fpkm or args.reads:
+        if os.path.exists(args.fpkm) is False:
+            raise Exception('fpkm 文件不存在')
+        if os.path.exists(args.reads) is False:
+            raise Exception('reads 文件不存在')
+    else:
+        args.fpkm, args.reads = False, False
+    
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    main()
+    args = parse_input()
+    keg_file = args.keg
+    if args.split:
+        split_fasta(args.fasta, args.split)
+        split_dir = f'{args.fasta}.split'
+        fasta_file_list = [f'{os.path.join(split_dir, x)}' for x in os.listdir(split_dir)]
+        for fasta_file in fasta_file_list:
+            keg_sp_file = f'{fasta_file.split(".")[-2]}_{keg_file}'
+            kegg_anno(args.mail_type, args.username, args.password, fasta_file, args.org_lst, keg_sp_file)
+        os.system(f'cat *.keg > {keg_file}')
+    elif args.org_lst and args.fasta:
+        kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, keg_file)
+
+    parse_keg(keg_file, args.type, args.allid, args.fpkm, args.reads)
+    
+    logger.success('Done!')
+
+
+
     

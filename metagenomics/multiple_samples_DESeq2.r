@@ -35,14 +35,15 @@ if (is.null(opt$tableType)){
 }
 
 # args=commandArgs(T)
+table_type <- opt$tableType
 bs_pos <- opt$bsPos
 bs_neg <- -bs_pos
 bs_pos
 
 deg_dir <- "DEG_analysis_results"
 deg_exp_data_dir <- "DEG_analysis_results/Expression_data"
-deg_exp_graph_dir <- "DEG_analysis_results/Expression_data_graphs"
-exp_evaluation_dir <- "Expression_data_evaluation"
+deg_exp_graph_dir <- paste0(table_type, "_data_graphs/")
+exp_evaluation_dir <- paste0(table_type, "_data_evaluation/")
 
 dir.create(deg_dir)
 dir.create(deg_exp_data_dir)
@@ -50,8 +51,7 @@ dir.create(deg_exp_graph_dir)
 dir.create(exp_evaluation_dir)
 
 
-table_type <- opt$tableType
-fpkm_file <- paste0(table_type, "_Summary_count.txt")
+fpkm_file <- paste0(table_type, "_relative_abundance.txt")
 reads_file <- paste0(table_type, ".txt")
 
 read.table(fpkm_file,sep="\t",header=T,row.names=1,check.names=F)->fpkm
@@ -74,7 +74,7 @@ if (nrow(all_fpkm) > 65535) {
   all.heatmap <- pheatmap(all_fpkm, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
 }
 
-all_gene_heatmap_filename <- paste0("Expression_data_evaluation/all_", table_type, "_heatmap.jpeg")
+all_gene_heatmap_filename <- paste0(exp_evaluation_dir, "all_", table_type, "_heatmap.jpeg")
 ggsave(all_gene_heatmap_filename,all.heatmap,dpi=300,width=10,height=10)
 
 sample_info<-read.table("samples_described.txt",sep="\t",header=T,check.names=F,stringsAsFactors = F)
@@ -120,7 +120,7 @@ for(i in seq_along(1:nrow(comp_info))){
   outfile.ma=paste0(group_vs_group_name,"_DE_results_readCounts.matrix")
   rnaseqMatrix<-cbind(as.data.frame(rownames(rnaseqMatrix)),rnaseqMatrix)
   colnames(rnaseqMatrix)[1]<-table_type
-  write.table(rnaseqMatrix, file=outfile.ma, sep='	', quote=FALSE,row.names=F)
+  write.table(rnaseqMatrix, file=outfile.ma, sep='	', quote=FALSE,row.names=F) 
   
   volcano<-res
   volcano$padj<-ifelse(volcano$padj<0.000000000000001,0.000000000000001,volcano$padj)
@@ -180,10 +180,10 @@ p<-ggplot(data.m,aes(x=sample,y=log2(fpkm),fill=sample))+
   theme(axis.title.x=element_text(size=20),axis.title.y=element_text(size=20),axis.text.x=element_text(size=rel(1.5),angle=90,hjus=1,vjust=.5))
 
 # boxplot 根据样本数量调整宽度
-boxplot_width <- (length(unique(data.m$sample)) - 1) / 2
-ggsave(filename="Expression_data_evaluation/RA_boxplot.jpeg",plot=p,height=10,width=boxplot_width,dpi=300)
+boxplot_width <- (length(unique(data.m$sample)) - 1) / 2 + 3
+ggsave(filename=paste0(exp_evaluation_dir, "RA_boxplot.jpeg"),plot=p,height=10,width=boxplot_width,dpi=300)
 d<-ggplot(data.m,aes(x=log10(fpkm),col=sample))+geom_density(aes(fill=sample),colour=NA,alpha=.2)+geom_line(stat="density",size=1.5)+xlab("log2(Relative_Abundance)")+theme_base()+theme(axis.title.x=element_text(size=20),axis.title.y=element_text(size=20),axis.text.x=element_text(size=rel(3)),axis.text.y=element_text(size=rel(3)))
-ggsave(filename="Expression_data_evaluation/RA_density.jpeg",plot=d,height=10,width=16.8,dpi=300)
+ggsave(filename=paste0(exp_evaluation_dir, "RA_density.jpeg"),plot=d,height=10,width=16.8,dpi=300)
 
 #install.packages("ggcorrplot")
 fpkm.m<-as.matrix(fpkm)
@@ -200,7 +200,7 @@ min(fpkm.cor)
 #fpkm.m<-as.data.frame(fpkm)
 #fpkm.cor<-cor(fpkm.m)
 resfactor = 5
-png("Expression_data_evaluation/correlation.png",res=72*resfactor,height=1800*resfactor,width=1800*resfactor)
+png(paste0(exp_evaluation_dir, "correlation.png"),res=72*resfactor,height=1800*resfactor,width=1800*resfactor)
 corrplot(fpkm.cor,is.corr = F,col= rev(COL2('PiYG')),method="color",addCoef.col = 'black',tl.col="black",col.lim=c(min(fpkm.cor)-0.01,max(fpkm.cor)),cl.ratio=0.1)
 dev.off()
 
