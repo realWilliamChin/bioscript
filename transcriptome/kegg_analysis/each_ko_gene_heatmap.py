@@ -55,17 +55,17 @@ def each_ko_gene_heatmap(kegg_id_list, kegg_clean_df, fpkm_matrix_df, samples_df
         # kegg_pic_dir = os.path.join(crt_kegg_id_dir, 'KEGG_pathway_heatmap')
         each_kegg_id_df = kegg_clean_df[kegg_clean_df['KEGG_ID'] == each_kegg_id]
         logger.info(f'尝试对 {each_kegg_id} 的相关基因画 heatmap 图，数量为 {each_kegg_id_df.shape[0]}')
-        
-        # kegg 相关的 id 小于 3 个就跳过 (2024_06_14:张老师：从 10 改为 3)
-        if each_kegg_id_df.shape[0] < 3:
-            logger.warning(f'{each_kegg_id} 相关基因数量小于 3 个，不对此画 heatmap 图')
-            continue
 
         # 添加 fpkm
         each_kegg_id_gene_fpkm_df = pd.merge(each_kegg_id_df, fpkm_matrix_df, on='GeneID', how='left')
         each_kegg_id_gene_fpkm_df.dropna(how='any', axis=0, inplace=True) # 去除掉为空的行
         if each_kegg_id_gene_fpkm_df.shape[0] == 0:
             logger.error(f'{each_kegg_id} 相关基因表达量为空，跳过执行 multigroup heatmap')
+            continue
+        
+        # kegg 相关的 id 小于 3 个就跳过 (2024_06_14:张老师：从 10 改为 3)
+        if each_kegg_id_gene_fpkm_df.shape[0] < 3:
+            logger.warning(f'{each_kegg_id} 相关基因数量小于 3 个，不对此画 heatmap 图')
             continue
         
         # multigroup heatmap 输入文件
