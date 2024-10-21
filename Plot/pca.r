@@ -11,6 +11,8 @@ suppressPackageStartupMessages(library(ggrepel))
 suppressPackageStartupMessages(library(plyr))
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(openxlsx))
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(readr))
 
 option_list <- list(
   make_option(c("--fpkm"),
@@ -31,6 +33,7 @@ opt <- parse_args(opt_parser)
 
 # Assign the first argument to prefix
 fpkm_file <- opt$fpkm
+fpkm_file_extension <- tools::file_ext(fpkm_file)
 reads_file <- opt$reads
 samples_file <- opt$samples
 output_prefix <- opt$output
@@ -82,5 +85,15 @@ pca_plot <- function(reads_data_frame = NA, fpkm_data_frame = NA, samples_file, 
   ggsave(pca_file, p, dpi = 300, width = 10, height = 10)
 }
 
-read.table(fpkm_file, sep = "\t", header = T, row.names = 1, check.names = F) -> fpkm
+if (fpkm_file_extension == "txt" || fpkm_file_extension == "tsv") {
+  fpkm <- read.table(fpkm_file, sep = ifelse(fpkm_file_extension == "tsv", "\t", "\t"), 
+                     header = TRUE, row.names = 1, check.names = FALSE)
+} else if (fpkm_file_extension == "csv") {
+  fpkm <- read.table(fpkm_file, sep = ",", header = TRUE, row.names = 1, check.names = FALSE)
+} else if (fpkm_file_extension == "xlsx" || fpkm_file_extension == "xls") {
+  fpkm <- read_excel(fpkm_file, col_names = TRUE, na = "")
+} else {
+  stop("Unsupported file format. Please provide a .txt, .csv, .tsv, .xlsx, or .xls file.")
+}
+# read.table(fpkm_file, sep = "\t", header = T, row.names = 1, check.names = F) -> fpkm
 pca_plot(fpkm_data_frame=fpkm, samples_file=samples_file, output_prefix=output_prefix)
