@@ -173,18 +173,15 @@ export BAMTOOLS_PATH=/opt/biosoft/bamtools-2.5.1/src/usr/local/bin
 export TOOLDIR=/opt/biosoft/samtools-1.17
 #export PROTHINT_PATH=/opt/biosoft/ProtHint-2.6.0/bin
 export TSEBRA_PATH=/opt/biosoft/TSEBRA-1.1.0/bin
-#export GENEMARK_PATH=/opt/biosoft/GeneMark-ETP/bin
-export GENEMARK_PATH=/opt/biosoft/gmes_linux_64_4/bin
+export GENEMARK_PATH=/opt/biosoft/GeneMark-ETP/bin
+#export GENEMARK_PATH=/opt/biosoft/gmes_linux_64_4/
 export PROTHINT_PATH=/opt/biosoft/gmes_linux_64_4/ProtHint/bin
 export PATH=$PATH:/opt/biosoft/BRAKER-3.0.3/scripts
-
-# qinqiang.sh
-export ScriptPATH=/home/colddata/qinqiang/script/
-export NoRefScriptPATH=/home/colddata/qinqiang/ProjectScript/01_NoReference/
-export RefScriptPATH=/home/colddata/qinqiang/ProjectScript/02_Reference/
-export PATH=$PATH:$ScriptPATH:$NoRefScriptPATH:$RefScriptPATH
 
 # R-4.2.2.sh
 export R_HOME=/opt/biosoft/R-4.2.2
 export PATH=$R_HOME/bin:$PATH
 export R_LIBS=/opt/biosoft/R-4.2.2/lib64/R/library
+
+# make4
+# export PATH=/opt/biosoft/make-4.4/build:$PATH
