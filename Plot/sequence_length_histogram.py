@@ -52,5 +52,5 @@ def plot_histogram(length_counts, output_file, range_num, xlabel, ylabel, plot_t
 if __name__ == '__main__':
     args = parse_input()
     length_counts = calculate_genome_statistics(args.input, args.range_num)
-    plot_histogram(length_counts, args.output, args.range_num, args.xlabel, args.ylabel, args.plot_title)
+    plot_histogram(length_counts, args.output, args.range_num, args.xlabel, args.ylabel, args.title)
     print('Genome statistics calculated and histogram saved to', args.output)
