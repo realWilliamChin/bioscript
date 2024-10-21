@@ -37,6 +37,7 @@ head(path.dt)
 pathway.names<-path.dt[,1]
 #head(pathway.names)
 pathway.names<-gsub("ko",'',pathway.names)
+
 pathview(gene.data = ko.data, pathway.id = pathway.names, species = "ko", out.suffix = "ko.data", kegg.native = T,
           kegg.dir='/home/colddata/qinqiang/script/Rscript/pathview/kegg_files')
 
@@ -47,7 +48,21 @@ dir()
 for (i in path.dt[,1]) {
   old_name <- paste0(i,'.ko.data.png')
   new_name <- paste0(i,'_',path.dt$Name[path.dt$ID == i],'.ko.data.png')
-  file.rename(old_name,new_name)
+  
+  # 使用tryCatch捕获错误
+  result <- tryCatch({
+    file.rename(old_name,new_name)
+  }, error = function(e) {
+    # 打印错误信息，用于调试
+    print(paste("重命名文件", old_name, "时出错:", e))
+    # 返回一个值，表示操作失败
+    return(FALSE)
+  })
+  
+  # 如果重命名成功，result为NULL，否则为FALSE
+  if (is.null(result)) {
+    print(paste("文件", old_name, "重命名为", new_name, "成功"))
+  }
 }
 # i<-''
 #library(fs)
