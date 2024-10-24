@@ -1,26 +1,32 @@
 # -*- coding: utf-8 -*-
 # @FileName : gsea.py
 # @DATE ：16:14 2022/4/18
-# @Author : CS:GO
+# @Author : CS:GO, WilliamGOGO
 
 import os
-import re
+import argparse
+
+def parse_input():
+    p = argparse.ArgumentParser()
+    p.add_argument('--gobp', type=str, required=True, help='GO_BP')
+    p.add_argument('--gocc', type=str, required=True, help='GO_CC')
+    p.add_argument('--gomf', type=str, required=True, help='GO_MF')
+    p.add_argument('--kegg-tier2', dest='kegg_tier2', type=str, required=True, help='KEGG_tier2.txt')
+    p.add_argument('--kegg-tier3', dest='kegg_tier3', type=str, required=True, help='KEGG.txt')
+    p.add_argument('--output-dir', type=str, default='./GSEA', help='output dir')
+    
+    args = p.parse_args()
+    
+    return args
 
 
-cur_path=os.getcwd()
-output_path='./'
-dir_list=os.listdir(cur_path)
-dic1={}
+def gsea(gobp, gocc, gomf, kegg_tier2, kegg_tier3, output_path):
+    dir_list=[gobp, gocc, gomf, kegg_tier2, kegg_tier3]
+    dic1={}
 
-for each in dir_list:
-    if ('.txt' in each)&(('GO' in each)|('KEGG' in each)):
-        if os.path.exists(output_path)==False:
+    for each in dir_list:
+        if not os.path.exists(output_path):
             os.mkdir(output_path)
-        # if os.path.exists('./GMT')==True:
-        #     os.chdir('./GMT')
-        #     command='rm *.GMT'
-        #     os.system(command)
-        #     os.chdir('../')
         key1=each.replace('.txt','').replace('_clean','')
         if 'BP' in key1:
             key='GO_BP'
@@ -30,11 +36,15 @@ for each in dir_list:
             key = 'GO_MF'
         if 'KEGG' in key1:
             key = 'KEGG'
-        f2=open(output_path+os.sep+key1+'.GMT','w')
+        
+        if each == dir_list[-1]:
+            tier3_name = kegg_tier2.replace('.txt', '').replace('_clean', '').replace('tier2', 'tier3')
+            f2=open(os.path.join(output_path, os.path.basename(tier3_name)+'.GMT'),'w')
+        else:
+            f2=open(os.path.join(output_path, os.path.basename(key1)+'.GMT'),'w')
         dic1=key
         globals()[dic1] = {}
         dic={}
-
 
         with open(each,'r') as f1:
             num=0
@@ -65,6 +75,14 @@ for each in dir_list:
             output=globals()[dic1][each2].split(';;')[0]+' '+'['+each2+']'+'\t'+globals()[dic1][each2].split(';;')[-1]+'\n'
             f2.write(output)
 
+
+def main():
+    args = parse_input()
+    gsea(args.gobp, args.gocc, args.gomf, args.kegg_tier2, args.kegg_tier3, args.output_dir)
+
+
+if __name__ == '__main__':
+    main()
 
 
 
