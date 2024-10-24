@@ -191,10 +191,14 @@ exec_gmt() {
     mycp ${prep_fs}/swiss/*GO* ${gsea_gmt_fs}/
     mycp ${prep_fs}/kegg/*KEGG.txt ${gsea_gmt_fs}/
     mycp ${prep_fs}/kegg/*_tier* ${gsea_gmt_fs}/
-    tmp_a=$(ls | grep KEGG.txt)
-    tmp_b=$(ls | grep tier2 | tr '2' '3')
-    mv $tmp_a $tmp_b
-    python ${script}/gsea.py
+    python ${script}/gsea.py \
+        --gobp ${specie}_swiss_GO_BP_ID.txt \
+        --gocc ${specie}_swiss_GO_CC_ID.txt \
+        --gomf ${specie}_swiss_GO_MF_ID.txt \
+        --kegg-tier2 ${specie}_KEGG_tier2.txt \
+        --kegg-tier3 ${specie}_KEGG.txt \
+        --output-dir "./"
+
     if [[ $? -eq 0 ]]; then
         cd ${gsea_gmt_fs} || exit
         rm *txt
