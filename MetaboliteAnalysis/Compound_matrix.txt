@@ -35,7 +35,7 @@ C00118	M00004	Pentose_phosphate_pathway_Pentose_phosphate_cycle
 C00085	M00004	Pentose_phosphate_pathway_Pentose_phosphate_cycle
 C00199	M00004	Pentose_phosphate_pathway_Pentose_phosphate_cycle
 C00668	M00004	Pentose_phosphate_pathway_Pentose_phosphate_cycle
-C00117	M00004	Pentose_phosphate_pathway_Pentose_phosphate_cyc             le
+C00117	M00004	Pentose_phosphate_pathway_Pentose_phosphate_cycle
 C01172	M00004	Pentose_phosphate_pathway_Pentose_phosphate_cycle
 C00117	M00005	PRPP_biosynthesis_ribose_5P_PRPP
 C00119	M00005	PRPP_biosynthesis_ribose_5P_PRPP
