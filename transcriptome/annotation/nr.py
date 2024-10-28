@@ -11,30 +11,39 @@ import os, sys
 import subprocess
 import pandas as pd
 from loguru import logger
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/Fasta/'))
+from get_sequence_from_list import get_seq_from_idlist
 
 
 def parse_input():
     parser = argparse.ArgumentParser(description='输入 nr.blast 文件的路径')
+    # parser.add_argument(dest='running_type', choices=['all', 'blast', 'parse_blast'], help='运行类型')
+    
     parser.add_argument('-b', '--blast', type=str, help='nr.blast file')
-    parser.add_argument('--basicinfo', type=str, dest='basicinfo', help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入，如果 basicinfo 文件 Gene_Def 都是 NA，怎不需要添加了')
+    parser.add_argument('--basicinfo', type=str, dest='basicinfo', 
+                        help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入，如果 basicinfo 文件 Gene_Def 都是 NA，怎不需要添加了')
     parser.add_argument('-p', '--prefix', help='输出文件的前缀')
+    parser.add_argument('--not-annotationed', action='store_true', dest='not_annotationed',
+                        help='输出没有注释上的基因信息（必须输入 --fasta 参数）')
     
     annotation = parser.add_argument_group('需要注释添加一下参数')
-    annotation.add_argument('--fasta', help='输入需要去注释的 cds fasta 或 unigene fasta 文件（去重，名字精简）')
-    annotation.add_argument('-t', '--threads', default=30, type=int, help='运行 nr 注释线程数量(好像不咋管用)')
+    annotation.add_argument('-f', '--fasta', help='输入需要去注释的 cds fasta 或 unigene fasta 文件（去重，名字精简）')
+    annotation.add_argument('-t', '--threads', type=int, help='运行 nr 注释线程数量(好像不咋管用)')
+    annotation.add_argument('-n', '--outfmt', help="nr 输出格式",
+                            default="qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,stitle")
 
     args = parser.parse_args()
         
     return args
 
 
-def nr_annotation(fasta_file, blast_file, num_threads):
+def nr_annotation(fasta_file, blast_file, outfmt, num_threads):
     os.mkdir('./temp')
     anno_cmd = f'diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
         --threads ${num_threads} \
         --query {fasta_file} \
         --out {blast_file} \
-        --outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore stitle \
+        --outfmt 6 {outfmt} \
         --sensitive \
         --max-target-seqs 1 \
         --evalue 1e-5 \
@@ -55,9 +64,7 @@ def nr_annotation(fasta_file, blast_file, num_threads):
     return True
 
 
-def nr(nr_blast_file, gene_basicinfo_file, output_name):
-    columns = ['qseqid', 'sseqid', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend','sstart','send','evalue','bitscore','stitle']
-
+def nr(nr_blast_file, gene_basicinfo_file, columns, output_name):
     data_frame = pd.read_csv(nr_blast_file, sep='\t', names=columns, dtype=str)
 
     data_frame = data_frame.sort_values(by=['qseqid', 'bitscore'], ascending=[True, False])
@@ -106,17 +113,28 @@ def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
     return result
 
 
+def get_not_annotationed_fasta(fasta, nr_uniq_blast_file, output_prefix):
+    nr_uniq_bast_df = pd.read_csv(nr_uniq_blast_file, sep='\t', usecols=[0], skiprows=1, names=['GeneID'])
+    get_seq_from_idlist(nr_uniq_bast_df, fasta, 'off', f"{output_prefix}_nr_not_annotationed.fasta")
+
+
 def main():
     args = parse_input()
     
-    if args.fasta:
-        ret = nr_annotation(args.fasta, args.blast, args.threads)
+    if args.fasta and args.threads:
+        outfmt = args.outfmt.replace(',', ' ')
+        ret = nr_annotation(args.fasta, args.blast, outfmt, args.threads)
         if not ret:
             sys.exit(1)
     else:
         if not args.blast:
             args.blast = [x for x in os.listdir() if x.endswith('nr.blast')][0]
-    nr(args.blast, args.basicinfo, args.prefix)
+    columns = args.outfmt.split(',')
+    nr(args.blast, args.basicinfo, columns, args.prefix)
+    
+    if args.not_annotationed:
+        get_not_annotationed_fasta(args.fasta, args.blast, args.prefix)
+    
     logger.success('Done!')
 
 
