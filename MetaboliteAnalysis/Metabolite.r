@@ -422,32 +422,54 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_
   write.xlsx(deg_data, file = paste0(output_dir, "/Differential_metabolite_count_summary.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
 
   # class 分组计数
-  if (is.data.frame(definition_df)) {
-    all_files <- list.files(path = output_dir, recursive = TRUE)
-    vip_files <- all_files[grep("VIP", all_files)]
-    class_count_list <- list()
+  #if (is.data.frame(definition_df)) {
+  all_files <- list.files(path = output_dir, recursive = TRUE)
+  vip_files <- all_files[grep("VIP", all_files)]
+  class_count_list <- list()
 
-    for (vip_file in vip_files) {
-      print(vip_file)
-      vip_df <- read.xlsx(paste(output_dir, vip_file, sep = "/"), sheet = 1, rowNames = FALSE)
-      vip_df_vipgt1 <- vip_df[vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8), ]
-      class_count <- aggregate(Metabolite ~ Class, data = vip_df_vipgt1, FUN = length)
-      class_count <- class_count[class_count$Class != "", ]
-      names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1] # 修改列名为对应的 count_name
-      class_count_list <- append(class_count_list, list(class_count))
-    }
+  for (vip_file in vip_files) {
+    print(vip_file)
+    compare_group_name = gsub(".xlsx", "", vip_file)
+    
+    vip_df <- read.xlsx(paste(output_dir, vip_file, sep = "/"), sheet = 1, rowNames = FALSE)
 
-    # 去除重复的行?
-    # class_count_list <- lapply(class_count_list, function(df) df[!duplicated(df$class), ])
+    # volcano$regulation <- as.factor(ifelse(volcano_filter_col < filter_value & abs(volcano$log2FoldChange) >= bs_pos, ifelse(volcano$log2FoldChange >= bs_pos, "Up", "Down"), "NoSignificant"))
+    vip_df$regulation <- as.factor(ifelse(vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8), ifelse(vip_df$FoldChange >= 1.2, "Up", "Down"), "NoSignificant"))
+    write.xlsx(vip_df, file=paste0(vip_file), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
+    
+    up_df <- vip_df$KEGG[vip_df$regulation == "Up"]
+    down_df <- vip_df$KEGG[vip_df$regulation == 'Down']
+    up_df_filename <- paste0(compare_group_name, '_Up_KEGG_ID.txt')
+    down_df_filename <- paste0(compare_group_name, '_Down_KEGG_ID.txt')
+    write.table(up_df, file = up_df_filename, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+    write.table(down_df, file = down_df_filename, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+    
+    script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_enrich.r"
+    up_df_cmd = paste0("/opt/biosoft/R-4.2.2/bin/Rscript ", script_path, " --datatable ", up_df_filename, " --outputprefix ", compare_group_name, "_Up")
+    down_df_cmd = paste0("/opt/biosoft/R-4.2.2/bin/Rscript ", script_path, " --datatable ", down_df_filename, " --outputprefix ", compare_group_name, "_Down")
+    Sys.setenv(R_LIBS="/opt/biosoft/R-4.2.2/lib64/R/library")
+    system(up_df_cmd)
+    system(down_df_cmd)
 
-    # 合并 class_count_list 中所有的 class_count，根据第一列的 class 合并，合并方式为并集
-    class_count_result <- Reduce(function(x, y) merge(x, y, by = "Class", all = TRUE), class_count_list)
-    class_count_result[is.na(class_count_result)] <- 0
-    write.xlsx(class_count_result,
-      file = paste0(output_dir, "/Significant_compound_count_by_class.xlsx"),
-      sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
-    )
+    vip_df_vipgt1 <- vip_df[vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8), ]
+
+    class_count <- aggregate(Metabolite ~ Class, data = vip_df_vipgt1, FUN = length)
+    class_count <- class_count[class_count$Class != "", ]
+    names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1] # 修改列名为对应的 count_name
+    class_count_list <- append(class_count_list, list(class_count))
   }
+
+  # 去除重复的行?
+  # class_count_list <- lapply(class_count_list, function(df) df[!duplicated(df$class), ])
+
+  # 合并 class_count_list 中所有的 class_count，根据第一列的 class 合并，合并方式为并集
+  class_count_result <- Reduce(function(x, y) merge(x, y, by = "Class", all = TRUE), class_count_list)
+  class_count_result[is.na(class_count_result)] <- 0
+  write.xlsx(class_count_result,
+    file = paste0(output_dir, "/Significant_compound_count_by_class.xlsx"),
+    sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
+  )
+  #}
 }
 
 
