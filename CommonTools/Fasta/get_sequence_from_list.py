@@ -17,11 +17,9 @@ def parse_input():
     return args
 
 
-def get_seq_from_idlist(idlist, fasta, save_type, output):
+def get_seq_from_idlist(id_df, fasta, save_type, output):
     # with open(idlist, 'r') as gene_file:
     #     gene_ids = gene_file.read().splitlines()
-    id_df = pd.read_csv(idlist, sep='\t')
-    id_list = id_df['GeneID'].values.tolist()
     has_start_end = 'Start' in id_df.columns and 'End' in id_df.columns
     has_strand = 'Strand' in id_df.columns
     has_targetid = 'TargetGeneID' in id_df.columns
@@ -79,7 +77,8 @@ def get_seq_from_idlist(idlist, fasta, save_type, output):
 
 def main():
     args = parse_input()
-    get_seq_from_idlist(args.idlist, args.fasta, args.type, args.output)
+    id_df = pd.read_csv(args.idlist, sep='\t')
+    get_seq_from_idlist(id_df, args.fasta, args.type, args.output)
     
     logger.success('Done!')
 
