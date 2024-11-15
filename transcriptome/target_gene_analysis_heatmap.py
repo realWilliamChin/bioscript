@@ -23,8 +23,10 @@ def parse_input():
     parser.add_argument('--fpkm', type=str, required=True, help='输入 fpkm_matrix.txt 文件')
     parser.add_argument('--kns', type=str, help='anova_p 文件添加定义输出')
     parser.add_argument('--deg-data-dir', dest='deg_data_dir', type=str, help='[必须]输入 DEG_data.txt 文件')
+    parser.add_argument('--mean', default=False, type=bool, help='使用每组中的平均数画 heatmap')
     parser.add_argument('-s', '--samplesinfo', type=str, required=True,
                            help='输入样品信息文件')
+    parser.add_argument('-o', '--output', type=str, default=os.getcwd(), help='输出目录')
     
     args = parser.parse_args()
 
@@ -34,7 +36,8 @@ def parse_input():
 def group_vs_group_heatmap(group_target_gene_file, samples_file):
     df = pd.read_csv(group_target_gene_file, sep='\t')
     fpkm_df = df[['GeneID'] + [col for col in df.columns if col.endswith('FPKM')]]
-    fpkm_df.columns = ['GeneID'] + [col.replace('_FPKM', '') for col in fpkm_df.columns[1:]]
+    no_FPKM_str_columns = [col.replace('_FPKM', '') for col in fpkm_df.columns[1:]]
+    fpkm_df.columns = ['GeneID'] + no_FPKM_str_columns
     ontology_df = df[['GeneID', 'Ontology']]
     group_vs_group_heatmap_fname = group_target_gene_file.replace('_def.txt', '_heatmap.xlsx')
     group_vs_group_heatmap_pname = group_target_gene_file.replace('_def.txt', '_heatmap.jpeg')
@@ -55,6 +58,7 @@ def group_vs_group_heatmap(group_target_gene_file, samples_file):
 
 def main():
     args = parse_input()
+    output_dir = args.output
     target_gene_file, samples_file, fpkm_matrix_file = args.target_gene_file, args.samplesinfo, args.fpkm
     
     target_gene_def_df = pd.read_csv(target_gene_file, sep='\t', dtype={'GeneID': str})
@@ -70,7 +74,7 @@ def main():
     fpkm_matrix_df = pd.read_csv(fpkm_matrix_file, sep='\t', dtype={'GeneID': str})
     gene_fpkm_df = pd.merge(target_gene_df, fpkm_matrix_df, on='GeneID', how='left')
     gene_fpkm_df.drop(columns=['Ontology'], inplace=True)
-    anova_file_name = target_gene_file.replace('.txt', '_anova_p.txt')
+    anova_file_name = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_anova_p.txt'))
     gene_fpkm_df.to_csv(anova_file_name, sep='\t', index=False)
     anova_analysis(anova_file_name, samples_file, anova_file_name)
     anova_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t', dtype={'GeneID': str})
@@ -93,12 +97,26 @@ def main():
     samples_df = samples_df[['sample', 'group']]
 
     # multigroup_heatmap 输入文件
-    all_gene_ko_heatmap_filename = target_gene_file.replace('.txt', '_heatmap.xlsx')
+    all_gene_ko_heatmap_filename = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_heatmap.xlsx'))
     heatmap_filename = all_gene_ko_heatmap_filename.replace('.xlsx', '.jpeg')
+    multigroup_heatmap_data_df = anova_gene_fpkm_df.loc[:, anova_gene_fpkm_df.columns != 'Ontology'].copy()
+    multigroup_heatmap_sheet3_df = anova_gene_fpkm_df[['GeneID', 'Ontology']].copy()
+    
+    # 根据 samplesinfo 每组中的平均数画 heatmap
+    if args.mean:
+        for each_group in samples_df['group'].unique():
+            group_samples = samples_df[samples_df['group'] == each_group]['sample']
+            multigroup_heatmap_data_df[each_group] = multigroup_heatmap_data_df[group_samples].mean(axis=1)
+        multigroup_heatmap_data_df.drop(columns=samples_df['sample'], inplace=True)
+        samples_df = samples_df.drop(columns=['sample']).drop_duplicates(subset=['group'])
+        samples_df['sample'] = samples_df['group']
+        samples_df = samples_df[['sample', 'group']]
+
+    
     with pd.ExcelWriter(all_gene_ko_heatmap_filename, engine='openpyxl') as writer:
-        anova_gene_fpkm_df.loc[:, anova_gene_fpkm_df.columns != 'Ontology'].to_excel(writer, sheet_name="Sheet1", index=False)
+        multigroup_heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
         samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
-        anova_gene_fpkm_df[['GeneID', 'Ontology']].to_excel(writer, sheet_name='Sheet3', index=False)
+        multigroup_heatmap_sheet3_df.to_excel(writer, sheet_name='Sheet3', index=False)
     
     draw_multigroup_heatmap(all_gene_ko_heatmap_filename, heatmap_filename, other_args='--no-cluster-rows')
     
@@ -124,7 +142,7 @@ def main():
             result_df.to_csv(f'{compare_name}_target_gene_def.txt', sep='\t', index=False)
             
             logger.info(f'正在画 {compare_name} heatmap')
-            group_vs_group_heatmap(f'{compare_name}_target_gene_def.txt', samples_file)
+            group_vs_group_heatmap(f'{args.output}/{compare_name}_target_gene_def.txt', samples_file)
     
     logger.success("Done")
 
