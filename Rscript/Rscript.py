@@ -98,3 +98,22 @@ def anova_analysis(datafile, samples_file, output_file):
         return False
     else:
         return True
+    
+    
+def enrich_analysis(input_file, genego_file, keggclean_file, output_dir):
+    script_path = '/home/colddata/qinqiang/script/Rscript/enrich_analysis/enrich.r'
+    cmd = f'Rscript {script_path} \
+        --inputidfile {input_file} \
+        --genego {genego_file} \
+        --keggclean {keggclean_file} \
+        --outputdir {output_dir}'
+    logger.info(f'运行命令 {cmd}')
+    ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if ret.returncode != 0:
+        logger.error(f"执行失败")
+        logger.error(f"标准输出：{ret.stdout.decode()}")
+        logger.error(f"标准错误: {ret.stderr.decode()}")
+        
+        return False
+    else:
+        return True
