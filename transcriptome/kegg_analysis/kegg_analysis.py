@@ -126,12 +126,12 @@ def other(args):
     ko_df = pd.read_csv(ko_file, sep='\t', dtype=str)
     kegg_gene_def = pd.read_csv(kegg_gene_def_file, sep='\t', dtype=str)
     kegg_pathway_df = pd.read_csv(kegg_pathway_file, sep='\t', names=['GeneID', 'Ko'], dtype=str)
-    kegg_pathway_df['KEGG_ID'] = kegg_pathway_df['Ko'].str.split(":").str[0]
+    kegg_pathway_df['KEGG_Pathway_ID'] = kegg_pathway_df['Ko'].str.split(":").str[0]
     
-    ko_gene_df = pd.merge(ko_df, kegg_pathway_df, how='inner', on='KEGG_ID')
+    ko_gene_df = pd.merge(ko_df, kegg_pathway_df, how='inner', on='KEGG_Pathway_ID')
     ko_gene_df = pd.merge(ko_gene_df, kegg_gene_def, how='left', on='GeneID')
     
-    ko_gene_df = ko_gene_df.drop(columns=['KEGG_ID'])
+    ko_gene_df = ko_gene_df.drop(columns=['KEGG_Pathway_ID'])
     ko_gene_df.fillna('NA', inplace=True)
     
     if basicinfo is not None:
@@ -218,45 +218,45 @@ def transcriptome(args):
         treat_group_samples_name = samples_described_df[samples_described_df['group'].isin([treat_group,])]['sample'].to_list()
         control_group_samples_name = samples_described_df[samples_described_df['group'].isin([control_group,])]['sample'].to_list()
         logger.debug(f"crt_group_samples: {crt_group_samples}")
-        if args.kogene_heatmap:
-            heatmap_sheet2_samplegroupcolor_df = pd.DataFrame(columns=['samples', 'group', 'colors'])
-            for each_sample in crt_group_samples:
-                if each_sample in treat_group_samples_name:
-                    group = treat_group
-                    color = args.treat_color
-                else:
-                    group = control_group
-                    color = args.control_color
-                row_data = {'samples': each_sample, 'group': group, 'colors': color}
-                row_df = pd.DataFrame([row_data])
-                heatmap_sheet2_samplegroupcolor_df = pd.concat([heatmap_sheet2_samplegroupcolor_df, row_df], ignore_index=True)
-                # heatmap_sheet2_df = heatmap_sheet2_df.append({'samples': each_sample, 'group': group, 'colors': color}, ignore_index=True)
+        # if args.kogene_heatmap:
+        heatmap_sheet2_samplegroupcolor_df = pd.DataFrame(columns=['samples', 'group', 'colors'])
+        for each_sample in crt_group_samples:
+            if each_sample in treat_group_samples_name:
+                group = treat_group
+                color = args.treat_color
+            else:
+                group = control_group
+                color = args.control_color
+            row_data = {'samples': each_sample, 'group': group, 'colors': color}
+            row_df = pd.DataFrame([row_data])
+            heatmap_sheet2_samplegroupcolor_df = pd.concat([heatmap_sheet2_samplegroupcolor_df, row_df], ignore_index=True)
+            # heatmap_sheet2_df = heatmap_sheet2_df.append({'samples': each_sample, 'group': group, 'colors': color}, ignore_index=True)
 
-            for ko_number in ko_list:
-                ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number)]['GeneID'])].copy()
-                if ko_num_fpkm_expr_df.shape[0] == 0:
-                    logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表为空")
-                    continue
-                # 去除掉除 GeneID 列之外全为空的行
-                ko_num_fpkm_expr_df.dropna(subset=crt_group_samples, how='all', inplace=True)
-                ko_num_fpkm_expr_df = ko_num_fpkm_expr_df.loc[~(ko_num_fpkm_expr_df[crt_group_samples] == 0).all(axis=1)]
-                
-                ko_num_fpkm_expr_df_file = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_fpkm_expression.xlsx")
-                ko_num_fpkm_expr_pic_name = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_heatmap.jpeg")
-
-                with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
-                    ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
-                    heatmap_sheet2_samplegroupcolor_df.to_excel(writer, index=False, sheet_name='Sheet2')
-                if ko_num_fpkm_expr_df.shape[0] > 1:
-                    logger.info(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
-                    draw_twogroup_heatmap(ko_num_fpkm_expr_df_file, ko_num_fpkm_expr_pic_name)
-                else:
-                    logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行，无法画热图")
+        for ko_number in ko_list:
+            ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number)]['GeneID'])].copy()
+            if ko_num_fpkm_expr_df.shape[0] == 0:
+                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表为空")
+                continue
+            # 去除掉除 GeneID 列之外全为空的行
+            ko_num_fpkm_expr_df.dropna(subset=crt_group_samples, how='all', inplace=True)
+            ko_num_fpkm_expr_df = ko_num_fpkm_expr_df.loc[~(ko_num_fpkm_expr_df[crt_group_samples] == 0).all(axis=1)]
             
-                # 输出每个 ko 的 deg_data 文件
-                ko_num_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{ko_number}_DEG_data.txt")
-                ko_num_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number)]['GeneID'])]
-                ko_num_deg_data_df.to_csv(ko_num_deg_data_file, sep='\t', index=False)
+            ko_num_fpkm_expr_df_file = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_fpkm_expression.xlsx")
+            ko_num_fpkm_expr_pic_name = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_heatmap.jpeg")
+
+            with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
+                ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
+                heatmap_sheet2_samplegroupcolor_df.to_excel(writer, index=False, sheet_name='Sheet2')
+            if ko_num_fpkm_expr_df.shape[0] > 1:
+                logger.info(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
+                draw_twogroup_heatmap(ko_num_fpkm_expr_df_file, ko_num_fpkm_expr_pic_name)
+            else:
+                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行，无法画热图")
+        
+            # 输出每个 ko 的 deg_data 文件
+            ko_num_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{ko_number}_DEG_data.txt")
+            ko_num_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number)]['GeneID'])]
+            ko_num_deg_data_df.to_csv(ko_num_deg_data_file, sep='\t', index=False)
             
         # R pathview 画图准备文件 regulation
         # print(f"正在准备 {compare_info} 的 regulation 文件")
@@ -316,7 +316,7 @@ def parse_input():
     argparser = argparse.ArgumentParser()
     # 其他参数
     argparser.add_argument('--ko-list', dest="ko_list", type=str, required=True,
-                           help='[必须]ko_list file, 必须要有列名，KEGG_ID 如果运行脚本类型是其他，只需要 KEGG_ID 就行')
+                           help='[必须]ko_list file, 必须要有列名，KEGG_Pathway_ID 如果运行脚本类型是其他，只需要 KEGG_Pathway_ID 就行')
     argparser.add_argument('--kegg-clean', dest="kegg_clean", required=True, type=str, help='[必须]输入 kegg 注释出来的 KEGG_clean 文件')
     argparser.add_argument('--kogene-heatmap', dest='kogene_heatmap', action='store_true',
                            help='[可选]draw kogene heatmap picture')
