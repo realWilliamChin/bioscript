@@ -239,7 +239,7 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
   }
 
   reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.last = TRUE), ]
-  write.xlsx(reads_data_with_def, file = paste0(output_dir, "/Metabolite_quantitation_VIP.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
+  write.xlsx(reads_data_with_def, file = paste0(output_dir, "/Metabolite_quantitation_VIP_bySubclass.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
 }
 
 
@@ -429,27 +429,34 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_
 
   for (vip_file in vip_files) {
     print(vip_file)
-    compare_group_name = gsub(".xlsx", "", vip_file)
+    compare_group_name = gsub("_VIP.xlsx", "", basename(vip_file))
     
     vip_df <- read.xlsx(paste(output_dir, vip_file, sep = "/"), sheet = 1, rowNames = FALSE)
 
     # volcano$regulation <- as.factor(ifelse(volcano_filter_col < filter_value & abs(volcano$log2FoldChange) >= bs_pos, ifelse(volcano$log2FoldChange >= bs_pos, "Up", "Down"), "NoSignificant"))
     vip_df$regulation <- as.factor(ifelse(vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8), ifelse(vip_df$FoldChange >= 1.2, "Up", "Down"), "NoSignificant"))
-    write.xlsx(vip_df, file=paste0(vip_file), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
+    write.xlsx(vip_df, file=paste0(output_dir,'/',vip_file), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
     
-    up_df <- vip_df$KEGG[vip_df$regulation == "Up"]
-    down_df <- vip_df$KEGG[vip_df$regulation == 'Down']
-    up_df_filename <- paste0(compare_group_name, '_Up_KEGG_ID.txt')
-    down_df_filename <- paste0(compare_group_name, '_Down_KEGG_ID.txt')
-    write.table(up_df, file = up_df_filename, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
-    write.table(down_df, file = down_df_filename, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
-    
-    script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_enrich.r"
-    up_df_cmd = paste0("/opt/biosoft/R-4.2.2/bin/Rscript ", script_path, " --datatable ", up_df_filename, " --outputprefix ", compare_group_name, "_Up")
-    down_df_cmd = paste0("/opt/biosoft/R-4.2.2/bin/Rscript ", script_path, " --datatable ", down_df_filename, " --outputprefix ", compare_group_name, "_Down")
-    Sys.setenv(R_LIBS="/opt/biosoft/R-4.2.2/lib64/R/library")
-    system(up_df_cmd)
-    system(down_df_cmd)
+    # ======= enrich start ======== 有 KEGG 才能做 enrich
+    if ("KEGG" %in% colnames(vip_df)) {
+      up_df <- vip_df$KEGG[vip_df$regulation == "Up"]
+      down_df <- vip_df$KEGG[vip_df$regulation == 'Down']
+      
+      dir.create(paste0('05_Enrich/', compare_group_name))
+      enrich_output_prefix <- paste0('05_Enrich/', compare_group_name, '/', compare_group_name)
+      up_df_filename <- paste0(enrich_output_prefix, '_Up_Compound_ID.txt')
+      down_df_filename <- paste0(enrich_output_prefix, '_Down_Compound_ID.txt')
+      write.table(up_df, file = up_df_filename, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+      write.table(down_df, file = down_df_filename, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+      
+      script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_enrich.r"
+      up_df_cmd = paste0("/opt/biosoft/R-4.2.2/bin/Rscript ", script_path, " --datatable ", up_df_filename, " --outputprefix ", enrich_output_prefix, "_Up")
+      down_df_cmd = paste0("/opt/biosoft/R-4.2.2/bin/Rscript ", script_path, " --datatable ", down_df_filename, " --outputprefix ", enrich_output_prefix, "_Down")
+      Sys.setenv(R_LIBS="/opt/biosoft/R-4.2.2/lib64/R/library")
+      system(up_df_cmd)
+      system(down_df_cmd)
+    }
+    # ======= enrich end =======
 
     vip_df_vipgt1 <- vip_df[vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8), ]
 
@@ -516,11 +523,11 @@ pca_plot(reads_data_frame = reads_data, samples_file = "samples_described.txt", 
 # 多组分析
 multigroup_dir <- paste(chayifenxi_dir, "多组分析", sep = "/")
 dir.create(multigroup_dir)
-metabolite_analysis(samples_file="samples_described.txt", reads_data, definition_df=FALSE, output_dir=multigroup_dir)
+metabolite_analysis(samples_file="samples_described.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
 # 组间分析
-zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described.txt",
+zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described2.txt",
             reads_data_frame = reads_data, fpkm_data_frame = FALSE,
-            definition_df=FALSE, output_dir = zujianfenxi_dir, log2data=FALSE)
+            definition_df=definition_df, output_dir = zujianfenxi_dir, log2data=FALSE)
 
 
 # ========== z-score RUN ============
