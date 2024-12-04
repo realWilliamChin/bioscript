@@ -30,6 +30,13 @@ opt <- parse_args(opt_parser)
 # Assign the first argument to prefix
 data_table <- opt$datatable
 output_prefix <- opt$outputprefix
+group_output_dir <- dirname(output_prefix)
+group_name <- basename(output_prefix)
+enrichment_graphs_dir <- file.path(group_output_dir, 'Enrichment_Graphs')
+m_graphs_dir <- file.path(group_output_dir, paste0(group_name, '_M_Graphs'))
+
+dir.create(m_graphs_dir)
+dir.create(enrichment_graphs_dir)
 
 
 metabolite_enrich <- function(data_table, output_prefix) {
@@ -70,16 +77,17 @@ metabolite_enrich <- function(data_table, output_prefix) {
   go_rich_result <- go_rich_result[ , !(names(go_rich_result) %in% c("entry", "c_number", "name"))]
   # 去重
   go_rich_result <- distinct(go_rich_result)
-  write.xlsx(go_rich_result, paste0(output_prefix, "_enrich_result.xlsx", sep = ""))
+  go_rich_result <- rename(go_rich_result, Compound_ID = geneID, KEGG_Ortholog = kog)
 
   # 创建文件夹
   pic_path = '/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/M_entry_pictures/'
-  output_pic_path = paste0(output_prefix, '_M_Pictures/', sep = '')
-  dir.create(output_pic_path)
 
+  write.xlsx(go_rich_result, file.path(m_graphs_dir, paste0(group_name, "_enrich_result.xlsx")))
+
+  output_m_id_df <- go_rich_result[go_rich_result$pvalue < 0.05, ]
   # 循环 go_rich_result$ID
-  for (i in go_rich_result$ID) {
-    cmd = paste0("cp -r /home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/M_entry_pictures/", i, " ", output_pic_path, sep='')
+  for (i in output_m_id_df$ID) {
+    cmd = paste0("cp -r /home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/M_entry_pictures/", i, " ", m_graphs_dir, sep='')
     system(cmd)
   }
 
@@ -98,10 +106,10 @@ metabolite_enrich <- function(data_table, output_prefix) {
       scale_size_continuous(range = c(2, 8)) +
       scale_y_discrete(limits = dt$MID) +
       scale_colour_gradient(low = "red", high = "green") +
-      ggtitle(paste0(output_prefix, "_Enrich_Bubble", sep = "")) +
+      ggtitle(paste0(group_name, "_Enrich_Bubble")) +
       ylab(colnames(data)[1]) +
       theme_base()
-    ggsave(paste0(output_prefix, "_enrich_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
+    ggsave(file.path(enrichment_graphs_dir, paste0(group_name, "_enrich_Bubble.png")), p, dpi = 320, width = 20, height = 10)
   } else {
     message(paste0(output_prefix, "没有显著富集的。"))
   }
@@ -112,7 +120,7 @@ metabolite_enrich <- function(data_table, output_prefix) {
   dt$star <- cut(dt$pvalue, breaks = c(0, 0.001, 0.01, 0.05, Inf), 
     labels = c("***        ", "**     ", "*   ", ""))
   bar.p <- ggplot(dt, aes(x= factor(MID, levels = MID), y=RichFactor)) + 
-    geom_bar(stat="identity", position = "identity")+
+    geom_bar(stat="identity", position = "identity", fill='skyblue')+
     geom_text(aes(label = star), position = position_dodge(width = 1), size = 7) +  # 添加星号
     # geom_bar(position="identity",stat="identity",aes(fill=SubOntology))+
     # facet_grid(SubOntology~.,scale="free")+
@@ -120,14 +128,14 @@ metabolite_enrich <- function(data_table, output_prefix) {
     xlab("MID Term") +  # 设置 x 轴标签
     ylab("RichFactor") +    # 设置 y 轴标签
     coord_flip() +
-    ggtitle(paste0(output_prefix, "_Enrich_bargraph", sep = "")) +
+    ggtitle(paste0(group_name, "_Enrich_bargraph")) +
     theme(
       plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
       axis.title = element_text(size = 14, face = "bold"),
       legend.title = element_text(face = "bold"))
   # height 根据 datafile 的行数调整
   p_height <- 2 + 0.4 * nrow(dt)
-  ggsave(paste0(output_prefix, "_enrich_barplot.png", sep = ""), bar.p, dpi = 320, width = 20, height = p_height)
+  ggsave(file.path(enrichment_graphs_dir, paste0(group_name, "_enrich_barplot.png")), bar.p, dpi = 320, width = 20, height = p_height)
 }
 
 metabolite_enrich(data_table, output_prefix)
