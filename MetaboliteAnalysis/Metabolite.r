@@ -110,6 +110,10 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
     metabolites <- as.matrix(reads_data_t)
   }
 
+  # mutligroup samples 的时候会出现每行都为 0 跑不了的情况
+  select_data_frame <- select_data_frame[rowSums(select_data_frame != 0) > 0, ]
+  metabolites <- metabolites[rowSums(metabolites != 0) > 0, ]
+  
   heatmap_plot(
     select_data_frame, paste0(output_dir, '/MultiGroup_heatmap.jpeg'),
     log2data = log2data ,log2pic_fname = paste0(output_dir, '/MultiGroup_log_heatmap.jpeg')
@@ -181,7 +185,7 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
     #  linetype = 2, linewidth = 0.5, aes(fill = group),
     #  alpha = 0.2, show.legend = TRUE
     #) +
-    scale_color_discrete() +
+    # scale_color_discrete() + # 这个有时候画图会出错
     scale_fill_discrete() +
     theme(
       axis.title.x = element_text(size = 12),
@@ -229,17 +233,24 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
       greater_than_one_data_def <- reads_data_with_def
     }
 
-    class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$Class), length)
-    class_count <- class_count[class_count$Group.1 != "", ]
-    class_count <- class_count[order(-class_count$x), ]
+    # 添加 class count 和对应的名称
+    # class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$Class), length)
+    class_count <- greater_than_one_data_def %>%
+      group_by(Class) %>%
+      summarize(
+        count = n(),
+        compounds = paste(Metabolite, collapse = ", ")
+      )
+    class_count <- class_count[class_count$Class != "", ]
+    class_count <- class_count[order(-class_count$count), ]
     write.xlsx(class_count,
       file = paste0(output_dir, "/Significant_compound_count_by_class.xlsx"),
-      sheetName = "Sheet1", rowNames = FALSE, colNames = FALSE
+      sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
     )
   }
 
   reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.last = TRUE), ]
-  write.xlsx(reads_data_with_def, file = paste0(output_dir, "/Metabolite_quantitation_VIP_bySubclass.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
+  write.xlsx(reads_data_with_def, file = paste0(output_dir, "/Metabolite_quantitation_VIP_by_class.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
 }
 
 
@@ -506,9 +517,11 @@ if (any(is.na(reads_data))) {
   print("检查数据，有 NA")
   quit()
 }
+
+Compound_def_file <- 'Compound_def_2.xlsx'
 # 如果需要合并定义则读取单独定义文件，没有则跳过
-if (file.exists("Compound_def.xlsx")) {
-  definition_df <- read.xlsx("Compound_def.xlsx", sheet = 1, rowNames = TRUE)
+if (file.exists(Compound_def_file)) {
+  definition_df <- read.xlsx(Compound_def_file, sheet = 1, rowNames = TRUE)
   definition_df$Metabolite <- rownames(definition_df)
 }
 
@@ -521,11 +534,11 @@ heatmap_plot(reads_data, zhengtifenxi_heatmap_pic_name, log2data=FALSE, log2pic_
 correlation_plot(reads_data, zhengtifenxi_dir)
 pca_plot(reads_data_frame = reads_data, samples_file = "samples_described.txt", output_dir = zhengtifenxi_dir)
 # 多组分析
-multigroup_dir <- paste(chayifenxi_dir, "多组分析", sep = "/")
+multigroup_dir <- paste(chayifenxi_dir, "多组分析_3_by_subclass", sep = "/")
 dir.create(multigroup_dir)
-metabolite_analysis(samples_file="samples_described.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
+metabolite_analysis(samples_file="multigroup_samples_described_3.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
 # 组间分析
-zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described2.txt",
+zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described.txt",
             reads_data_frame = reads_data, fpkm_data_frame = FALSE,
             definition_df=definition_df, output_dir = zujianfenxi_dir, log2data=FALSE)
 
