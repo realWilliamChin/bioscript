@@ -235,22 +235,40 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
 
     # 添加 class count 和对应的名称
     # class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$Class), length)
-    class_count <- greater_than_one_data_def %>%
+    if ("Class" %in% colnames(greater_than_one_data_def)) {
+      class_count <- greater_than_one_data_def %>%
       group_by(Class) %>%
       summarize(
         count = n(),
         compounds = paste(Metabolite, collapse = ", ")
       )
-    class_count <- class_count[class_count$Class != "", ]
-    class_count <- class_count[order(-class_count$count), ]
-    write.xlsx(class_count,
-      file = paste0(output_dir, "/Significant_compound_count_by_class.xlsx"),
-      sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
-    )
+      class_count <- class_count[class_count$Class != "", ]
+      class_count <- class_count[order(-class_count$count), ]
+      write.xlsx(class_count,
+        file = paste0(output_dir, "/Significant_compound_count_by_class.xlsx"),
+        sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
+      )
+    }
+
+    if ("Subclass" %in% colnames(greater_than_one_data_def)) {
+      class_count <- greater_than_one_data_def %>%
+      group_by(Subclass) %>%
+      summarize(
+        count = n(),
+        compounds = paste(Metabolite, collapse = ", ")
+      )
+      class_count <- class_count[class_count$Subclass != "", ]
+      class_count <- class_count[order(-class_count$count), ]
+      write.xlsx(class_count,
+        file = paste0(output_dir, "/Significant_compound_count_by_subclass.xlsx"),
+        sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
+      )
+    }
+    
   }
 
   reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.last = TRUE), ]
-  write.xlsx(reads_data_with_def, file = paste0(output_dir, "/Metabolite_quantitation_VIP_by_class.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
+  write.xlsx(reads_data_with_def, file = paste0(output_dir, "/Metabolite_quantitation_VIP.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
 }
 
 
@@ -436,7 +454,9 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_
   #if (is.data.frame(definition_df)) {
   all_files <- list.files(path = output_dir, recursive = TRUE)
   vip_files <- all_files[grep("VIP", all_files)]
+
   class_count_list <- list()
+  subclass_count_list <- list()
 
   for (vip_file in vip_files) {
     print(vip_file)
@@ -471,23 +491,42 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_
 
     vip_df_vipgt1 <- vip_df[vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8), ]
 
-    class_count <- aggregate(Metabolite ~ Class, data = vip_df_vipgt1, FUN = length)
-    class_count <- class_count[class_count$Class != "", ]
-    names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1] # 修改列名为对应的 count_name
-    class_count_list <- append(class_count_list, list(class_count))
+    if ("Class" %in% colnames(vip_df_vipgt1)) {
+      class_count <- aggregate(Metabolite ~ Class, data = vip_df_vipgt1, FUN = length)
+      class_count <- class_count[class_count$Class != "", ]
+      names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1] # 修改列名为对应的 count_name
+      class_count_list <- append(class_count_list, list(class_count))
+    }
+
+    if ("Subclass" %in% colnames(vip_df_vipgt1)) {
+      subclass_count <- aggregate(Metabolite ~ Subclass, data = vip_df_vipgt1, FUN = length)
+      subclass_count <- subclass_count[subclass_count$Subclass != "", ]
+      names(subclass_count)[2] <- strsplit(vip_file, "/")[[1]][1] # 修改列名为对应的 count_name
+      subclass_count_list <- append(subclass_count_list, list(subclass_count))
+    }
   }
 
   # 去除重复的行?
   # class_count_list <- lapply(class_count_list, function(df) df[!duplicated(df$class), ])
 
   # 合并 class_count_list 中所有的 class_count，根据第一列的 class 合并，合并方式为并集
-  class_count_result <- Reduce(function(x, y) merge(x, y, by = "Class", all = TRUE), class_count_list)
-  class_count_result[is.na(class_count_result)] <- 0
-  write.xlsx(class_count_result,
-    file = paste0(output_dir, "/Significant_compound_count_by_class.xlsx"),
-    sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
-  )
-  #}
+  if (length(class_count_list) != 0) {
+    class_count_result <- Reduce(function(x, y) merge(x, y, by = "Class", all = TRUE), class_count_list)
+    class_count_result[is.na(class_count_result)] <- 0
+    write.xlsx(class_count_result,
+      file = paste0(output_dir, "/Significant_compound_count_by_class.xlsx"),
+      sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
+    )
+  }
+
+  if (length(subclass_count_list) != 0) {
+    subclass_count_result <- Reduce(function(x, y) merge(x, y, by = "Subclass", all = TRUE), subclass_count_list)
+    subclass_count_result[is.na(subclass_count_result)] <- 0
+    write.xlsx(subclass_count_result,
+      file = paste0(output_dir, "/Significant_compound_count_by_subclass.xlsx"),
+      sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE
+    )
+  }
 }
 
 
@@ -518,7 +557,7 @@ if (any(is.na(reads_data))) {
   quit()
 }
 
-Compound_def_file <- 'Compound_def_2.xlsx'
+Compound_def_file <- 'Compound_def.xlsx'
 # 如果需要合并定义则读取单独定义文件，没有则跳过
 if (file.exists(Compound_def_file)) {
   definition_df <- read.xlsx(Compound_def_file, sheet = 1, rowNames = TRUE)
@@ -534,7 +573,7 @@ heatmap_plot(reads_data, zhengtifenxi_heatmap_pic_name, log2data=FALSE, log2pic_
 correlation_plot(reads_data, zhengtifenxi_dir)
 pca_plot(reads_data_frame = reads_data, samples_file = "samples_described.txt", output_dir = zhengtifenxi_dir)
 # 多组分析
-multigroup_dir <- paste(chayifenxi_dir, "多组分析_3_by_subclass", sep = "/")
+multigroup_dir <- paste(chayifenxi_dir, "多组分析3", sep = "/")
 dir.create(multigroup_dir)
 metabolite_analysis(samples_file="multigroup_samples_described_3.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
 # 组间分析
