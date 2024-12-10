@@ -7,16 +7,16 @@ import argparse
 import pandas as pd
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
+from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
-from genedf_add_knsdef import add_kns_def
+from genedf_add_expression_and_def import add_kns_def
 
 def parse_input():
     argparser = argparse.ArgumentParser(description="target gene")
     argparser.add_argument('-i', '--input', required=True, type=str, dest='input_file',
-                           help='输入要进行处理的表')
+                           help='输入要进行处理的表，vcf, csv 格式文件')
     argparser.add_argument('-t', '--threads', default=1, type=int, dest='threads',
                            help='输入进程，默认单个进程处理')
     argparser.add_argument('-b', '--basicinfo', type=str, dest='basicinfo', required=True,
@@ -24,15 +24,12 @@ def parse_input():
     argparser.add_argument('--kns', type=str, dest='kns',
                            help='输入 kns_def.txt，添加定义')
     argparser.add_argument('-o', '--output', type=str, dest='output',
-                           help='输出文件名，默认 .vcf 替换为 target_gene_def.txt')
+                           help='输出文件名，target_gene_def.txt')
     args = argparser.parse_args()
     
     if not os.path.isfile(args.basicinfo) or not os.path.isfile(args.input_file):
-        print('输入的文件不存在，请检查')
+        logger.error('输入的文件不存在，请检查')
         exit(1)
-    
-    if not args.output:
-        args.output = args.input_file.replace('.vcf', '_target_gene_def.txt')
     
     return args
 
@@ -69,15 +66,6 @@ def process_sub_dataframe(sub_df, basicinfo_df):
     # eachrow_info_df = pd.DataFrame()
     for each_row in sub_df.itertuples():
         # merge input_df pos 上下 10k 在 basicinfo 的 start 和 end 之间的数据
-        # eachrow_start_df = basicinfo_df[(basicinfo_df['Target_Start'] <= each_row.start) & (basicinfo_df['Target_End'] >= each_row.start)]
-        # eachrow_end_df = basicinfo_df[(basicinfo_df['Target_Start'] <= each_row.end) & (basicinfo_df['Target_End'] >= each_row.end)]
-        # eachrow_df = pd.concat([eachrow_start_df, eachrow_end_df])
-
-        # eachrow_df = basicinfo_df[
-        #     ((basicinfo_df['Target_Start'] <= each_row.start) & (basicinfo_df['Target_End'] >= each_row.start))
-        #     | ((basicinfo_df['Target_Start'] <= each_row.end) & (basicinfo_df['Target_End'] >= each_row.end))
-        #     | ((basicinfo_df['Target_Start'] <= each_row.POS) & (basicinfo_df['Target_End'] >= each_row.POS))
-        # ].copy()
         eachrow_df = basicinfo_df[
             ((each_row.start <= basicinfo_df['Target_Start']) & (each_row.end >= basicinfo_df['Target_Start']))
             | ((each_row.start <= basicinfo_df['Target_End']) & (each_row.end >= basicinfo_df['Target_End']))
@@ -144,43 +132,6 @@ def find_target_gene_multithreads(input_df, gene_basic_info, num_threads=1):
     return result_df
 
 
-# def find_target_gene(input_df, gene_basic_info):
-#     basicinfo_df = pd.read_csv(gene_basic_info, sep='\t', usecols=[0, 2, 3, 4], skiprows=1,
-#                          names=["Target_GeneID", "Target_Start", "Target_End", "Target_Gene_Strand"],
-#                          dtype={"Target_GeneID": str, "Target_Start": int, "Target_End": int, "Target_Gene_Strand": str})
-    
-#     # 标出 pos 位置的上下 10k，再去比对 gff start 和 end 判断是否包含在内，包含在内则把 basicinfo_df 的信息添加到 input_df 中
-#     # 1. 标出 pos 位置的上下 10k，命名为 start 和 end
-#     input_df['start'] = input_df['POS'].apply(lambda x: max(x - 10000, 0))
-#     input_df['end'] = input_df['POS'] + 10000
-    
-#     input_df_columns = input_df.columns.tolist()
-#     # 2. 如果 input_df 的 start 在 basicinfo 的 start 和 end 之间
-#     result_df_lst = []
-#     for each_row in input_df.itertuples():
-#         # merge input_df pos 上下 10k 在 basicinfo 的 start 和 end 之间的数据
-#         eachrow_start_df = basicinfo_df[(basicinfo_df['Target_Start'] <= each_row.start) & (basicinfo_df['Target_End'] >= each_row.start)].copy()
-#         eachrow_end_df = basicinfo_df[(basicinfo_df['Target_Start'] <= each_row.end) & (basicinfo_df['Target_End'] >= each_row.end)].copy()
-#         eachrow_info_df = pd.concat([eachrow_start_df, eachrow_end_df])
-#         # eachrow_info_df = eachrow_info_df.drop_duplicates(subset='Target_GeneID', keep='first')
-#         # 追加其他所有信息
-#         for column in input_df_columns:
-#             if column in ['start', 'end']:
-#                 continue
-#             eachrow_info_df[column] = getattr(each_row, column)
-#         result_df_lst.append(eachrow_info_df)
-    
-#     result_df = pd.concat(result_df_lst)
-    
-#     # 3. 判断 pos 是否在基因内部，和 utr check
-#     result_df['On_Gene_Status'] = result_df.apply(gene_check_on_off_gene, axis=1)
-#     result_df = result_df.groupby('POS').apply(utr_check)
-#     re_columns = input_df.columns.tolist() + ['Target_GeneID', 'Target_Start', 'Target_End', 'Target_Gene_Strand', 'On_Gene_Status']
-#     result_df = result_df.reindex(columns=re_columns)
-    
-#     return result_df
-
-
 def main():
     args = parse_input()
     
@@ -193,35 +144,53 @@ def main():
                     skip_rows += 1
                 else:
                     break
-        print(f'跳过 {args.input_file} 的前 {skip_rows} 行')
+        logger.info(f'跳过 {args.input_file} 的前 {skip_rows} 行')
         
         vcf_columns = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']
         input_df = pd.read_csv(args.input_file, sep='\t', skiprows=skip_rows, usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8], 
                                low_memory=False, names=vcf_columns,
                                dtype={"CHROM": str, "POS": int, "ID": str, "REF": str, "ALT": str, "QUAL": str, "FILTER": str, "INFO": str, "FORMAT": str})
-        
+    
         input_df['Marker'] = input_df['CHROM'].astype(str) + '_' + input_df['POS'].astype(str)
         df = find_target_gene_multithreads(input_df, args.basicinfo, args.threads)
         
         if df.empty:
-            print(f'没有找到 target gene')
+            logger.error(f'没有找到 target gene')
             exit(0)
+        
+        # 添加 kns 定义
+        df.rename(columns={"Target_GeneID": "GeneID"}, inplace=True)
+        df = add_kns_def(df, kns_file=args.kns)
+        df.rename(columns={"GeneID": "Target_GeneID"}, inplace=True)
+        
+        df = pd.concat([df['Marker'], df.iloc[:, df.columns != 'Marker']], axis=1)
+        # df_columns = df.columns.tolist() # 修改为上面那一句代码
+        # df_columns = [x for x in df_columns if x not in vcf_columns + ['Marker']]
+        # df = df.reindex(columns=['Marker', 'ID', 'CHROM', 'POS', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT'] + df_columns)
+        
+        df.to_csv(args.output, sep='\t', index=False)
+        
+    elif args.input_file.endswith('.csv'):
+        input_df = pd.read_csv(args.input_file)
+        input_df['Marker'] = input_df['CHROM'].astype(str) + '_' + input_df['POS'].astype(str)
+        df = find_target_gene_multithreads(input_df, args.basicinfo, args.threads)
         
         df.rename(columns={"Target_GeneID": "GeneID"}, inplace=True)
         df = add_kns_def(df, kns_file=args.kns)
         df.rename(columns={"GeneID": "Target_GeneID"}, inplace=True)
-        df_columns = df.columns.tolist()
-        df_columns = [x for x in df_columns if x not in vcf_columns + ['Marker']]
-        df = df.reindex(columns=['Marker', 'ID', 'CHROM', 'POS', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT'] + df_columns)
+        
+        df = pd.concat([df['Marker'], df.iloc[:, df.columns != 'Marker']], axis=1)
+        
         df.to_csv(args.output, sep='\t', index=False)
+        if df.empty:
+            logger.error(f'没有找到 target gene')
+            exit(0)
     else:
         # 其他格式文件未做优化，可能会出现 bug
-        print('不支持其他文件格式')
+        logger.error('不支持其他文件格式')
         exit(1)
-        # input_df = pd.read_csv(args.input_file, sep='\t')
-        # input_df.rename(columns={"Position": "POS"}, inplace=True)
 
-    print(f'处理完成，结果文件为 {args.output}, 结果行数为 {df.shape[0]}')
+    logger.success(f'处理完成，结果文件为 {args.output}, 结果行数为 {df.shape[0]}')
     
 if __name__ == '__main__':
     main()
