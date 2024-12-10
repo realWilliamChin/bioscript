@@ -11,9 +11,9 @@ from loguru import logger
 
 def parse_input():
     args = argparse.ArgumentParser(description='hisat2_mapping_summary.py')
-    args.add_argument(dest='alignment_type', choices=['hisat2', 'bowtie2'], help='使用哪种方式比对')
+    args.add_argument(dest='alignment_type', choices=['hisat2', 'bowtie2', 'bwa'], help='使用哪种方式比对')
     args.add_argument('-s', '--samples', help='samples_described.txt', default='samples_described.txt')
-    args.add_argument('--gff', help='stringtie 所需的 gff 文件')
+    args.add_argument('--gff', help='[有参流程] stringtie 所需的 gff 文件')
     args.add_argument('--md', help='hisat2 mapping dir')
     args.add_argument('--cd', help='cleandata file dir', default='./02_Cleandata')
     
@@ -63,13 +63,13 @@ def alignment(alignment_type, samples_file, cleandata_dir, mapping_file_dir, bam
 
     for index, row in samples_df.iterrows():
         
-        samples_name = row['sample']
+        sample_name = row['sample']
         file1 = os.path.join(cleandata_dir, row['filename1'])
         file2 = os.path.join(cleandata_dir, row['filename2'])
-        mapping_file_name = os.path.join(mapping_file_dir, f'{samples_name}_mapping.txt')
-        bam_file_name = os.path.join(bam_file_dir, f'{samples_name}.bam')
+        mapping_file_name = os.path.join(mapping_file_dir, f'{sample_name}_mapping.txt')
+        bam_file_name = os.path.join(bam_file_dir, f'{sample_name}.bam')
         
-        logger.info(f'开始比对样本 {samples_name}, {file1} 和 {file2}，输出文件 {mapping_file_name} 和 {bam_file_name}')
+        logger.info(f'开始比对样本 {sample_name}, {file1} 和 {file2}，输出文件 {mapping_file_name} 和 {bam_file_name}')
         
         if alignment_type == 'hisat2':
             alignment_cmd = f'hisat2 -x {ref_specie} \
@@ -87,24 +87,30 @@ def alignment(alignment_type, samples_file, cleandata_dir, mapping_file_dir, bam
                 -2 {file2} \
                 2> {mapping_file_name} | \
                 samtools sort --threads {num_threads} -O BAM -o - > {bam_file_name}'
+        elif alignment_type == 'bwa':
+            alignment_cmd = f'bwa mem -M \
+                -t {num_threads} \
+                -R "@RG\\tID:{sample_name}\\tSM:{sample_name}\\tLB:WES\\tPL:Illumina" \
+                {ref_specie} \
+                {file1} {file2} |\
+                samtools sort -O bam -@ {num_threads} -o - > {bam_file_name}'
         
         rep = subprocess.run(alignment_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
         if rep.returncode != 0:
-            logger.error(f'样本 {samples_name} 比对失败')
+            logger.error(f'样本 {sample_name} 比对失败')
             logger.error(rep.stderr.decode())
             logger.error(rep.stdout.decode())
         else:
             with open(mapping_file_name) as f:
                 last_line = f.readlines()[-1]
-                logger.success(f'样本 {samples_name} 比对成功 {last_line}')
+                logger.success(f'样本 {sample_name} 比对成功 {last_line}')
         
-        # TODO: gff 未进行测试过
         if gff_file:
             stringtie_cmd = f'nohup stringtie -e -B \
                 -G {gff_file} \
-                -A {bam_file_dir}/fpkm/{samples_name}_fpkm.txt \
-                -o {bam_file_dir}/ballgown/{samples_name}/{samples_name}.gtf \
+                -A {bam_file_dir}/fpkm/{sample_name}_fpkm.txt \
+                -o {bam_file_dir}/ballgown/{sample_name}/{sample_name}.gtf \
                 {bam_file_name} > /dev/null 2>&1 &'
             logger.debug(stringtie_cmd)
             os.system(stringtie_cmd)
