@@ -13,6 +13,7 @@ sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools'))
 from genedf_add_expression_and_def import add_kns_def
 from check_SampDesAndCompInfo import check_sample_comp
+from transcriptome_enrich import transcriptome_enrich
 
 
 def parse_input():
@@ -82,21 +83,21 @@ def transcriptome_r_deseq(work_dir, fpkm_file, reads_file, samples_file, compare
         return True
 
 
-def transcriptome_enrich(work_dir, gene_go_file, kegg_clean_file, data_dir, compare_file):
-    os.chdir(work_dir)
-    logger.info(f'运行 enrich.r 脚本中...')
-    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/enrich.r \
-        --genego {gene_go_file} \
-        --keggclean {kegg_clean_file} \
-        --compare {compare_file}"
-    ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if ret.returncode != 0:
-        logger.error(f"enrich.r 程序运行失败")
-        logger.error(f"标准输出：{ret.stdout.decode()}")
-        logger.error(f"标准错误: {ret.stderr.decode()}")
-        return False
-    else:
-        return True
+# def transcriptome_enrich(work_dir, gene_go_file, kegg_clean_file, data_dir, compare_file):
+#     os.chdir(work_dir)
+#     logger.info(f'运行 enrich.r 脚本中...')
+#     cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/enrich.r \
+#         --genego {gene_go_file} \
+#         --keggclean {kegg_clean_file} \
+#         --compare {compare_file}"
+#     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#     if ret.returncode != 0:
+#         logger.error(f"enrich.r 程序运行失败")
+#         logger.error(f"标准输出：{ret.stdout.decode()}")
+#         logger.error(f"标准错误: {ret.stderr.decode()}")
+#         return False
+#     else:
+#         return True
 
 
 def transcriptome_enrich_distribution(work_dir):
@@ -149,8 +150,15 @@ def main():
             logger.critical(f'R 脚本运行失败')
             sys.exit(1)
     if args.degvalue and args.genego and args.keggclean:
-        transcriptome_enrich(args.workdir, args.genego, args.keggclean, args.degiddir, args.compare)
-        transcriptome_enrich_distribution(os.path.join(args.workdir, 'Pathway_enrichment_analysis'))
+        enrich_dir = os.path.join(args.workdir, 'Pathway_enrichment_analysis')
+        transcriptome_enrich(
+            compare = args.compare,
+            degdata_dir = args.degiddir,
+            genego_file = args.genego,
+            keggclean_file = args.keggclean,
+            outputdir = enrich_dir
+        )
+        transcriptome_enrich_distribution(enrich_dir)
         os.chdir(args.workdir)
     
     de_results_output_dir = os.path.join(args.workdir, 'DEG_analysis_results/Expression_data')
