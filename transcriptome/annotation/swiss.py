@@ -9,6 +9,11 @@ import numpy as np
 import subprocess
 from loguru import logger
 
+if sys.version_info < (3, 10):
+    logger.critical("Python 版本低于 3.10，请使用 conda 激活 python310 环境运行程序！")
+    logger.critical("当前 Python 版本为:", sys.version)
+    sys.exit(1)
+
 
 def parse_input():
     parser = argparse.ArgumentParser(description='swiss 注释')
