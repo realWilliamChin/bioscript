@@ -38,8 +38,41 @@ pathway.names<-path.dt[,1]
 #head(pathway.names)
 pathway.names<-gsub("ko",'',pathway.names)
 
-pathview(gene.data = ko.data, pathway.id = pathway.names, species = "ko", out.suffix = "ko.data", kegg.native = T,
-          kegg.dir='/home/colddata/qinqiang/script/Rscript/pathview/kegg_files')
+# pathview(
+#   gene.data = ko.data,
+#   pathway.id = pathway.names,
+#   species = "ko",
+#   out.suffix = "ko.data",
+#   kegg.native = T,
+#   kegg.dir='/home/colddata/qinqiang/script/Rscript/pathview/ceshi'
+# )
+
+for (pw_id in pathway.names) {
+  # 使用 tryCatch 来捕获错误
+  tryCatch({
+    # 设置输出文件的路径
+    # out_file <- file.path(output_dir, paste0(pw_id, ".ko.data.png"))
+    
+    # 调用 pathview 函数
+    pathview(
+      gene.data = ko.data,
+      pathway.id = pw_id,
+      species = "ko",
+      out.suffix = "ko.data",
+      kegg.native = TRUE,
+      kegg.dir = '/home/colddata/qinqiang/script/Rscript/pathview/kegg_files'
+    )
+    
+    # 如果成功，可以打印一条消息（可选）
+    cat("Successfully plotted pathway:", pw_id, "\n")
+    
+  }, error = function(e) {
+    # 如果出现错误，打印错误消息并跳过该通路
+    cat("Error plotting pathway:", pw_id, ":", e$message, "\n")
+  })
+}
+
+
 
 head(path.dt)
 colnames(path.dt)<-c('ID','Name')
