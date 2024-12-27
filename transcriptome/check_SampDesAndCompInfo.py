@@ -26,11 +26,11 @@ def check_sample(samples_file, cleandata_dir):
         samples_file (str): samples_described.txt
         cleandata_dir (str): cleandata 文件路径
     """
-    samples_df = pd.read_csv(samples_file, sep='\t', usecols=['sample', 'filename1', 'filename2'])
+    samples_df = pd.read_csv(samples_file, sep='\t', usecols=['sample', 'R1', 'R2'])
     for index, row in samples_df.iterrows():
         samples_name = row['sample']
-        file1 = os.path.join(cleandata_dir, row['filename1'])
-        file2 = os.path.join(cleandata_dir, row['filename2'])
+        file1 = os.path.join(cleandata_dir, row['R1'])
+        file2 = os.path.join(cleandata_dir, row['R2'])
         if not os.access(file1, os.R_OK) or not os.access(file2, os.R_OK):
             logger.error(f'文件 {file1} 或 {file2} 不存在，将跳过此样本 {samples_name} 的比对')
             continue
