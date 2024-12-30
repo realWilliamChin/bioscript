@@ -321,7 +321,7 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_
     # 检查因变量的水平数量
     y_factor <- factor(sample_info$group[sample_info$sample %in% current_samples])
     if (length(unique(y_factor)) < 2) {
-      print(paste("y_factor 小于 2 个", compare_name))
+      print(paste("y_factor 小于 2 个", compare_name, " 确认 compare_info 和 samples_described.txt 是否完全匹配"))
       next # 跳过当前的迭代
     }
 
@@ -576,7 +576,7 @@ heatmap_plot(reads_data, zhengtifenxi_heatmap_pic_name, log2data=FALSE, log2pic_
 correlation_plot(reads_data, zhengtifenxi_dir)
 pca_plot(reads_data_frame = reads_data, samples_file = "samples_described.txt", output_dir = zhengtifenxi_dir)
 # 多组分析
-multigroup_dir <- paste(chayifenxi_dir, "多组分析1", sep = "/")
+multigroup_dir <- paste(chayifenxi_dir, "多组分析", sep = "/")
 dir.create(multigroup_dir)
 metabolite_analysis(samples_file="samples_described.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
 # 组间分析
