@@ -6,11 +6,13 @@ library(ggcorrplot)
 library(corrplot)
 library(FactoMineR)
 library(plyr)
+library(dplyr)
 library(ropls)
 library(ggrepel)
 library(mixOmics)
 library(openxlsx)
 library(optparse)
+library(magrittr)
 rm(list = ls())
 
 
@@ -237,11 +239,11 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
     # class_count <- aggregate(greater_than_one_data_def$Metabolite, by = list(greater_than_one_data_def$Class), length)
     if ("Class" %in% colnames(greater_than_one_data_def)) {
       class_count <- greater_than_one_data_def %>%
-      group_by(Class) %>%
-      summarize(
-        count = n(),
-        compounds = paste(Metabolite, collapse = ", ")
-      )
+        group_by(Class) %>%
+        summarize(
+          count = n(),
+          compounds = paste(Metabolite, collapse = ", ")
+        )
       class_count <- class_count[class_count$Class != "", ]
       class_count <- class_count[order(-class_count$count), ]
       write.xlsx(class_count,
@@ -252,11 +254,11 @@ metabolite_analysis <- function(samples_file, reads_data_frame, fpkm_data_frame 
 
     if ("Subclass" %in% colnames(greater_than_one_data_def)) {
       class_count <- greater_than_one_data_def %>%
-      group_by(Subclass) %>%
-      summarize(
-        count = n(),
-        compounds = paste(Metabolite, collapse = ", ")
-      )
+        group_by(Subclass) %>%
+          summarize(
+            count = n(),
+            compounds = paste(Metabolite, collapse = ", ")
+          )
       class_count <- class_count[class_count$Subclass != "", ]
       class_count <- class_count[order(-class_count$count), ]
       write.xlsx(class_count,
@@ -468,7 +470,7 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_
     vip_df$regulation <- as.factor(ifelse(vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8), ifelse(vip_df$FoldChange >= 1.2, "Up", "Down"), "NoSignificant"))
     write.xlsx(vip_df, file=paste0(output_dir,'/',vip_file), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
     
-    # ======= enrich start ======== 有 KEGG 才能做 enrich
+    # ======= enrich start ======== 有 C number 列才能做 enrich
     if ("KEGG" %in% colnames(vip_df)) {
       up_df <- vip_df$KEGG[vip_df$regulation == "Up"]
       down_df <- vip_df$KEGG[vip_df$regulation == 'Down']
@@ -481,6 +483,7 @@ zujianfenxi <- function(compare_file, samples_file, reads_data_frame, fpkm_data_
       write.table(down_df, file = down_df_filename, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
       
       script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_enrich.r"
+      # script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_kegg_enrich.r"
       up_df_cmd = paste0("/opt/biosoft/R-4.2.2/bin/Rscript ", script_path, " --datatable ", up_df_filename, " --outputprefix ", enrich_output_prefix, "_Up")
       down_df_cmd = paste0("/opt/biosoft/R-4.2.2/bin/Rscript ", script_path, " --datatable ", down_df_filename, " --outputprefix ", enrich_output_prefix, "_Down")
       Sys.setenv(R_LIBS="/opt/biosoft/R-4.2.2/lib64/R/library")
@@ -568,14 +571,14 @@ if (file.exists(Compound_def_file)) {
 # definition_df = NA 或者 definition_df = definition_df
 # 整体分析
 zhengtifenxi_heatmap_pic_name <- paste(zhengtifenxi_dir, "All_metabolites_heatmap.jpeg", sep = "/")
-zhengtifenxi_log2heatmap_pic_name <- paste(zhengtifenxi_dir, "All_metabolites_log_heatmap.jpeg", sep = "/")
+#zhengtifenxi_log2heatmap_pic_name <- paste(zhengtifenxi_dir, "All_metabolites_log_heatmap.jpeg", sep = "/")
 heatmap_plot(reads_data, zhengtifenxi_heatmap_pic_name, log2data=FALSE, log2pic_fname=zhengtifenxi_log2heatmap_pic_name)
 correlation_plot(reads_data, zhengtifenxi_dir)
 pca_plot(reads_data_frame = reads_data, samples_file = "samples_described.txt", output_dir = zhengtifenxi_dir)
 # 多组分析
-multigroup_dir <- paste(chayifenxi_dir, "多组分析3", sep = "/")
+multigroup_dir <- paste(chayifenxi_dir, "多组分析1", sep = "/")
 dir.create(multigroup_dir)
-metabolite_analysis(samples_file="multigroup_samples_described_3.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
+metabolite_analysis(samples_file="samples_described.txt", reads_data, definition_df=definition_df, output_dir=multigroup_dir)
 # 组间分析
 zujianfenxi(compare_file = "compare_info.txt", samples_file = "samples_described.txt",
             reads_data_frame = reads_data, fpkm_data_frame = FALSE,
