@@ -38,7 +38,7 @@ def group_vs_group_heatmap(group_target_gene_file, samples_file):
     fpkm_df = df[['GeneID'] + [col for col in df.columns if col.endswith('FPKM')]]
     no_FPKM_str_columns = [col.replace('_FPKM', '') for col in fpkm_df.columns[1:]]
     fpkm_df.columns = ['GeneID'] + no_FPKM_str_columns
-    ontology_df = df[['GeneID', 'Ontology']]
+    ontology_df = df[['GeneID', 'SubOntology', 'Ontology']]
     group_vs_group_heatmap_fname = group_target_gene_file.replace('_def.txt', '_heatmap.xlsx')
     group_vs_group_heatmap_pname = group_target_gene_file.replace('_def.txt', '_heatmap.jpeg')
     
