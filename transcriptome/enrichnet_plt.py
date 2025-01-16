@@ -33,7 +33,7 @@ def VennNetworkPlot(
     edge_data: pd.DataFrame,
     edge_width: int | float = 1.0,
     edge_style: int = 1,
-    plot_title: str = "Diffrential Gene Interaction Network",
+    plot_title: str = "Differential Gene Interaction Network",
     source_node_size: int | float = 100,
     source_font_size: int = 10,
     target_node_size: int | float = 5,
