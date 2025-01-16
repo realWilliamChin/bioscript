@@ -95,6 +95,7 @@ def main():
     
     gene_go_df = pd.read_csv(args.genego, header=None, names=['GeneID', 'GO_ID'], sep='\t', dtype={"GeneID": str})
     
+    output_summary_df_list = []
     # 循环每个差异数据文件
     for enrich_data in os.listdir(args.enrich_data_dir):
         if not enrich_data.endswith("_EnrichmentGO.xlsx") or enrich_data.startswith("~"):
@@ -147,6 +148,11 @@ def main():
             output_excel_name = os.path.join(compare_output_dir, f'{compare_info}_{ontology_name}.xlsx')
             ontology_df.to_excel(output_excel_name, index=False)
             
+            add_summary_df = ontology_df.copy()
+            add_summary_df.insert(0, 'Group', compare_info.rsplit('_', 1)[0])
+            add_summary_df.insert(1, 'Regulation', compare_info.split('_')[-1])
+            output_summary_df_list.append(add_summary_df)
+            
             jpeg_file_name = os.path.join(go_analysis_bar_plot_dir, f'{compare_info}_{ontology_name}_barplot.jpeg')
             # 运行 R barplot 脚本
             if ontology_df.shape[0] > 1:
@@ -186,7 +192,9 @@ def main():
                 logger.warning(f'{compare_info} 的 {go_id} 未找到相关基因')
                 continue
             go_id_deg_data_df.to_csv(go_id_deg_data_filename, sep='\t', index=False)
-            
+    
+    output_summary_df = pd.concat(output_summary_df_list)
+    output_summary_df.to_excel(os.path.join(args.output, 'Target_GO_analysis_summary.xlsx'), engine='openpyxl', index=False)
     logger.success('Done!')
 
 if __name__ == '__main__':
