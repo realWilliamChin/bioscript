@@ -167,7 +167,7 @@ def transcriptome(args):
     
     deg_data_list = os.listdir(args.deg_data_dir)
     
-    
+    kegg_output_summary_df_list = []
     for deg_data_file in deg_data_list:
         
         if not deg_data_file.endswith('_DEG_data.txt'):
@@ -205,6 +205,13 @@ def transcriptome(args):
         kegg_up_enrich_df.to_excel(kegg_upenrich_outfile, index=False)
         kegg_down_enrich_df.to_excel(kegg_downenrich_outfile, index=False)
         
+        # 上面 kegg_up/down_enrich_df 输出汇总到一个文件 2025——01——16
+        kegg_up_enrich_df.insert(0, 'Group', compare_info)
+        kegg_up_enrich_df.insert(1, 'Regulation', 'Up')
+        kegg_down_enrich_df.insert(0, 'Group', compare_info)
+        kegg_down_enrich_df.insert(1, 'Regulation', 'Down')
+        kegg_output_summary_df_list.append(kegg_up_enrich_df)
+        kegg_output_summary_df_list.append(kegg_down_enrich_df)
         
         logger.info(f"====正在处理 {compare_info}====")
         up_df = deg_data_df[deg_data_df['regulation'] == 'Up']['GeneID']
@@ -265,9 +272,9 @@ def transcriptome(args):
         # R pathview 画图准备文件 passed path
         # print(f"正在筛选 {compare_info} 的 passed_path.txt")
         compare_passed_path_filename = f'{compare_info}_ko_passed_path.txt'
-        pre_passed_path_name = f'{compare_info}_pre_passed_path.txt'
-        passed_path(pre_passed_path_name, compare_passed_path_filename)
-        # passed_path(args.ko_list, compare_passed_path_filename)
+        # pre_passed_path_name = f'{compare_info}_pre_passed_path.txt'
+        # passed_path(pre_passed_path_name, compare_passed_path_filename)
+        passed_path(args.ko_list, compare_passed_path_filename)
         
         # R pathview 画图
         logger.info(f"正在画 {compare_info} 的 pathview 图")
@@ -278,6 +285,8 @@ def transcriptome(args):
         # os.system(f"mv {compare_info}_*.xlsx {compare_info}")
         os.system(f"mv *.png {kegg_pathway_graph_dir}")
 
+    kegg_output_summary_df = pd.concat(kegg_output_summary_df_list)
+    kegg_output_summary_df.to_excel(os.path.join(args.output_dir, 'Target_KEGG_analysis_summary.xlsx'), engine='openpyxl', index=False)
 
 def get_ko_expression(ko, kegg_clean_file, expression_file):
     """对每个 ko 相关的基因生成一个 ko 相关基因的表达量表
