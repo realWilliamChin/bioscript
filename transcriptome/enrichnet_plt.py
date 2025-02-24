@@ -23,8 +23,9 @@ if sys.version_info < (3, 10):
 def parse_input():
     argparser = argparse.ArgumentParser(description="")
     argparser.add_argument("-i", "--input", type=str, required=True,
-        help="输入文件，格式为第一列 SubOntology，第二列 GeneID",
+        help="输入文件，格式为第一列 source (SubOntology)，第二列 target (GeneID)",
     )
+    argparser.add_argument('-o', dest='out_pic_name', help='输出图片名称')
 
     return argparser.parse_args()
 
@@ -234,7 +235,7 @@ def main():
 
     df = df.rename(columns={"SubOntology": "source", "GeneID": "target"})
     
-    draw_enrichnetplot(df)
+    draw_enrichnetplot(df, args.out_pic_name)
 
 
 if __name__ == "__main__":
