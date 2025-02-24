@@ -6,11 +6,12 @@ import os, sys
 import argparse
 import pandas as pd
 import subprocess
-
-import enrichnet_plt
 from loguru import logger
+
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Plot/'))
 from Rscript import draw_barplot
+import enrichnet_plt
 if sys.version_info < (3, 10):
     logger.critical("Python 版本低于 3.10，请使用 conda 激活 python310 环境运行程序！")
     logger.critical("当前 Python 版本为:", sys.version)
