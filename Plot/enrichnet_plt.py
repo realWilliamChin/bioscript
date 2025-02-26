@@ -205,7 +205,20 @@ def draw_enrichnetplot(df, output_pic_name):
 
     df = df.assign(color=lambda x: x["source"].map(dict(zip(groups, groups_colors))))
 
-    fig, ax = plt.subplots(figsize=(10, 10))
+    if df.shape[0] < 50:
+        plotsize = (8, 8)
+    elif df.shape[0] < 150:
+        plotsize = (12, 12)
+    elif df.shape[0] < 250:
+        plotsize = (16, 16)
+    elif df.shape[0] < 350:
+        plotsize = (20, 20)
+    elif df.shape[0] < 500:
+        plotsize = (25, 25)
+    else:
+        plotsize = (30, 30)
+
+    fig, ax = plt.subplots(figsize=plotsize)
     VennNetworkPlot(
         df,
         edge_style="line",
