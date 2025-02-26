@@ -194,8 +194,8 @@ def transcriptome(args):
         # 从 enrich 文件中提取 kegg 相关数据
         enrich_data_up_file = os.path.join(args.enrich_dir, f'{compare_info}_Up_EnrichmentKEGG.xlsx')
         enrich_data_Down_file = os.path.join(args.enrich_dir, f'{compare_info}_Down_EnrichmentKEGG.xlsx')
-        up_enrich_df = pd.read_excel(enrich_data_up_file, dtype=str, engine='openpyxl')
-        down_enrich_df = pd.read_excel(enrich_data_Down_file, dtype=str, engine='openpyxl')
+        up_enrich_df = pd.read_excel(enrich_data_up_file, engine='openpyxl')
+        down_enrich_df = pd.read_excel(enrich_data_Down_file, engine='openpyxl')
         # 提取包含 kolist 的行
         kegg_up_enrich_df = up_enrich_df[up_enrich_df['ID'].isin(ko_list)]
         kegg_down_enrich_df = down_enrich_df[down_enrich_df['ID'].isin(ko_list)]
