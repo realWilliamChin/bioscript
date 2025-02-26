@@ -77,6 +77,18 @@ if (substr(opt$outputdir, nchar(opt$outputdir), nchar(opt$outputdir)) != "/") {
   opt$outputdir <- paste0(opt$outputdir, "/")
 }
 
+# 单独运行数据
+# fpkm_file <- 'fpkm_matrix_filtered.txt'
+# reads_file <- 'reads_matrix_filtered.txt'
+# samples_file <- 'samples_described.txt'
+# compare_file <- 'compare_info.txt'
+# filter_type <- 'padj'
+# filter_value <- '0.05'
+# deg_value <- 1.5
+# bs_pos <- log2(deg_value)
+# output_dir <- './'
+# bs_neg <- -bs_pos
+
 # Assign the first argument to prefix
 fpkm_file <- opt$fpkm
 reads_file <- opt$reads
@@ -257,12 +269,22 @@ write.table(fpkm.cor, "sample_cor.txt", sep = "\t", quote = F)
 min(fpkm.cor)
 # fpkm.m<-as.data.frame(fpkm)
 # fpkm.cor<-cor(fpkm.m)
-resfactor <- 5
-png("Expression_data_evaluation/correlation.png", res = 72 * resfactor, height = 1200 * resfactor, width = 1200 * resfactor)
-corrplot(fpkm.cor, is.corr = F, col = rev(COL2("PiYG")), method = "color", addCoef.col = "black", tl.col = "black", col.lim = c(min(fpkm.cor) - 0.01, max(fpkm.cor)), cl.ratio = 0.1)
+
+# 假设fpkm.cor是一个100行150列的矩阵
+# nrow(fpkm.cor)  # 100
+# ncol(fpkm.cor)  # 150
+
+cell_size <- 260
+
+png("Expression_data_evaluation/correlation.jpeg", res = 72 * 5, 
+    height = (nrow(fpkm.cor) * cell_size) + 1000, width = (ncol(fpkm.cor) * cell_size) + 1000) 
+corrplot(fpkm.cor, is.corr = F, col = rev(COL2("PiYG")), method = "color", 
+         addCoef.col = "black", tl.col = "black", col.lim = c(min(fpkm.cor) - 0.01, max(fpkm.cor)), 
+         cl.ratio = 0.1)
 dev.off()
 
-pdf("correlation.pdf", width = 15, height = 15)
+pdf("correlation.pdf", res = 72 * 5, 
+    height = (nrow(fpkm.cor) * cell_size) + 1000, width = (ncol(fpkm.cor) * cell_size) + 1000) 
 corrplot(fpkm.cor, is.corr = F, col = rev(COL2("PiYG")), method = "color", addCoef.col = "black", tl.col = "black", col.lim = c(min(fpkm.cor) - 0.01, max(fpkm.cor)), cl.ratio = 0.1)
 dev.off()
 
