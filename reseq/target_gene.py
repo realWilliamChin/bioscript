@@ -16,9 +16,11 @@ from genedf_add_expression_and_def import add_kns_def
 def parse_input():
     argparser = argparse.ArgumentParser(description="target gene")
     argparser.add_argument('-i', '--input', required=True, type=str, dest='input_file',
-                           help='输入要进行处理的表，vcf, csv 格式文件')
+                           help='输入要进行处理的表，vcf, csv 格式文件（至少需要 CHROM POS 两列）')
     argparser.add_argument('-t', '--threads', default=1, type=int, dest='threads',
                            help='输入进程，默认单个进程处理')
+    argparser.add_argument('-r', '--pos-range', dest='pos_range', type=int, default=10000,
+                           help='上下 10000(默认10k) 区间找 target gene')
     argparser.add_argument('-b', '--basicinfo', type=str, dest='basicinfo', required=True,
                            help='process_gff.py 处理 gff 文件出来的 gene_basic 文件')
     argparser.add_argument('--kns', type=str, dest='kns',
@@ -92,7 +94,7 @@ def process_sub_dataframe(sub_df, basicinfo_df):
     return result_df
 
 
-def find_target_gene_multithreads(input_df, gene_basic_info, num_threads=1):
+def find_target_gene_multithreads(input_df, gene_basic_info, pos_range, num_threads):
     """
     多进程处理
     input_df: 输入的表, 至少需要包含 POS 列
@@ -100,12 +102,12 @@ def find_target_gene_multithreads(input_df, gene_basic_info, num_threads=1):
     basicinfo_df = pd.read_csv(gene_basic_info, sep='\t', usecols=[0, 2, 3, 4], skiprows=1,
                          names=["Target_GeneID", "Target_Start", "Target_End", "Target_Gene_Strand"],
                          dtype={"Target_GeneID": str, "Target_Start": int, "Target_End": int, "Target_Gene_Strand": str})
-    # 标出 pos 位置的上下 10k，再去比对 gff start 和 end 判断是否包含在内，包含在内则把 basicinfo_df 的信息添加到 input_df 中
-    # 1. 标出 pos 位置的上下 10k，命名为 start 和 end
-    input_df['start'] = input_df['POS'].apply(lambda x: max(x - 10000, 0))
-    input_df['end'] = input_df['POS'] + 10000
+    # 标出 pos 位置的上下 pos_range 默认10k，再去比对 gff start 和 end 判断是否包含在内，包含在内则把 basicinfo_df 的信息添加到 input_df 中
+    # 1. 标出 pos 位置的上下 pos_range，命名为 start 和 end
+    input_df['start'] = input_df['POS'].apply(lambda x: max(x - pos_range, 0))
+    input_df['end'] = input_df['POS'] + pos_range
     if num_threads == 1:
-        results = process_sub_dataframe(input_df, basicinfo_df)
+        result_df = process_sub_dataframe(input_df, basicinfo_df)
     else:
         # 使用多进程进行处理
         sub_dfs = np.array_split(input_df, num_threads)
@@ -118,10 +120,10 @@ def find_target_gene_multithreads(input_df, gene_basic_info, num_threads=1):
             
             # futures = [executor.submit(process_sub_dataframe, sub_df, basicinfo_df) for sub_df in sub_dfs]
             results = [future.result() for future in futures if future.result().shape[0] > 0]
-    if len(results) == 0:
-        return pd.DataFrame()
+            result_df = pd.concat(results)
+        if len(results) == 0:
+            return pd.DataFrame()
     
-    result_df = pd.concat(results)
     sources_columns = input_df.columns.tolist()
     sources_columns.remove('start')
     sources_columns.remove('end')
@@ -152,7 +154,7 @@ def main():
                                dtype={"CHROM": str, "POS": int, "ID": str, "REF": str, "ALT": str, "QUAL": str, "FILTER": str, "INFO": str, "FORMAT": str})
     
         input_df['Marker'] = input_df['CHROM'].astype(str) + '_' + input_df['POS'].astype(str)
-        df = find_target_gene_multithreads(input_df, args.basicinfo, args.threads)
+        df = find_target_gene_multithreads(input_df, args.basicinfo, args.pos_range, args.threads)
         
         if df.empty:
             logger.error(f'没有找到 target gene')
@@ -160,7 +162,10 @@ def main():
         
         # 添加 kns 定义
         df.rename(columns={"Target_GeneID": "GeneID"}, inplace=True)
+        no_kns_rows = df.shape[0]
         df = add_kns_def(df, kns_file=args.kns)
+        add_kns_rows = df.shape[0]
+        logger.debug(f'添加定义之前的行数 {no_kns_rows}, 添加定义之后的行数 {add_kns_rows}')
         df.rename(columns={"GeneID": "Target_GeneID"}, inplace=True)
         
         df = pd.concat([df['Marker'], df.iloc[:, df.columns != 'Marker']], axis=1)
@@ -173,10 +178,13 @@ def main():
     elif args.input_file.endswith('.csv'):
         input_df = pd.read_csv(args.input_file)
         input_df['Marker'] = input_df['CHROM'].astype(str) + '_' + input_df['POS'].astype(str)
-        df = find_target_gene_multithreads(input_df, args.basicinfo, args.threads)
+        df = find_target_gene_multithreads(input_df, args.basicinfo, args.pos_range, args.threads)
         
         df.rename(columns={"Target_GeneID": "GeneID"}, inplace=True)
+        no_kns_rows = df.shape[0]
         df = add_kns_def(df, kns_file=args.kns)
+        add_kns_rows = df.shape[0]
+        logger.debug(f'添加定义之前的行数 {no_kns_rows}, 添加定义之后的行数 {add_kns_rows}')
         df.rename(columns={"GeneID": "Target_GeneID"}, inplace=True)
         
         df = pd.concat([df['Marker'], df.iloc[:, df.columns != 'Marker']], axis=1)
