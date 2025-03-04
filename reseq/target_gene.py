@@ -14,20 +14,20 @@ sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/')
 from genedf_add_expression_and_def import add_kns_def
 
 def parse_input():
-    argparser = argparse.ArgumentParser(description="target gene")
-    argparser.add_argument('-i', '--input', required=True, type=str, dest='input_file',
+    p = argparse.ArgumentParser()
+    p.add_argument('-i', '--input', required=True, type=str, dest='input_file',
                            help='输入要进行处理的表，vcf, csv 格式文件（至少需要 CHROM POS 两列）')
-    argparser.add_argument('-t', '--threads', default=1, type=int, dest='threads',
+    p.add_argument('-t', '--threads', default=1, type=int, dest='threads',
                            help='输入进程，默认单个进程处理')
-    argparser.add_argument('-r', '--pos-range', dest='pos_range', type=int, default=10000,
+    p.add_argument('-r', '--pos-range', dest='pos_range', type=int, default=10000,
                            help='上下 10000(默认10k) 区间找 target gene')
-    argparser.add_argument('-b', '--basicinfo', type=str, dest='basicinfo', required=True,
+    p.add_argument('-b', '--basicinfo', type=str, dest='basicinfo', required=True,
                            help='process_gff.py 处理 gff 文件出来的 gene_basic 文件')
-    argparser.add_argument('--kns', type=str, dest='kns',
+    p.add_argument('--kns', type=str, dest='kns',
                            help='输入 kns_def.txt，添加定义')
-    argparser.add_argument('-o', '--output', type=str, dest='output',
+    p.add_argument('-o', '--output', type=str, dest='output',
                            help='输出文件名，target_gene_def.txt')
-    args = argparser.parse_args()
+    args = p.parse_args()
     
     if not os.path.isfile(args.basicinfo) or not os.path.isfile(args.input_file):
         logger.error('输入的文件不存在，请检查')
@@ -45,13 +45,15 @@ def gene_check_on_off_gene(row):
 
 
 def utr_check(group):
+    pos = group.name
+    
     # 如果所有组内 On_Gene_Status 都是 Off_Gene
     if all(group['On_Gene_Status'] == 'Off_Gene'):
         conditions = [
-            ((group['Target_Start'] - 1500 <= group['POS']) & (group['POS'] <= group['Target_Start'] - 1) & (group['Target_Gene_Strand'] == '+')),
-            ((group['Target_End'] + 1 <= group['POS']) & (group['POS'] <= group['Target_End'] + 1500) & (group['Target_Gene_Strand'] == '-')),
-            ((group['Target_Start'] - 1500 <= group['POS']) & (group['POS'] <= group['Target_Start'] - 1) & (group['Target_Gene_Strand'] == '-')),
-            ((group['Target_End'] + 1 <= group['POS']) & (group['POS'] <= group['Target_End'] + 1500) & (group['Target_Gene_Strand'] == '+'))
+            ((group['Target_Start'] - 1500 <= pos) & (pos <= group['Target_Start'] - 1) & (group['Target_Gene_Strand'] == '+')),
+            ((group['Target_End'] + 1 <= pos) & (pos <= group['Target_End'] + 1500) & (group['Target_Gene_Strand'] == '-')),
+            ((group['Target_Start'] - 1500 <= pos) & (pos <= group['Target_Start'] - 1) & (group['Target_Gene_Strand'] == '-')),
+            ((group['Target_End'] + 1 <= pos) & (pos <= group['Target_End'] + 1500) & (group['Target_Gene_Strand'] == '+'))
         ]
         utr_labels = ['UTR_5_Prime', 'UTR_5_Prime', 'UTR_3_Prime', 'UTR_3_Prime']
 
@@ -90,7 +92,8 @@ def process_sub_dataframe(sub_df, basicinfo_df):
         return result_df
     
     result_df['On_Gene_Status'] = result_df.apply(gene_check_on_off_gene, axis=1)
-    result_df = result_df.groupby('POS').apply(utr_check)
+    result_df = result_df.groupby('POS').apply(utr_check) # .reset_index(drop=True)  # for new python version(I don't understand this)
+    # result_df = result_df.sort_values(by=['POS'])  # for new python version (I don't understand this)
     return result_df
 
 
@@ -134,32 +137,47 @@ def find_target_gene_multithreads(input_df, gene_basic_info, pos_range, num_thre
     return result_df
 
 
-def main():
-    args = parse_input()
-    
-    if args.input_file.endswith('.vcf'):
+def load_input(input_file):
+    if input_file.endswith('.vcf'):
         # vcf 文件读取前处理
         skip_rows = 0
-        with open(args.input_file, "r") as file:
+        with open(input_file, "r") as file:
             for line in file:
                 if line.startswith('#'):
                     skip_rows += 1
                 else:
                     break
-        logger.info(f'跳过 {args.input_file} 的前 {skip_rows} 行')
+        logger.info(f'跳过 {input_file} 的前 {skip_rows} 行')
         
         vcf_columns = ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT']
-        input_df = pd.read_csv(args.input_file, sep='\t', skiprows=skip_rows, usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8], 
+        input_df = pd.read_csv(input_file, sep='\t', skiprows=skip_rows, usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8], 
                                low_memory=False, names=vcf_columns,
                                dtype={"CHROM": str, "POS": int, "ID": str, "REF": str, "ALT": str, "QUAL": str, "FILTER": str, "INFO": str, "FORMAT": str})
     
-        input_df['Marker'] = input_df['CHROM'].astype(str) + '_' + input_df['POS'].astype(str)
-        df = find_target_gene_multithreads(input_df, args.basicinfo, args.pos_range, args.threads)
-        
-        if df.empty:
-            logger.error(f'没有找到 target gene')
-            exit(0)
-        
+    elif input_file.endswith('.csv'):
+        input_df = pd.read_csv(input_file)
+    elif input_file.endswith('.txt') or input_file.endswith('.tsv'):
+        input_df = pd.read_csv(input_file, sep='\t')
+    else:
+        # 其他格式文件未做优化，可能会出现 bug
+        logger.error('不支持其他文件格式')
+        exit(1)
+    
+    return input_df
+
+
+def main():
+    args = parse_input()
+    input_df = load_input(args.input_file)
+
+    
+    input_df['Marker'] = input_df['CHROM'].astype(str) + '_' + input_df['POS'].astype(str)
+    df = find_target_gene_multithreads(input_df, args.basicinfo, args.pos_range, args.threads)
+    
+    if df.empty:
+        logger.error(f'没有找到 target gene')
+        sys.exit(0)
+    if args.kns:
         # 添加 kns 定义
         df.rename(columns={"Target_GeneID": "GeneID"}, inplace=True)
         no_kns_rows = df.shape[0]
@@ -167,37 +185,10 @@ def main():
         add_kns_rows = df.shape[0]
         logger.debug(f'添加定义之前的行数 {no_kns_rows}, 添加定义之后的行数 {add_kns_rows}')
         df.rename(columns={"GeneID": "Target_GeneID"}, inplace=True)
-        
-        df = pd.concat([df['Marker'], df.iloc[:, df.columns != 'Marker']], axis=1)
-        # df_columns = df.columns.tolist() # 修改为上面那一句代码
-        # df_columns = [x for x in df_columns if x not in vcf_columns + ['Marker']]
-        # df = df.reindex(columns=['Marker', 'ID', 'CHROM', 'POS', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO', 'FORMAT'] + df_columns)
-        
-        df.to_csv(args.output, sep='\t', index=False)
-        
-    elif args.input_file.endswith('.csv'):
-        input_df = pd.read_csv(args.input_file)
-        input_df['Marker'] = input_df['CHROM'].astype(str) + '_' + input_df['POS'].astype(str)
-        df = find_target_gene_multithreads(input_df, args.basicinfo, args.pos_range, args.threads)
-        
-        df.rename(columns={"Target_GeneID": "GeneID"}, inplace=True)
-        no_kns_rows = df.shape[0]
-        df = add_kns_def(df, kns_file=args.kns)
-        add_kns_rows = df.shape[0]
-        logger.debug(f'添加定义之前的行数 {no_kns_rows}, 添加定义之后的行数 {add_kns_rows}')
-        df.rename(columns={"GeneID": "Target_GeneID"}, inplace=True)
-        
-        df = pd.concat([df['Marker'], df.iloc[:, df.columns != 'Marker']], axis=1)
-        
-        df.to_csv(args.output, sep='\t', index=False)
-        if df.empty:
-            logger.error(f'没有找到 target gene')
-            exit(0)
-    else:
-        # 其他格式文件未做优化，可能会出现 bug
-        logger.error('不支持其他文件格式')
-        exit(1)
-
+    
+    df = pd.concat([df['Marker'], df.iloc[:, df.columns != 'Marker']], axis=1)
+    df.to_csv(args.output, sep='\t', index=False)
+    
     logger.success(f'处理完成，结果文件为 {args.output}, 结果行数为 {df.shape[0]}')
     
 if __name__ == '__main__':
