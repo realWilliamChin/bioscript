@@ -35,7 +35,7 @@ def main():
     if args.type == 'all':
         samples_df.to_csv(args.output, sep='\t', index=False, header=False)
     elif args.type == 'max':
-        samples_df['length'] = samples_df.apply(lambda x: max(os.path.getsize(x['f1']), os.path.getsize(x['f2'])), axis=1)
+        samples_df['length'] = samples_df.apply(lambda x: max(os.path.getsize(x['R1']), os.path.getsize(x['R2'])), axis=1)
         samples_df = samples_df.sort_values(by=['group', 'length'], ascending=False)
         samples_df = samples_df.drop_duplicates(subset=['group'], keep='first')
         samples_df.drop(columns=['length'], inplace=True)
