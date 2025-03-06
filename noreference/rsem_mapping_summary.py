@@ -1,23 +1,32 @@
-# -*- coding: UTF-8 -*-
+#!/home/train/miniconda3/bin/python
+# -*- coding: utf-8 -*-
+# Created Time  : 2023/06/21 12:00
+# Author        : William GoGo
 
 import argparse
+import pandas as pd
 import os
 from shutil import copyfile
-import sys
-import numpy
-
-import sys
 
 
-f1=open(r'mapping_summary.txt','w')
-f1.write('Sample'+'\t'+'Total reads'+'\t'+'Mapped reads'+'\t''Unmapped reads'+'\t'+'Unique mapped reads'+'\t'+'Multiple mapped reads'+'\t'+'alignment rate'+'\n')
-dirlist=os.listdir()
+def parse_input():
+    args = argparse.ArgumentParser(description='')
+    args.add_argument('-i', '--input', help='mapping_summary 文件目录', default='.')
+    args.add_argument('-s', '--samples', help='sampels_described.txt')
+    args.add_argument('-o', '--output', help='output mapping summary file (默认: mapping_summary.txt)', default='mapping_summary.txt')
 
-for dir_name in dirlist:
-    if ('_mapping.txt' in dir_name):
-        sample=dir_name.split('_mapping.txt')[0]
-        f1.write(sample+'\t')
-        with open(dir_name) as f2:
+    parsed_args = args.parse_args()
+    return parsed_args
+
+
+def mapping_summary(data_dir, samples_file, output_file):
+    samples_data = pd.read_csv(samples_file, sep='\t', usecols=['sample'])
+    open(output_file, 'w').write('Sample'+'\t'+'Total reads'+'\t'+'Mapped reads'+'\t''Unmapped reads'+'\t'+'Unique mapped reads'+'\t'+'Multiple mapped reads'+'\t'+'alignment rate'+'\n')
+    for sample in samples_data['sample'].to_list():
+        mapping_file = os.path.join(data_dir, f'{sample}_mapping_stat.txt')
+        
+        with open(output_file, 'a') as f1, open(mapping_file, 'r') as f2:
+            f1.write(sample+'\t')
             data_list=[]
             row_num = 0
             for line in f2:
@@ -43,8 +52,12 @@ for dir_name in dirlist:
             f1.write(str(total_reads)+'\t'+str(mapped_reads)+'\t'+str(unmapped_reads)+'\t'+str(unique_mapped)+'\t'+str(multi_mapped_reads)+'\t'+str(alignment_rate)+'\n')
 
 
+def main():
+    args = parse_input()
+    mapping_summary(args.input, args.samples, args.output)
+    
 
-f1.close()
-
+if __name__ == '__main__':
+    main()
 
 
