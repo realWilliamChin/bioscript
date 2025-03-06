@@ -17,6 +17,9 @@ from email.header import Header, decode_header
 from email.mime.text import MIMEText
 from email.parser import Parser
 from email.utils import parseaddr, formataddr
+
+import matplotlib.pyplot as plt
+import seaborn as sns
 from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
@@ -355,7 +358,7 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
 
 
 def ko03000(kegg_gene_df, kegg_tier3_df):
-    ko03000_def_df_file = '/home/colddata/qinqiang/script/transcriptome/annotation/ko03000_def.txt'
+    ko03000_def_df_file = '/home/colddata/qinqiang/script/kns_annotation/scripts/ko03000_def.txt'
     ko03000_def_df = pd.read_csv(ko03000_def_df_file, sep='\t')
     ko03000_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03000")]['GeneID'].tolist()
     ko03022_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03022")]['GeneID'].tolist()
@@ -368,9 +371,8 @@ def ko03000(kegg_gene_df, kegg_tier3_df):
     return ko03000_df, ko03022_df
 
 
-def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads):
-    key_name = keg_file.replace('.keg', '')
-    kegg_file = keg_file.replace('.keg','_KEGG_original.txt')
+def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads, output_prefix):
+    kegg_file = f'{output_prefix}_KEGG_original.txt'
     # 初始处理 keg 文件
     command = 'perl /home/colddata/chen/03_transcript/annotation/kegg/kaas_parse_keg_file.pl -i {} -o {}'.format(keg_file, kegg_file)
     os.system(command)
@@ -379,7 +381,7 @@ def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads):
     # process_keg(keg_file, kegg_file)
     
     with open(kegg_file,'r') as f1:
-        kegg_clean_file = key_name + '_KEGG_clean.txt'
+        kegg_clean_file = output_prefix + '_KEGG_clean.txt'
         f2 = open(kegg_clean_file, 'w')
         
         # 植物物种过滤动物的一些注释
@@ -412,17 +414,17 @@ def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads):
     # Gene_shortname 不能设置空为 NA，设置为空（张老师说的）好像是某个软件识别 NA 会有问题
     gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0].fillna(value='')
     gene_def_df.drop(columns='Description EC_number', inplace=True)
-    gene_def_df.to_csv(key_name + '_KEGG_gene_def.txt', sep='\t', index=False)
+    gene_def_df.to_csv(output_prefix + '_KEGG_gene_def.txt', sep='\t', index=False)
     
     # 如果指定了 -i allgeneid 文件，则生成 all_gene_id + KEGG gene_short_name 新文件
     if all_id_file:
         all_gene_df = pd.read_csv(all_id_file, sep='\t', names=['GeneID'], dtype={"GeneID": str})
         all_gene_df = pd.merge(left=all_gene_df, right=gene_def_df[['GeneID', 'Gene_shortname']], on='GeneID', how='left')
         all_gene_df.fillna(value='', inplace=True)
-        all_gene_df.to_csv(key_name + '_shortname.txt', sep='\t', index=False)
+        all_gene_df.to_csv(output_prefix + '_shortname.txt', sep='\t', index=False)
     
     # 生成 tier2 文件
-    tier2_name = key_name + '_KEGG_tier2.txt'
+    tier2_name = output_prefix + '_KEGG_tier2.txt'
     tier2_df = kegg_clean_df.copy()
     tier2_df.drop(columns=['Pathway', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number'], inplace=True)
     tier2_df['Level2'] = tier2_df['Level2'].str.replace('\\','').str.replace(' / ', '_').str.replace('/', '_').str.replace(', ', '').str.replace(',', '_')
@@ -432,7 +434,7 @@ def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads):
     # tier3 文件，后来改名 KEGG.txt 了
     # geneid \t ko pathway
     # no header
-    tier3_name = key_name + '_KEGG.txt'
+    tier3_name = output_prefix + '_KEGG.txt'
     tier3_df = kegg_clean_df.copy()
     tier3_df.drop(columns=['Level2', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number'], inplace=True)
     tier3_df['Pathway'] = tier3_df['Pathway'].str.replace('\\','').str.replace(' / ', '_').str.replace('/', '_').str.replace(', ', '').str.replace(',', '_')
@@ -442,15 +444,15 @@ def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads):
     # ko03022_basal_transcription_factor.txt (子集) from tier3
     # 比对 ko03000_def.txt 加上定义
     ko03000_df, ko03022_df = ko03000(gene_def_df, tier3_df)
-    ko03000_df.to_csv(key_name + '_ko03000_transcription_factors.txt', sep='\t', index=False)
-    ko03022_df.to_csv(key_name + '_ko03022_basal_transcription_factor.txt', sep='\t', index=False)
+    ko03000_df.to_csv(output_prefix + '_ko03000_transcription_factors.txt', sep='\t', index=False)
+    ko03022_df.to_csv(output_prefix + '_ko03022_basal_transcription_factor.txt', sep='\t', index=False)
     
     # ko03000 需要增加表达量，生成新文件 (2024_02_22)
     if fpkm and reads:
         ko03000_fpkm_reads_df = merge_fpkm_reads(fpkm, reads)
         ko03000_fpkm_reads_df = pd.merge(ko03000_fpkm_reads_df, ko03000_df, on='GeneID', how='inner')
         # ko03000_fpkm_reads_df = ko03000_fpkm_reads_df[ko03000_fpkm_reads_df['GeneID'].isin(ko03000_df['GeneID'])]
-        ko03000_fpkm_reads_df.to_csv(key_name + '_ko03000_expression_data_def.txt', sep='\t', index=False)
+        ko03000_fpkm_reads_df.to_csv(output_prefix + '_ko03000_expression_data_def.txt', sep='\t', index=False)
 
 
 def split_fasta(fasta_file, split_parts: int):
@@ -459,14 +461,46 @@ def split_fasta(fasta_file, split_parts: int):
     os.system(split_cmd)
 
 
+def kegg_levelb_count_barplot(keggclean_file, output_file):
+    data_kegg = pd.read_csv(keggclean_file, sep="\t", header=None)
+
+    # 统计 LevelB 和 LevelA 的组合频率
+    count_kegg = data_kegg.iloc[:, 2:4].value_counts().reset_index()
+    count_kegg = count_kegg[count_kegg.iloc[:, 2] > 0]
+
+    # 清理 LevelA 和 LevelB 列
+    count_kegg.iloc[:, 1] = count_kegg.iloc[:, 1].str.replace(r"A\d+:", "", regex=True)
+    count_kegg.iloc[:, 0] = count_kegg.iloc[:, 0].str.replace(r"\d+:", "", regex=True)
+
+    # 重命名列
+    count_kegg.columns = ["LevelB", "LevelA", "Count"]
+    count_kegg = count_kegg.sort_values(by=["LevelA", "LevelB"])
+
+    # 计算 LevelB 的唯一值数量，用于动态设置图像高度
+    n_levels = count_kegg["LevelB"].nunique()
+    height = n_levels * 0.2  # 动态计算高度
+
+    # 绘制图表
+    plt.figure(figsize=(12, height))
+    sns.barplot(data=count_kegg, y="LevelB", x="Count", hue="LevelA", dodge=False)
+    plt.title("KEGG Count")
+    plt.xlabel("Count")
+    plt.ylabel("LevelB")
+    plt.tight_layout()
+
+    # 保存图表
+    plt.savefig(output_file, dpi=300, bbox_inches="tight")
+
+
 def parse_input():
     parser = argparse.ArgumentParser(description='kegg annotation，一次只能注释一个任务，除非添加其他邮箱')
     parser.add_argument('-f', '--fasta', help='输入 fasta file')
-    parser.add_argument('-k', '--keg', type=str, help='指定 keg 文件')
+    parser.add_argument('-k', '--keg', type=str, required=True, help='指定 keg 文件')
     parser.add_argument('-l', '--org_lst', help='指定物种列表，以 ", " 分隔')
     parser.add_argument('-s', '--split', type=int, help='切割 fasta 文件，如果太大的话')
     parser.add_argument('-t', '--type', type=str, help='指定物种类型，植物=plant, 动物=animal')
     parser.add_argument('--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
+    parser.add_argument('-o', '--output-prefix', dest='output_prefix', type=str, help='指定输出 prefix 例如 kegg/caomei')
     
     # 这两个参数用于生成 ko03000_expression_data.txt 文件
     parser.add_argument('--fpkm', type=str,
@@ -484,25 +518,6 @@ def parse_input():
     
     args = parser.parse_args()
     
-    if args.fasta and not args.keg:
-        logger.critical('未输入 keg 文件名')
-        sys.exit(1)
-    
-    if args.keg or args.fasta:
-        pass
-    else:
-        try:
-            args.keg = [x for x in os.listdir() if x.endswith('.keg')][0]
-        except Exception:
-            logger.critical('未输入 keg 文件名，尝试使用 keg 结尾文件未找到')
-            sys.exit(1)
-    
-    if args.split == None:
-        pass
-    elif args.split == 1:
-        delattr(args, "split")
-    elif args.split >= 5:
-        logger.warning(f'fasta 文件分割大于 5 次，将会延长注释时间')
     
     # 检测 fpkm 和 reads 文件是否有效
     if args.fpkm or args.reads:
@@ -516,24 +531,35 @@ def parse_input():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+def main():
     args = parse_input()
     keg_file = args.keg
-    if args.split:
+    
+    # 分割 fasta 文件，合并写入 keg 文件
+    if args.split and args.split > 1:
         split_fasta(args.fasta, args.split)
         split_dir = f'{args.fasta}.split'
         fasta_file_list = [f'{os.path.join(split_dir, x)}' for x in os.listdir(split_dir)]
-        for fasta_file in fasta_file_list:
-            keg_sp_file = f'{fasta_file.split(".")[-2]}_{keg_file}'
+        sp_file_lst = []
+        for i, fasta_file in enumerate(fasta_file_list):
+            keg_sp_file = keg_file.replace('.keg', f'_{i}.keg')
+            sp_file_lst.append(keg_sp_file)
             kegg_anno(args.mail_type, args.username, args.password, fasta_file, args.org_lst, keg_sp_file)
-        os.system(f'cat *.keg > {keg_file}')
+        with open(keg_file, "w") as outfile:
+            for filepath in sp_file_lst:
+                outfile.write(filepath.read_text())
+    # 直接运行注释
     elif args.org_lst and args.fasta:
         kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, keg_file)
 
-    parse_keg(keg_file, args.type, args.allid, args.fpkm, args.reads)
+    # 解析 keg 文件
+    parse_keg(keg_file, args.type, args.allid, args.fpkm, args.reads, args.output_prefix)
+    
+    # 画图
+    kegg_levelb_count_barplot(f'{args.output_prefix}_KEGG_clean.txt', f'{args.output_prefix}_KEGG_levelB_count.jpeg')
     
     logger.success('Done!')
 
 
-
-    
+if __name__ == '__main__':
+    main()
