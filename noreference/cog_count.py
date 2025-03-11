@@ -5,14 +5,39 @@
 import os
 import argparse
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 from collections import Counter
+from loguru import logger
 
 
 def parse_input():
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-c', '--cog_file', help='unigene.emapper.annotations 文件')
-    argparser.add_argument('-o', '--output_path', default='.', help='输出文件夹')
+    argparser.add_argument('-c', '--cog_file', help='.emapper.annotations 文件')
+    argparser.add_argument('-o', '--output_prefix', help='输出前缀，输出包括 cog_count 和图片')
     return argparser.parse_args()
+
+
+def cog_count_plot(cog_count_df, o_pic_name):
+    
+    palette = sns.color_palette("husl", len(cog_count_df["Category"].unique()))
+    
+    plt.figure(figsize=(18, 12))
+    sns.barplot(data=cog_count_df, x="Category", y="Count", hue="Category", palette=palette, dodge=False)
+    handles, labels = plt.gca().get_legend_handles_labels()
+    legend_labels = cog_count_df["Function"].unique()
+    legend_handles = [plt.Rectangle((0, 0), 1, 1, color=palette[i]) for i in range(len(legend_labels))]
+
+    # 添加图例
+    plt.legend(legend_handles, legend_labels, title="Category", bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.title("COG Function Count")
+    plt.xlabel("Category")
+    plt.ylabel("Count")
+    # plt.legend(title="Category", labels=cog_count_df["Function"], bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+
+    # 保存图表
+    plt.savefig(o_pic_name, dpi=320, bbox_inches="tight")
 
 
 def main():
@@ -57,7 +82,11 @@ def main():
     cog_list = Counter(''.join(list(cog_count_source_df['COG_category'].dropna()))).most_common()
     cog_count_df = pd.DataFrame(list(cog_list))
     cog_df = pd.merge(left=cog_source_df, right=cog_count_df, on=0, how='left').fillna(0)
-    cog_df.to_csv(os.path.join(args.output_path, 'COG_count.txt'), sep='\t', header=False, index=False)
+    cog_columns = ["Category", "Group", "Function", "Count"]
+    cog_df.columns = cog_columns
+    cog_df.to_csv(args.output_prefix + '_COG_count.txt', sep='\t', header=cog_columns, index=False)
+    
+    cog_count_plot(cog_df, args.output_prefix + '_COG_count_plot.jpeg')
 
 
 if __name__ == '__main__':
