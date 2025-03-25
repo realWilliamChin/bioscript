@@ -1,0 +1,30 @@
+include: 'rules/common.smk'
+
+# Modules
+
+include: 'rules/hisat2.smk'
+include: 'rules/expression.smk'
+
+
+# 定义最终输出文件
+rule all:
+    input:
+        f'{WORK_DIR}/logs/samples_check.done',
+
+        # Mapping Data
+        expand(f'{MAPPING_DIR}/{{sample}}_mapping_stat.txt', sample=samples_list),
+        expand(f'{MAPPING_DIR}/{{sample}}.bam', sample=samples_list),
+        expand(f'{EXPRESSION_DIR}/fpkm/{{sample}}_fpkm.txt', sample=samples_list),
+        expand(f'{EXPRESSION_DIR}/ballgown/{{sample}}/{{sample}}.gtf', sample=samples_list),
+        f'{MAPPING_DIR}/mapping_summary.txt',
+
+        # Expression Data
+        f'{EXPRESSION_DIR}/gene_fpkm_matrix.csv',
+        f'{EXPRESSION_DIR}/transcript_fpkm_matrix.csv',
+        f'{EXPRESSION_DIR}/gene_count_matrix.csv',
+        f'{EXPRESSION_DIR}/transcript_count_matrix.csv',
+        f'{EXPRESSION_DIR}/reads_matrix_filtered.txt',
+        f'{EXPRESSION_DIR}/fpkm_matrix_filtered.txt',
+        f'{EXPRESSION_DIR}/fpkm_reads_matraix_gene_def.txt',
+        f'{EXPRESSION_DIR}/fpkm_reads_matraix_filtered_gene_def.txt'
+

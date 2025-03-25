@@ -1,0 +1,23 @@
+paths:
+  log_dir: "logs"
+  input_data: "00_Cleandata"
+  mapping_output: "01_Hisat2_result"
+  expression_output: "02_Expression"
+
+  samples_file: "samples_described.txt"
+  kns_file: '/home/colddata/qinqiang/00_Database/Animal_embl/Homo_sapiens/'
+
+
+threads: 4  # 指定每个样本的运行线程线
+
+alignment:
+  alignment_type: 'hisat2'  # hisat2 bowtie2 bwa salmon 都可以选择
+  ref_specie: 'Homo_sapiens'
+  gff_file: '/home/colddata/qinqiang/00_Database/Animal_embl/Homo_sapiens/00_Database_hisat2/Homo_sapiens.GRCh38.109.gff3'
+  ref_index: '/home/colddata/qinqiang/00_Database/Animal_embl/Homo_sapiens/00_Database_hisat2/Homo_sapiens'
+
+specie: 'Homo_sapiens'
+
+count_threshold: 50  # reads 过滤阈值
+
+use-conda: true
