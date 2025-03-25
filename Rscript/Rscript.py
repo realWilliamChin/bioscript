@@ -101,7 +101,7 @@ def anova_analysis(datafile, samples_file, output_file):
     
     
 def enrich_analysis(input_file, genego_file, keggclean_file, output_dir):
-    script_path = '/home/colddata/qinqiang/script/Rscript/enrich_analysis/enrich.r'
+    script_path = '/home/colddata/qinqiang/script/Analysis/enrich_analysis/enrich.r'
     cmd = f'Rscript {script_path} \
         --inputidfile {input_file} \
         --genego {genego_file} \
