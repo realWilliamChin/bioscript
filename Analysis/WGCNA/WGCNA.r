@@ -436,7 +436,7 @@ dir.create(color_module_dir)
 all_gene_kme<-read.table("Cytoscape_all/All_Gene_KME.txt",sep="\t",header=F,stringsAsFactors = F,check.names = F,quote='')
 colors <- unique(all_gene_kme$V3)
 for (each_color in colors) {
-  color_module_file_name = paste0(color_module_dir, "/gene_", each_color, '.txt')
+  color_module_file_name = os.path.join(color_module_dir, paste0(each_color, "_gene.txt"))
   color_module_tmp <- all_gene_kme[all_gene_kme$V3==each_color,]
   write.table(color_module_tmp,file = color_module_file_name,row.names=F,quote=F,col.names=F,sep="\t")
   
