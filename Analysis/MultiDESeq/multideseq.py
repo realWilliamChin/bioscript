@@ -9,7 +9,7 @@ import pandas as pd
 import openpyxl
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools'))
 from genedf_add_expression_and_def import add_kns_def
 from check_SampDesAndCompInfo import check_sample_comp
@@ -63,7 +63,7 @@ def transcriptome_r_deseq(work_dir, fpkm_file, reads_file, samples_file, compare
         sys.exit(1)
         
     logger.info(f'运行 multiple_samples_DESeq2.r 脚本中，fc 值为 {deg_value}')
-    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/multiple_samples_DESeq2.r \
+    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/Analysis/MultiDESeq/multiple_samples_DESeq2.r \
         --degvalue {deg_value} \
         --fpkm {fpkm_file} \
         --reads {reads_file} \
