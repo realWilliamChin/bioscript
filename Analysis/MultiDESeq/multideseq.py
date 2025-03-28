@@ -102,11 +102,11 @@ def transcriptome_r_deseq(work_dir, fpkm_file, reads_file, samples_file, compare
 
 def transcriptome_enrich_distribution(work_dir):
     os.chdir(work_dir)
-    logger.info(f'运行 GO_enrich_distribution 脚本中')
-    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/GO_enrich_distribution.r"
+    logger.info(f'运行 enrich_distribution_plot 脚本中')
+    cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/Analysis/enrich_analysis/enrich_distribution_plot.r"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
-        logger.error(f"GO_enrich_distribution.r 程序运行失败")
+        logger.error(f"enrich_distribution_plot.r 程序运行失败")
         logger.error(f"标准输出：{ret.stdout.decode()}")
         logger.error(f"标准错误: {ret.stderr.decode()}")
         return False
