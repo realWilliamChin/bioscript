@@ -8,8 +8,13 @@ nr 注释程序
 """
 import argparse
 import os, sys
+import random
+import string
 import subprocess
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from collections import Counter
 from loguru import logger
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/Fasta/'))
 from get_sequence_from_list import get_seq_from_idlist
@@ -21,26 +26,30 @@ def parse_input():
     
     parser.add_argument('-b', '--blast', type=str, help='nr.blast file')
     parser.add_argument('--basicinfo', type=str, dest='basicinfo', 
-                        help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入，如果 basicinfo 文件 Gene_Def 都是 NA，怎不需要添加了')
-    parser.add_argument('-p', '--prefix', help='输出文件的前缀')
+                        help='basicinfo 文件，如果 Gene_Def 都是 NA，则无需添加')
+    parser.add_argument('-o', '--output-prefix', dest='output_prefix',
+                        help='输出文件的前缀')
     parser.add_argument('--not-annotationed', action='store_true', dest='not_annotationed',
                         help='输出没有注释上的基因信息（必须输入 --fasta 参数）')
     
     annotation = parser.add_argument_group('需要注释添加一下参数')
     annotation.add_argument('-f', '--fasta', help='输入需要去注释的 cds fasta 或 unigene fasta 文件（去重，名字精简）')
-    annotation.add_argument('-t', '--threads', type=int, help='运行 nr 注释线程数量(好像不咋管用)')
     annotation.add_argument('-n', '--outfmt', help="nr 输出格式",
                             default="qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,stitle")
 
     args = parser.parse_args()
+    
+    if not args.output_prefix.endswith('_'):
+        args.output_prefix = args.output_prefix + '_'
         
     return args
 
 
-def nr_annotation(fasta_file, blast_file, outfmt, num_threads):
-    os.mkdir('./temp')
+def nr_annotation(fasta_file, blast_file, outfmt):
+    random_char = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    temp_dir = f'./temp{random_char}'
+    os.mkdir(temp_dir)
     anno_cmd = f'diamond blastx --db /home/data/ref_data/db/diamond_nr/diamond_nr \
-        --threads ${num_threads} \
         --query {fasta_file} \
         --out {blast_file} \
         --outfmt 6 {outfmt} \
@@ -49,7 +58,7 @@ def nr_annotation(fasta_file, blast_file, outfmt, num_threads):
         --evalue 1e-5 \
         --id 30 \
         --block-size 20.0 \
-        --tmpdir ./temp\
+        --tmpdir {temp_dir} \
         --index-chunks 1'
 
     ret = subprocess.run(anno_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -60,16 +69,16 @@ def nr_annotation(fasta_file, blast_file, outfmt, num_threads):
         return False
     else:
         logger.success(f"{fasta_file} nr 注释成功，输出到 {blast_file}")
-    os.rmdir('./temp')
+    os.rmdir(temp_dir)
     return True
 
 
-def nr(nr_blast_file, gene_basicinfo_file, columns, output_name):
-    data_frame = pd.read_csv(nr_blast_file, sep='\t', names=columns, dtype=str)
+def nr(nr_blast_file, gene_basicinfo_file, nr_columns, output_prefix):
+    data_frame = pd.read_csv(nr_blast_file, sep='\t', names=nr_columns, dtype=str)
 
     data_frame = data_frame.sort_values(by=['qseqid', 'bitscore'], ascending=[True, False])
     data_frame = data_frame.drop_duplicates(subset=['qseqid'], keep='first')
-    data_frame.to_csv(output_name +  '_nr_uniq.blast', sep='\t', index=False)
+    data_frame.to_csv(output_prefix +  'nr_uniq.blast', sep='\t', index=False)
     nr_gene_def_df = data_frame[['qseqid', 'sseqid', 'stitle']].copy()
     nr_gene_def_df.columns = ['GeneID', 'NCBI_ID', 'NR_Def']
     nr_gene_def_df['NR_Def'] = nr_gene_def_df['NR_Def'].str.split(n=1).str[1]
@@ -81,11 +90,11 @@ def nr(nr_blast_file, gene_basicinfo_file, columns, output_name):
     else:
         print('没有检测到 gene_basicinfo 文件，或文件输入有误，如没有输入 -b 参数，忽略此条消息')
         
-    nr_gene_def_df.to_csv(output_name + '_nr_gene_def.txt', sep='\t', index=False)
+    nr_gene_def_df.to_csv(output_prefix + 'nr_gene_def.txt', sep='\t', index=False)
     
     nr_TF_def_df = nr_gene_def_df[nr_gene_def_df['NR_Def'].str.contains('transcription')]
     nr_TF_def_df = nr_TF_def_df.sort_values(by='NR_Def', key=lambda x: x.str.lower())
-    nr_TF_def_df.to_csv(output_name + '_nr_TF_def.txt', sep='\t', index=False)
+    nr_TF_def_df.to_csv(output_prefix + 'nr_TF_def.txt', sep='\t', index=False)
 
 
 def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
@@ -115,25 +124,133 @@ def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
 
 def get_not_annotationed_fasta(fasta, nr_uniq_blast_file, output_prefix):
     nr_uniq_bast_df = pd.read_csv(nr_uniq_blast_file, sep='\t', usecols=[0], skiprows=1, names=['GeneID'])
-    get_seq_from_idlist(nr_uniq_bast_df, fasta, 'off', f"{output_prefix}_nr_not_annotationed.fasta")
+    get_seq_from_idlist(nr_uniq_bast_df, fasta, 'off', output_prefix + "nr_not_annotationed.fasta")
+
+
+
+def specie_count(uniq_blast_file, output_file):
+    # output_file species_count.txt"
+    with open(uniq_blast_file, "r") as f:
+        lines = f.readlines()[1:]
+
+    # 提取倒数第二列（即 [][] 之间的内容）
+    extracted = [line.split("[")[-1].split("]")[0] for line in lines]
+
+    counts = Counter(extracted)
+    sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+
+    with open(output_file, "w") as f:
+        for item, count in sorted_counts:
+            f.write(f"{item}\t{count}\n")
+
+
+def spcie_count_plot(specie_count_file, output_pic_file):
+    
+    species = pd.read_csv(specie_count_file, sep="\t", header=None).loc[:9,]
+    species.columns = ["Species", "Count"]
+
+    # 创建饼图
+    plt.figure(figsize=(10, 7))
+    # 绘制饼图，不显示标签
+    patches = plt.pie(species['Count'], labels=None, startangle=90)[0]
+
+    # 设置标题
+    plt.title("Species distribution")
+
+    # 隐藏坐标轴
+    plt.axis('equal')  # 保证饼图为正圆形
+
+    # 添加图例，按数据顺序排列
+    plt.legend(
+        patches,
+        species['Species'],
+        title='Species',
+        loc='center left',
+        bbox_to_anchor=(1, 0.5)  # 将图例放在饼图右侧
+    )
+
+    plt.tight_layout()
+    plt.savefig(
+        output_pic_file,
+        dpi=320,
+        bbox_inches='tight',  # 包含图例
+        pad_inches=0.1        # 减少周围的空白
+    )
+    plt.close()
+
+
+def identity_plot(uniq_blast_file, output_pic_file):
+    # 读取数据
+    id_nr = pd.read_csv(uniq_blast_file, sep="\t", usecols=[2,], skiprows=1, )
+    id_data = id_nr.iloc[:, 0]
+
+    # 创建分箱区间并统计
+    n_bins = 10
+    bins = pd.cut(id_data, bins=n_bins, include_lowest=True)
+    id_count = bins.value_counts().reset_index()
+    id_count.columns = ['Identity', 'Count']  # 重命名列
+    id_count = id_count.sort_values('Identity')  # 按区间排序
+
+    # 计算百分比标签
+    total = id_count['Count'].sum()
+    id_count['Percentage'] = id_count['Count'] / total * 100
+    newlegend = [f"{row.Identity} ({row.Percentage:.2f}%)" 
+                for _, row in id_count.iterrows()]
+
+    # 创建饼图
+    plt.figure(figsize=(10, 7))
+    patches, texts, autotexts = plt.pie(
+        id_count['Count'],
+        labels=None,
+        startangle=90,
+        wedgeprops={'linewidth': 0.5, 'edgecolor': 'white'},
+        autopct=''  # 禁用默认百分比标签
+    )
+
+    # 添加自定义图例
+    plt.legend(
+        patches,
+        newlegend,
+        title='Identity',
+        loc='center left',
+        bbox_to_anchor=(1, 0.5),
+        fontsize=8
+    )
+
+    plt.axis('equal')
+    plt.title("Identity distribution", pad=20)
+
+    # 保存图片
+    plt.savefig(
+        output_pic_file,
+        dpi=320,
+        bbox_inches='tight',
+        pad_inches=0.1
+    )
+    plt.close()
 
 
 def main():
     args = parse_input()
+    out_prefix = args.output_prefix
     
-    if args.fasta and args.threads:
+    if args.fasta:
         outfmt = args.outfmt.replace(',', ' ')
-        ret = nr_annotation(args.fasta, args.blast, outfmt, args.threads)
+        ret = nr_annotation(args.fasta, args.blast, outfmt)
         if not ret:
             sys.exit(1)
     else:
         if not args.blast:
             args.blast = [x for x in os.listdir() if x.endswith('nr.blast')][0]
-    columns = args.outfmt.split(',')
-    nr(args.blast, args.basicinfo, columns, args.prefix)
+    nr_columns = args.outfmt.split(',')
+    nr(args.blast, args.basicinfo, nr_columns, out_prefix)
     
     if args.not_annotationed:
-        get_not_annotationed_fasta(args.fasta, args.blast, args.prefix)
+        get_not_annotationed_fasta(args.fasta, args.blast, out_prefix)
+    
+    specie_count(out_prefix + 'nr_uniq.blast', out_prefix + 'nr_specie_count.txt')
+    spcie_count_plot(out_prefix + 'nr_specie_count.txt', out_prefix + 'sp_distribution_Top10.jpeg')
+    identity_plot(out_prefix + 'nr_uniq.blast', out_prefix + 'id_distribution.jpeg')
     
     logger.success('Done!')
 
