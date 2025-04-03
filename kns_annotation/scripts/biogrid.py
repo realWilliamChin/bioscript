@@ -9,7 +9,7 @@ import argparse
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="biogrid, 使用 cds fasta 文件")
-    parser.add_argument('-f', '--fasta', required=True, help='输入要比对的 cds_fasta 文件')
+    parser.add_argument('-f', '--fasta', help='输入要比对的 cds_fasta 文件')
     parser.add_argument('-d', '--database', choices=['plant', 'animal', 'fungus', 'insect'],
                         help='输入比对的数据库')
     parser.add_argument('--custom-database', help='自定义数据库')
@@ -142,17 +142,19 @@ def biogrid(in_blast_file, ref_file, out_file):
 
 def main():
     args = parse_arguments()
+    biogrid_output = os.path.join(
+        os.path.dirname(args.prefix),
+        f'Biogrid_PPI_relation_from_{os.path.basename(args.prefix)}.txt'
+    )
     if args.biogrid:
-        biogrid(args.fasta, args.ref, 'Biogrid_PPI_relation_from_' + args.prefix + '.txt')
+        biogrid(args.prefix + '_uniq.blast', args.ref, biogrid_output)
         return
     # 比对
     blast_file = exec_blast(args.fasta, args.cpu, args.database, args.prefix)
-    # 结果文件名
-    result_file = 'Biogrid_PPI_relation_from_' + args.prefix + '.txt'
     # 处理 blast 去重
     drop_dup(blast_file)
     # biogrid
-    biogrid(blast_file.replace('.blast', '_uniq.blast'), args.ref, result_file)
+    biogrid(blast_file.replace('.blast', '_uniq.blast'), args.ref, biogrid_output)
 
 
 if __name__ == '__main__':
