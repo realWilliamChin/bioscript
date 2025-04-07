@@ -8,9 +8,9 @@ infiles <- grep("_EnrichmentGO.xlsx", dir(), value = T)
 infiles
 crd <- getwd()
 
-barplot_dir <- file.path(crd, "DEG_pathway_enrichment_bar_plot")
-bubble_dir <- file.path(crd, "DEG_pathway_enrichment_bubble_plot")
-raw_data <- file.path(crd, "DEG_pathway_enrichment_raw_data")
+barplot_dir <- file.path(crd, "Pathway_enrichment_bar_plot")
+bubble_dir <- file.path(crd, "Pathway_enrichment_bubble_plot")
+raw_data <- file.path(crd, "Pathway_enrichment_raw_data")
 
 if (!dir.exists(barplot_dir)) {
   dir.create(barplot_dir, recursive = TRUE)
@@ -142,7 +142,7 @@ for (i in infiles) {
 }
 
 xlsx_files <- list.files(path = crd, pattern = "\\.xlsx$", full.names = TRUE)
-destination_folder <- file.path(crd, "DEG_pathway_enrichment_raw_data")
+destination_folder <- file.path(crd, "Pathway_enrichment_raw_data")
 for (file in xlsx_files) {
   destination_file <- file.path(destination_folder, basename(file))
   success <- file.rename(file, destination_file)
