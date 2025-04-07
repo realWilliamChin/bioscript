@@ -10,7 +10,9 @@ import subprocess
 from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
-# sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+from data_check import df_drop_row_sum_eq_zero
+from data_check import df_drop_element_side_space
 from Rscript import draw_multigroup_heatmap
 from Rscript import anova_analysis
 # from genedf_add_knsdef import add_kns_def
@@ -39,8 +41,8 @@ def group_vs_group_heatmap(group_target_gene_file, samples_file):
     no_FPKM_str_columns = [col.replace('_FPKM', '') for col in fpkm_df.columns[1:]]
     fpkm_df.columns = ['GeneID'] + no_FPKM_str_columns
     ontology_df = df[['GeneID', 'SubOntology', 'Ontology']]
-    group_vs_group_heatmap_fname = group_target_gene_file.replace('_def.txt', '_heatmap.xlsx')
-    group_vs_group_heatmap_pname = group_target_gene_file.replace('_def.txt', '_heatmap.jpeg')
+    group_vs_group_heatmap_fname = group_target_gene_file.replace('_data.txt', '_heatmap.xlsx')
+    group_vs_group_heatmap_pname = group_target_gene_file.replace('_data.txt', '_heatmap.jpeg')
     
     group1 = df.head(1)['sampleA'].values[0]
     group2 = df.head(1)['sampleB'].values[0]
@@ -62,9 +64,10 @@ def main():
     target_gene_file, samples_file, fpkm_matrix_file = args.target_gene_file, args.samplesinfo, args.fpkm
     
     target_gene_def_df = pd.read_csv(target_gene_file, sep='\t', dtype={'GeneID': str})
+    target_gene_def_df = df_drop_element_side_space(target_gene_def_df)
     target_gene_def_df['Ontology'] = target_gene_def_df['Ontology'].str.strip()
     
-    target_gene_df = target_gene_def_df[['GeneID', 'Ontology']]
+    target_gene_df = target_gene_def_df[['GeneID', 'Ontology', 'SubOntology']]
     s_df_count = target_gene_df.shape[0]
     target_gene_df = target_gene_df.drop_duplicates(subset=['GeneID'])
     
@@ -72,26 +75,30 @@ def main():
         logger.warning(f"输入文件 ID 有重复，已进行去重，数量 {s_df_count - target_gene_df.shape[0]}")
         
     fpkm_matrix_df = pd.read_csv(fpkm_matrix_file, sep='\t', dtype={'GeneID': str})
+    fpkm_matrix_df = df_drop_row_sum_eq_zero(fpkm_matrix_df)
     gene_fpkm_df = pd.merge(target_gene_df, fpkm_matrix_df, on='GeneID', how='left')
-    gene_fpkm_df.drop(columns=['Ontology'], inplace=True)
-    anova_file_name = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_anova_p.txt'))
-    gene_fpkm_df.to_csv(anova_file_name, sep='\t', index=False)
-    anova_analysis(anova_file_name, samples_file, anova_file_name)
-    anova_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t', dtype={'GeneID': str})
+    gene_fpkm_df.drop(columns=['Ontology', 'SubOntology'], inplace=True)
+    # anova_file_name = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_anova_p.txt'))
+    # gene_fpkm_df.to_csv(anova_file_name, sep='\t', index=False)
+    # anova_analysis(anova_file_name, samples_file, anova_file_name)
+    # anova_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t', dtype={'GeneID': str})
     # if args.kns:
     #     logger.info(f'正在对相关基因添加定义')
     #     anova_gene_fpkm_def_df = add_kns_def(anova_gene_fpkm_df, kns_file=args.kns)
     #     anova_gene_fpkm_def_df.to_csv(anova_file_name, sep='\t', index=False)
     
     # 添加定义改为使用原有定义(2024_06_05:张老师)
-    anova_gene_fpkm_def_df = pd.merge(anova_gene_fpkm_df, target_gene_def_df, on='GeneID', how='left')
-    anova_gene_fpkm_def_df.to_csv(anova_file_name, sep='\t', index=False)
+    # anova_gene_fpkm_def_df = pd.merge(anova_gene_fpkm_df, target_gene_def_df, on='GeneID', how='left')
+    # anova_gene_fpkm_def_df.to_csv(anova_file_name, sep='\t', index=False)
 
     # 基因都是挑出来的基因，不需要对 p 值筛选画图 (2024_06_18:张老师)
     # anova_gene_fpkm_df = anova_gene_fpkm_df[anova_gene_fpkm_df['p_value'] <= 0.05]
-    anova_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
-    anova_gene_fpkm_df = pd.merge(anova_gene_fpkm_df, target_gene_df, on='GeneID', how='left')
-    anova_gene_fpkm_df = anova_gene_fpkm_df.sort_values(by=['Ontology'])
+    # anova_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
+    # anova_gene_fpkm_df = pd.merge(anova_gene_fpkm_df, target_gene_df, on='GeneID', how='left')
+    # anova_gene_fpkm_df = anova_gene_fpkm_df.sort_values(by=['Ontology'])
+    anova_gene_fpkm_df = pd.merge(gene_fpkm_df, target_gene_df, on='GeneID', how='left')
+    anova_gene_fpkm_df.dropna(how='any', inplace=True)
+    anova_gene_fpkm_df = anova_gene_fpkm_df.sort_values(by=['Ontology', 'SubOntology'])
     
     samples_df = pd.read_csv(samples_file, sep='\t', usecols=[0, 1])
     samples_df = samples_df[['sample', 'group']]
@@ -99,8 +106,8 @@ def main():
     # multigroup_heatmap 输入文件
     all_gene_ko_heatmap_filename = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_heatmap.xlsx'))
     heatmap_filename = all_gene_ko_heatmap_filename.replace('.xlsx', '.jpeg')
-    multigroup_heatmap_data_df = anova_gene_fpkm_df.loc[:, anova_gene_fpkm_df.columns != 'Ontology'].copy()
-    multigroup_heatmap_sheet3_df = anova_gene_fpkm_df[['GeneID', 'Ontology']].copy()
+    multigroup_heatmap_data_df = anova_gene_fpkm_df.loc[:, (anova_gene_fpkm_df.columns != 'Ontology') & (anova_gene_fpkm_df.columns != 'SubOntology')].copy()
+    multigroup_heatmap_sheet3_df = anova_gene_fpkm_df[['GeneID', 'SubOntology', 'Ontology']].copy()
     
     # 根据 samplesinfo 每组中的平均数画 heatmap
     if args.mean:
@@ -139,10 +146,10 @@ def main():
             result_df.columns = [col.replace('_df2', '') for col in result_df.columns]
             result_df.set_index('GeneID')
             # result_df.dropna(inplace=True)
-            result_df.to_csv(f'{compare_name}_target_gene_def.txt', sep='\t', index=False)
+            result_df.to_csv(f'{compare_name}_target_gene_data.txt', sep='\t', index=False)
             
             logger.info(f'正在画 {compare_name} heatmap')
-            group_vs_group_heatmap(f'{args.output}/{compare_name}_target_gene_def.txt', samples_file)
+            group_vs_group_heatmap(f'{args.output}/{compare_name}_target_gene_data.txt', samples_file)
     
     logger.success("Done")
 
