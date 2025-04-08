@@ -10,7 +10,7 @@ import pandas as pd
 
 def parse_input():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--passed-path-file', dest='input_file', default='/home/colddata/qinqiang/script/Rscript/pathview/passed_path.txt',
+    parser.add_argument('-p', '--passed-path-file', dest='input_file', default='/home/colddata/qinqiang/script/Analysis/pathview/passed_path.txt',
                         help='KEGG_ID 和 KEGG_DEF 文件，默认 passed_path.txt')
     parser.add_argument('-i', '--input-dir', dest='input_dir', default='./', help='所有图片目录，默认当前目录')
     parser.add_argument('-o', '--output-dir', dest='output_dir', help='输出目录，默认当前目录', default='./')

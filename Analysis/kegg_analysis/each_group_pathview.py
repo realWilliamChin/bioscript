@@ -25,7 +25,7 @@ def main():
     args = parse_input()
     kegg_df = pd.read_csv(args.keggclean, sep='\t', header=None, usecols=[0, 1, 4], names=['GeneID', 'KO', 'KEGG_ID'])
     kegg_df['KO'] = kegg_df['KO'].str.split(':').str[0]
-    path_file = "/home/colddata/qinqiang/script/Rscript/pathview/passed_path.txt"
+    path_file = "/home/colddata/qinqiang/script/Analysis/pathview/passed_path.txt"
     path_df = pd.read_csv(path_file, sep='\t', header=None, names=['KO', 'Def'])
     # all_sample_df = pd.read_csv("gene_count_matrix.txt",sep='\t')
     # all_sample_list = all_sample_df.columns[1:]

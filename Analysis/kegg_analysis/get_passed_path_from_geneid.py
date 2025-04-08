@@ -32,7 +32,7 @@ def passed_path(gene_file, kegg_clean_file, output_file):
     ko_def_df.drop_duplicates(subset=['KO_ID'], inplace=True)
     ko_def_df.dropna(inplace=True)
     # ko_def_df = pd.read_csv(ko_file, sep='\t', names=['KEGG_ID'], dtype=str, usecols=[0], header=0)
-    passed_path_file = '/home/colddata/qinqiang/script/Rscript/pathview/passed_path.txt'
+    passed_path_file = '/home/colddata/qinqiang/script/Analysis/pathview/passed_path.txt'
     passed_path_df = pd.read_csv(passed_path_file, sep='\t', names=['KO_ID', 'Ko_Def'], dtype=str)
     
     ko_def_df = passed_path_df[passed_path_df['KO_ID'].isin(ko_def_df['KO_ID'])]

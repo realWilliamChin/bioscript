@@ -15,4 +15,4 @@ cpd_path <- read.table("cpd_path.txt",header=F)
 cpd_path
 cpd.path.name <- gsub('hsa','',cpd_path[,1])
 cpd.path.name
-pathview(cpd.data = cpd_data, pathway.id = cpd.path.name, species = "ko", out.suffix = "cpd.data", kegg.native = T,cpd.idtype = "kegg",kegg.dir='/home/colddata/qinqiang/script/Rscript/pathview/kegg_files')
+pathview(cpd.data = cpd_data, pathway.id = cpd.path.name, species = "ko", out.suffix = "cpd.data", kegg.native = T,cpd.idtype = "kegg",kegg.dir='/home/colddata/qinqiang/script/Analysis/pathview/kegg_files')

@@ -60,7 +60,7 @@ for (pw_id in pathway.names) {
       species = "ko",
       out.suffix = "ko.data",
       kegg.native = TRUE,
-      kegg.dir = '/home/colddata/qinqiang/script/Rscript/pathview/kegg_files'
+      kegg.dir = '/home/colddata/qinqiang/script/Analysis/pathview/kegg_files'
     )
     
     # 如果成功，可以打印一条消息（可选）
