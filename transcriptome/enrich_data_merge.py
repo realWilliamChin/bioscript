@@ -4,73 +4,92 @@
 # Author        : WilliamGoGo
 import os, sys
 import argparse
-from loguru import logger
 import pandas as pd
-import openpyxl
+from loguru import logger
+
+sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
+from load_input import load_table
 
 
 def parse_input():
     p = argparse.ArgumentParser()
-    p.add_argument('-i', '--input', help='输入 group.txt 文件, group\tcompare\ngroup1\tA_vs_B')
-    p.add_argument('-d', '--datadir', help='Enrichment 文件目录')
-    p.add_argument('-o', '--outputdir', help='输出文件目录')
+    p.add_argument('-i', '--input-dir', dest='input_dir', default=os.getcwd(), type=str,
+                   help='input data dir')
+    p.add_argument('-c', '--compare-info', dest='compare_info', default=os.getcwd(), type=str,
+                   help='input compare_info.txt file')
+    p.add_argument('-o', '--output-file', dest='output_file', default='Enrichment_summary.xlsx', type=str,
+                   help='output file endswith .xlsx, GO in sheet1, KEGG in sheet2')
     
-    args = p.parse_args()
-    
-    if not os.path.exists(args.outputdir):
-        os.mkdir(args.outputdir)
-        
-    return args
+    return p.parse_args()
 
+
+def main():
+    args = parse_input()
+    go_enrich_df_down_list = []
+    go_enrich_df_up_list = []
+    kegg_enrich_df_down_list = []
+    kegg_enrich_df_up_list = []
+    
+    compare_df = load_table(args.compare_info)
+    for i, compare in compare_df.iterrows():
+        compare_info = compare['Treat'] + "_vs_" + compare['Control']
+
+        for enrich_file in os.listdir(args.input_dir):
+            if enrich_file.startswith(compare_info) and enrich_file.endswith('Down_EnrichmentGO.xlsx'):
+                go_enrich_df_down = load_table(os.path.join(args.input_dir, enrich_file))
+                go_enrich_df_down['Comparison_ID'] = compare_info
+                go_enrich_df_down['Regulation'] = 'Down'
+                go_enrich_df_down_list.append(go_enrich_df_down)
+            elif enrich_file.startswith(compare_info) and enrich_file.endswith('Up_EnrichmentGO.xlsx'):
+                go_enrich_df_up = load_table(os.path.join(args.input_dir, enrich_file))
+                go_enrich_df_up['Comparison_ID'] = compare_info
+                go_enrich_df_up['Regulation'] = 'Up'
+                go_enrich_df_up_list.append(go_enrich_df_up)
+            elif enrich_file.startswith(compare_info) and enrich_file.endswith('Down_EnrichmentKEGG.xlsx'):
+                kegg_enrich_df_down = load_table(os.path.join(args.input_dir, enrich_file))
+                kegg_enrich_df_down['Comparison_ID'] = compare_info
+                kegg_enrich_df_down['Regulation'] = 'Down'
+                kegg_enrich_df_down_list.append(kegg_enrich_df_down)
+            elif enrich_file.startswith(compare_info) and enrich_file.endswith('Up_EnrichmentKEGG.xlsx'):
+                kegg_enrich_df_up = load_table(os.path.join(args.input_dir, enrich_file))
+                kegg_enrich_df_up['Comparison_ID'] = compare_info
+                kegg_enrich_df_up['Regulation'] = 'Up'
+                kegg_enrich_df_up_list.append(kegg_enrich_df_up)
+                
+                
+        go_down_summary = pd.concat(go_enrich_df_down_list)
+        go_down_summary['p.adjust'] = go_down_summary['p.adjust'].astype(float)
+        go_down_summary = go_down_summary[go_down_summary['Count'] >= 2]
+        go_down_summary = go_down_summary[go_down_summary['p.adjust'] < 0.05]
+        go_down_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
+        
+        go_up_summary = pd.concat(go_enrich_df_up_list)
+        go_up_summary['p.adjust'] = go_up_summary['p.adjust'].astype(float)
+        go_up_summary = go_up_summary[go_up_summary['Count'] >= 2]
+        go_up_summary = go_up_summary[go_up_summary['p.adjust'] <= 0.05]
+        go_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
+        
+        kegg_down_summary = pd.concat(kegg_enrich_df_down_list)
+        kegg_down_summary['pvalue'] = kegg_down_summary['pvalue'].astype(float)
+        kegg_down_summary = kegg_down_summary[kegg_down_summary['Count'] >= 2]
+        kegg_down_summary = kegg_down_summary[kegg_down_summary['pvalue'] < 0.05]
+        kegg_down_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
+        
+        kegg_up_summary = pd.concat(kegg_enrich_df_up_list)
+        kegg_up_summary['pvalue'] = kegg_up_summary['pvalue'].astype(float)
+        kegg_up_summary = kegg_up_summary[kegg_up_summary['Count'] >= 2]
+        kegg_up_summary = kegg_up_summary[kegg_up_summary['pvalue'] < 0.05]
+        kegg_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
+        
+        go_summary = pd.concat([go_down_summary, go_up_summary])
+        kegg_summary = pd.concat([kegg_down_summary, kegg_up_summary])
+        
+        with pd.ExcelWriter(args.output_file, engine='openpyxl') as w:
+            go_summary.to_excel(w, sheet_name='GO_analysis', index=False)
+            kegg_summary.to_excel(w, sheet_name='KEGG_analysis', index=False)
+    
 
 if __name__ == '__main__':
-    args = parse_input()
-    df = pd.read_csv(args.input, sep='\t')
-    
-    up_go_suffix = '_Up_EnrichmentGO.xlsx'
-    down_go_suffix = '_Down_EnrichmentGO.xlsx'
-    up_kegg_suffix = '_Down_EnrichmentKEGG.xlsx'
-    down_kegg_suffix = '_Down_EnrichmentKEGG.xlsx'
-
-    grouped = df.groupby('group')
-    
-    for group_name, group in grouped:
-        compare_list = group['compare'].tolist()
-        logger.info(f'{group_name} ---- {compare_list}')
-        go_df = pd.DataFrame()
-        kegg_df = pd.DataFrame()
-        for compare in compare_list:
-            compare_up_go_file = os.path.join(args.datadir, f'{compare}{up_go_suffix}')
-            compare_down_go_file = os.path.join(args.datadir, f'{compare}{down_go_suffix}')
-            compare_up_kegg_file = os.path.join(args.datadir, f'{compare}{up_kegg_suffix}')
-            compare_down_kegg_file = os.path.join(args.datadir, f'{compare}{down_kegg_suffix}')
-            
-            compare_up_go_df = pd.read_excel(compare_up_go_file)
-            compare_down_go_df = pd.read_excel(compare_down_go_file)
-            compare_up_kegg_df = pd.read_excel(compare_up_kegg_file)
-            compare_down_kegg_df = pd.read_excel(compare_down_kegg_file)
-            
-            compare_up_go_df['Regulation'] = 'Up'
-            compare_down_go_df['Regulation'] = 'Down'
-            compare_go_df = pd.concat([compare_up_go_df, compare_down_go_df], ignore_index=True)
-            compare_go_df['Compare_group_name'] = compare
-            
-            compare_up_kegg_df['Regulation'] = 'Up'
-            compare_down_kegg_df['Regulation'] = 'Down'
-            compare_kegg_df = pd.concat([compare_up_kegg_df, compare_down_kegg_df], ignore_index=True)
-            compare_kegg_df['Compare_group_name'] = compare
-
-            if go_df.empty:
-                go_df = compare_go_df[(compare_go_df['Count'] > 1) & (compare_go_df['pvalue'] < 0.05)]
-                kegg_df = compare_kegg_df[(compare_kegg_df['Count'] > 1) & (compare_kegg_df['pvalue'] < 0.05)]
-            else:
-                compare_go_df = compare_go_df[(compare_go_df['Count'] > 1) & (compare_go_df['pvalue'] < 0.05)]
-                compare_kegg_df = compare_kegg_df[(compare_kegg_df['Count'] > 1) & (compare_kegg_df['pvalue'] < 0.05)]
-                go_df = pd.concat([go_df, compare_go_df], ignore_index=True)
-                kegg_df = pd.concat([kegg_df, compare_kegg_df], ignore_index=True)
-        go_df_filename = os.path.join(args.outputdir, f'{group_name}_EnrichmentGO.xlsx')
-        kegg_df_filename = os.path.join(args.outputdir, f'{group_name}_EnrichmentKEGG.xlsx')
-        go_df.to_excel(go_df_filename, index=False, engine='openpyxl')
-        kegg_df.to_excel(kegg_df_filename, index=False, engine='openpyxl')
+    main()
     
     
