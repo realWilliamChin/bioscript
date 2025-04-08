@@ -6,13 +6,8 @@ import os
 import sys
 import pandas as pd
 import argparse
-import subprocess
-import openpyxl
 from pathlib import Path
 from loguru import logger
-
-from each_ko_gene_heatmap import each_ko_gene_heatmap
-from get_passed_path import passed_path
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
 from Rscript import draw_multigroup_heatmap
@@ -20,7 +15,9 @@ from Rscript import draw_twogroup_heatmap
 from Rscript import draw_pathview
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from load_input import load_table, write_output_df
-# from Rscript import anova_analysis
+sys.path.append('/home/colddata/qinqiang/script/Analysis/kegg_analysis')
+from each_ko_gene_heatmap import each_ko_gene_heatmap
+from get_passed_path import passed_path
 
 if sys.version_info < (3, 10):
     logger.critical("Python 版本低于 3.10，请使用 conda 激活 python310 环境运行程序！")
