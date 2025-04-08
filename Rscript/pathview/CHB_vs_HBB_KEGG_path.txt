@@ -1,7 +1,0 @@
-ko04512	ECM_receptor_interaction
-ko04510	Focal_adhesion
-ko04626	Plant_pathogen_interaction
-ko00195	Photosynthesis
-ko04075	Plant_hormone_signal_transduction
-ko00500	Starch_and_sucrose_metabolism
-ko04016	MAPK_signaling_pathway_plant
