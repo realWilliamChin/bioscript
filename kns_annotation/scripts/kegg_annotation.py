@@ -22,10 +22,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
+sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
+sys.path.append('/home/colddata/qinqiang/script/transcriptome/')
 from merge_fpkm_reads_matrix import merge_fpkm_reads
-
+from load_input import load_table, write_output_df
 
 class EmailReceiver:
     def __init__(self, server, port):
@@ -249,7 +249,7 @@ def email_link_click(link):
     sys.exit(1)
 
 
-def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_filename):
+def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_file):
     logger.info(f"fasta file: {fasta_file}\norg_list：{org_lst}")
     mail = EmailReceiver(f'imap.{mail_type}.com', 110)
     # step.1 submit fasta file to kegg and get request_ID and job status
@@ -321,28 +321,28 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
             logger.success('Job Complete!')
             
             # you should click this link then you can download the file
-            logger.info(f'downloading {output_filename} ...')
+            logger.info(f'downloading {output_file} ...')
             visit_link = f'https://www.genome.jp/kaas-bin/kaas_main?mode=brite&id={job_ID}&key={job_key}'
             email_link_click(visit_link)
             time.sleep(5)
             
             # from download link get file
-            download_link = f'https://www.genome.jp/kegg-bin/download_htext?htext=q00001.keg&format=htext&filedir=/tools/kaas/files/log/result/{job_ID}'
+            # download_link = f'https://www.genome.jp/kegg-bin/download_htext?htext=q00001.keg&format=htext&filedir=/tools/kaas/files/log/result/{job_ID}'
+            download_link = f'https://www.genome.jp/tools/kaas/files/dl/{job_ID}/query.ko'
             resp = email_link_click(download_link)
             
-            # check file if correct
+            # check file line > 1
             logger.info('checking file ...')
-            if resp.split('\n')[0] == '+D\tKO':
-                logger.info('checking file done ...')
+            if len(resp.split('\n')) > 1:
+                logger.success('checking file done ...')
             else:
-                resp_file_header = resp.split('\n')[0:5]
-                logger.critical(f'get file failed!, file is not correct ID{job_ID},key{job_key}!\n{resp_file_header}')
+                logger.critical(f'get file failed!, file is not correct ID{job_ID},key{job_key}!\n{resp}')
                 sys.exit(1)
                 
             # output file
-            with open(output_filename, 'w') as kegg_annotation:
+            with open(output_file, 'w') as kegg_annotation:
                 kegg_annotation.write(resp)
-            logger.success(f'download success! {output_filename} is ready!')
+            logger.success(f'download success! {output_file} is ready!')
             
             break
         elif mail_content['date'] == mail_date:
@@ -371,36 +371,41 @@ def ko03000(kegg_gene_df, kegg_tier3_df):
     return ko03000_df, ko03022_df
 
 
-def parse_keg(keg_file, specie_type, all_id_file, fpkm, reads, output_prefix):
-    kegg_file = f'{output_prefix}_KEGG_original.txt'
-    # 初始处理 keg 文件
-    command = 'perl /home/colddata/chen/03_transcript/annotation/kegg/kaas_parse_keg_file.pl -i {} -o {}'.format(keg_file, kegg_file)
-    os.system(command)
+def parse_keg(ko_file, specie_type, all_id_file, fpkm, reads, output_prefix):
+    kegg_db = load_table('/home/colddata/qinqiang/script/kns_annotation/scripts/kegg_db.txt')
+    ko_df = load_table(ko_file, header=None, names=['GeneID', 'KO_ID'])
+    ko_df = ko_df.dropna(subset=['KO_ID'])
+    ko_df = pd.merge(left=ko_df, right=kegg_db, on='KO_ID', how='left')
+    ko_df = ko_df[['GeneID', 'KEGG_Pathway', 'Category', 'Metabolism_Class', 'KO_ID', 'Gene_Symbol', 'Enzyme_Description']]
+    kegg_clean_file = output_prefix + '_KEGG_clean.txt'
     
-    # 使用 python 处理 keg 文件
-    # process_keg(keg_file, kegg_file)
-    
-    with open(kegg_file,'r') as f1:
-        kegg_clean_file = output_prefix + '_KEGG_clean.txt'
-        f2 = open(kegg_clean_file, 'w')
+    # 植物物种过滤动物的一些注释
+    if specie_type == 'plant':
+        # 过滤掉包含 A09160 和 A09190 的行
+        ko_df = ko_df[~ko_df['Metabolism_Class'].str.contains('A09160', na=False)]
+        ko_df = ko_df[~ko_df['Metabolism_Class'].str.contains('A09190', na=False)]
         
-        # 植物物种过滤动物的一些注释
-        if specie_type == 'plant':
-            for each_line in f1:
-                if 'A09160' in each_line:
-                    continue
-                if 'A09190' in each_line:
-                    continue
-                if 'A09150' in each_line:
-                    if '09158:Development and regeneration' not in each_line and '09159:Environmental adaptation' not in each_line:
-                        continue
-                f2.write(each_line)
+        # 对于包含 A09150 的行，只保留包含特定字符串的行
+        mask = ko_df['Metabolism_Class'].str.contains('A09150:Organismal Systems', na=False)
+        if mask.any():
+            ko_df.loc[mask] = ko_df.loc[mask][
+                ko_df['Category'].str.contains('09158:Development and regeneration|09159:Environmental adaptation', na=False)
+            ]
+        
+        # 删除所有空值行
+        ko_df = ko_df.dropna(subset=['Metabolism_Class'])
+        
+    write_output_df(ko_df, kegg_clean_file, header=False, index=False)
+        # for each_line in f1:
+        #     if 'A09160' in each_line:
+        #         continue
+        #     if 'A09190' in each_line:
+        #         continue
+        #     if 'A09150' in each_line:
+        #         if '09158:Development and regeneration' not in each_line and '09159:Environmental adaptation' not in each_line:
+        #             continue
+        #     f2.write(each_line)
                 
-        # 其他物种暂时不用过滤，直接写入
-        else:
-            for each_line in f1:
-                f2.write(each_line)
-        f2.close()
     
     # 生成 KEGG_gene_def 文件
     kegg_gene_def_titles = ['GeneID', 'Pathway', 'Level2', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number']
@@ -495,12 +500,12 @@ def kegg_levelb_count_barplot(keggclean_file, output_file):
 def parse_input():
     parser = argparse.ArgumentParser(description='kegg annotation，一次只能注释一个任务，除非添加其他邮箱')
     parser.add_argument('-f', '--fasta', help='输入 fasta file')
-    parser.add_argument('-k', '--keg', type=str, required=True, help='指定 keg 文件')
+    parser.add_argument('-k', '--ko-file', dest='ko_file', type=str, required=True, help='指定 ko-file 文件')
     parser.add_argument('-l', '--org_lst', help='指定物种列表，以 ", " 分隔')
     parser.add_argument('-s', '--split', type=int, help='切割 fasta 文件，如果太大的话')
-    parser.add_argument('-t', '--type', type=str, help='指定物种类型，植物=plant, 动物=animal')
+    parser.add_argument('-t', '--type', type=str, required=True, help='指定物种类型，植物=plant, 动物=animal')
     parser.add_argument('--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
-    parser.add_argument('-o', '--output-prefix', dest='output_prefix', type=str, help='指定输出 prefix 例如 kegg/caomei')
+    parser.add_argument('-o', '--output-prefix', dest='output_prefix', type=str, required=True, help='指定输出 prefix 例如 kegg/caomei')
     
     # 这两个参数用于生成 ko03000_expression_data.txt 文件
     parser.add_argument('--fpkm', type=str,
@@ -511,7 +516,7 @@ def parse_input():
     account_parser = parser.add_argument_group("其他邮箱账号参数")
     account_parser.add_argument('-u', '--username', default='dagongrenyyds@163.com',
                         help='【默认就行】输入163邮箱用户名')
-    account_parser.add_argument('-p', '--password', default='IFBWCQOBTEOXODTK',
+    account_parser.add_argument('-p', '--password', default='WJk6Bdg4y7tjz82W',  # IFBWCQOBTEOXODTK
                         help='【默认就行】输入163邮箱密码，密码非常规密码，查看获取方法 https://m.jqjq.net/jiqiao/108147.html')
     account_parser.add_argument('-m', '--mail_type', default='163', choices=['163', 'qq'],
                         help='【默认就行】输入邮箱类型 163 or qq，目前只支持 163 邮箱')
@@ -533,7 +538,7 @@ def parse_input():
 
 def main():
     args = parse_input()
-    keg_file = args.keg
+    ko_file = args.ko_file
     
     # 分割 fasta 文件，合并写入 keg 文件
     if args.split and args.split > 1:
@@ -542,18 +547,20 @@ def main():
         fasta_file_list = [f'{os.path.join(split_dir, x)}' for x in os.listdir(split_dir)]
         sp_file_lst = []
         for i, fasta_file in enumerate(fasta_file_list):
-            keg_sp_file = keg_file.replace('.keg', f'_{i}.keg')
-            sp_file_lst.append(keg_sp_file)
-            kegg_anno(args.mail_type, args.username, args.password, fasta_file, args.org_lst, keg_sp_file)
-        with open(keg_file, "w") as outfile:
+            ko_sp_file = ko_file.replace('.ko', f'_{i}.ko')
+            sp_file_lst.append(ko_sp_file)
+            kegg_anno(args.mail_type, args.username, args.password, fasta_file, args.org_lst, ko_sp_file)
+        with open(ko_file, "w") as outfile:
             for filepath in sp_file_lst:
                 outfile.write(filepath.read_text())
     # 直接运行注释
     elif args.org_lst and args.fasta:
-        kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, keg_file)
+        kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, ko_file)
 
     # 解析 keg 文件
-    parse_keg(keg_file, args.type, args.allid, args.fpkm, args.reads, args.output_prefix)
+    parse_keg(ko_file, args.type, args.allid, args.fpkm, args.reads, args.output_prefix)
+    
+    # ko 与数据库合并
     
     # 画图
     kegg_levelb_count_barplot(f'{args.output_prefix}_KEGG_clean.txt', f'{args.output_prefix}_KEGG_levelB_count.jpeg')
