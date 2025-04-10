@@ -7,7 +7,12 @@ import argparse
 import pandas as pd
 import numpy as np
 import subprocess
+import matplotlib.pyplot as plt
+import seaborn as sns
 from loguru import logger
+
+sys.path.append('/home/colddata/qinqiang/script/CommonTools')
+from load_input import load_table, write_output_df
 
 if sys.version_info < (3, 10):
     logger.critical("Python 版本低于 3.10，请使用 conda 激活 python310 环境运行程序！")
@@ -20,13 +25,18 @@ def parse_input():
     parser.add_argument('-b', '--blast', help='指定 swiss.blast 文件名称')
     
     parse_blast = parser.add_argument_group('需要解析 blast 添加以下参数')
-    parse_blast.add_argument('-p', '--prefix', help='生成文件的前缀(一般是种名加属名), 默认去掉 blast 作为前缀')
+    parse_blast.add_argument('-o', '--output-prefix', dest='output_prefix',
+                             help='生成文件的前缀(一般是种名加属名), 默认去掉 blast 作为前缀')
     
     annotation = parser.add_argument_group('需要注释添加一下参数')
     annotation.add_argument('--fasta', help='输入需要去注释的 cds fasta 或 unigene fasta 文件（去重，名字精简）')
     annotation.add_argument('-t', '--threads', default=30, type=int, help='运行 swiss 注释线程数量')
     
     args = parser.parse_args()
+    
+    if not args.output_prefix.endswith('_'):
+        args.output_prefix = args.output_prefix + '_'
+    
     return args
 
 
@@ -91,6 +101,44 @@ def process_go(swiss_df, ref_df):
     return df_lst
 
 
+def swiss_bpccmf_barplot(bp_file, cc_file, mf_file, output):
+    # 读取 BP 数据
+    BP = load_table(bp_file, header=None)
+    BP_count = BP[1].value_counts().reset_index()
+    BP_count.columns = ["Term", "Count"]
+    BP_20 = BP_count.sort_values(by="Count", ascending=False).head(20)
+
+    # 读取 CC 数据
+    CC = load_table(cc_file, header=None)
+    CC_count = CC[1].value_counts().reset_index()
+    CC_count.columns = ["Term", "Count"]
+    CC_20 = CC_count.sort_values(by="Count", ascending=False).head(20)
+
+    # 读取 MF 数据
+    MF = load_table(mf_file, header=None)
+    MF_count = MF[1].value_counts().reset_index()
+    MF_count.columns = ["Term", "Count"]
+    MF_20 = MF_count.sort_values(by="Count", ascending=False).head(20)
+
+    # 合并数据
+    GO_stat = pd.concat([BP_20, CC_20, MF_20], axis=0)
+    GO_stat["GO"] = ["BP"] * 20 + ["CC"] * 20 + ["MF"] * 20
+
+    # 清理 Term 列
+    GO_stat["Term"] = GO_stat["Term"].str.replace(r"GO:\d+_", "", regex=True)
+
+    # 绘制图表
+    plt.figure(figsize=(15, 10))
+    sns.barplot(data=GO_stat, x="Term", y="Count", hue="GO", dodge=False)
+    plt.title("GO Term Count")
+    plt.xlabel("Term")
+    plt.ylabel("Count")
+    plt.xticks(rotation=75, ha="right", va="top")
+    plt.tight_layout()
+
+    plt.savefig(output, dpi=300, bbox_inches="tight")
+
+
 def main():
     args = parse_input()
     
@@ -100,9 +148,8 @@ def main():
             sys.exit(1)
     
     swiss_file = args.blast if args.blast else [x for x in os.listdir() if '_swiss.blast' in x][0]
-    key_name = args.prefix + '_swiss' if args.prefix else swiss_file.replace('.blast', '')
     # 读取 swiss 参考文件和 blast 文件，并初始化
-    swiss_df = pd.read_csv(swiss_file, sep='\t', usecols=[0, 1, 14, 15], names=['GeneID', 'GOID', 'bitscore', 'Swiss_Def'], low_memory=False)
+    swiss_df = load_table(swiss_file, usecols=[0, 1, 14, 15], names=['GeneID', 'GOID', 'bitscore', 'Swiss_Def'])
     swiss_df = swiss_df.sort_values(by=['GeneID', 'bitscore'], ascending=[True, False])
     swiss_df = swiss_df.drop(columns=['bitscore'])
     swiss_df = swiss_df.drop_duplicates(subset='GeneID', keep='first')
@@ -111,14 +158,14 @@ def main():
     # 在 swiss_gene_def 中 Swiss_Def 删掉 RecName: Full=
     swiss_df['Swiss_Def'] = swiss_df['Swiss_Def'].str.replace('RecName: Full=', '')
     # 生成 _unigene_swiss_gene_def.txt
-    swiss_df.to_csv(key_name + '_gene_def.txt', sep='\t', index=False, header=['GeneID', 'Swissprot_ID', 'Swiss_Def'])
+    write_output_df(swiss_df, args.output_prefix + 'swiss_gene_def.txt', index=False, header=['GeneID', 'Swissprot_ID', 'Swiss_Def'])
 
     ref_file = '/home/data/ref_data/db/swiss_go_txt/Swiss_protein_go.txt'
-    ref_df = pd.read_csv(ref_file, sep='\t', skiprows=1, names=['GOID', 'GO_BP', 'GO_CC', 'GO_MF'])
+    ref_df = load_table(ref_file, skiprows=1, names=['GOID', 'GO_BP', 'GO_CC', 'GO_MF'])
 
     # 生成 idNO_def 文件
-    idNO_def_filename = key_name + '_idNo_def.txt'
-    gene_go_filename = key_name + '_gene_go.txt'
+    idNO_def_filename = args.output_prefix + 'swiss_idNo_def.txt'
+    gene_go_filename = args.output_prefix + 'swiss_gene_go.txt'
     ref_df['merge_go'] = ref_df['GO_BP'] + '_' + ref_df['GO_CC'] + '_' + ref_df['GO_MF']
     ref_df['merge_go'] = ref_df['merge_go'].replace('', np.nan, regex=True)
     idNo_def = pd.merge(left=swiss_df.iloc[:, [0, 1]], right=ref_df.iloc[:, [0, 4]], on='GOID', how='left')
@@ -126,7 +173,7 @@ def main():
     idNo_def_expand = idNo_def['merge_go'].str.split('\[G', expand=True)
     idNo_def_expand = idNo_def_expand.map(_keep_goid)
     idNo_def = pd.concat([idNo_def['GeneID'], idNo_def_expand], axis=1).fillna('')
-    idNo_def.to_csv(idNO_def_filename, sep='\t', index=False, header=False)
+    write_output_df(idNo_def, idNO_def_filename, index=False, header=False)
 
     with open(idNO_def_filename, 'r') as idNo_def_file:
         os.remove(idNO_def_filename)
@@ -145,9 +192,14 @@ def main():
     result_df = process_go(swiss_df, ref_df)
     # 保存 GO_BP GO_CC GO_MF 文件
     
-    result_df[0].to_csv(key_name + '_GO_BP_ID.txt', sep='\t', index=False, header=False)
-    result_df[1].to_csv(key_name + '_GO_CC_ID.txt', sep='\t', index=False, header=False)
-    result_df[2].to_csv(key_name + '_GO_MF_ID.txt', sep='\t', index=False, header=False)
+    bp_file = args.output_prefix + 'GO_BP_ID.txt'
+    cc_file = args.output_prefix + 'GO_CC_ID.txt'
+    mf_file = args.output_prefix + 'GO_MF_ID.txt'
+    write_output_df(result_df[0], bp_file, index=False, header=False)
+    write_output_df(result_df[1], cc_file, index=False, header=False)
+    write_output_df(result_df[2], mf_file, index=False, header=False)
+    
+    swiss_bpccmf_barplot(bp_file, cc_file, mf_file, f'{args.output_prefix}GO_count.jpeg')
     
     logger.success('Done')
 
