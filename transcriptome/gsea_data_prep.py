@@ -11,7 +11,7 @@ from load_input import load_table, write_output_df
 
 
 def parse_input():
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(help='有 GeneSymbol 使用 GeneSymbol 文件')
     p.add_argument('-e', '--expression', type=str, help='fpkm_matrix_filtered.txt')
     p.add_argument('-s', '--samples', type=str, help='samples_described.txt')
     p.add_argument('-c', '--compare', type=str, help='compare_info.txt')
@@ -21,7 +21,7 @@ def parse_input():
 
 
 def get_expression_data(samples, compares, kegg_shortname, expression):
-    kegg_df = load_table(kegg_shortname)
+    kegg_df = load_table(kegg_shortname, skiprows=1, dtype=str, header=None, names=['GeneID', 'Gene_shortname'])
     kegg_df.dropna(subset=['Gene_shortname'], inplace=True)
     samples_df = load_table(samples)
     compare_df = load_table(compares)
