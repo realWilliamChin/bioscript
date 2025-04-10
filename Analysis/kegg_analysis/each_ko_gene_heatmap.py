@@ -4,8 +4,10 @@ import pandas as pd
 import argparse
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
+sys.path.append('/home/colddata/qinqiang/script/Rscript/')
 from Rscript import draw_multigroup_heatmap
+sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
+from load_input import load_table, write_output_df
 
 
 def parse_input():
@@ -88,12 +90,16 @@ def each_ko_gene_heatmap(kegg_id_list, kegg_clean_df, fpkm_matrix_df, samples_df
 def main():
     args = parse_input()
     
-    ko_df = pd.read_csv(args.input, sep='\t')
+    ko_df = load_table(args.input, dtype=str)
     ko_list = ko_df['KEGG_Pathway_ID'].values.tolist()
     
-    kegg_clean_df = pd.read_csv(args.keggclean, sep='\t', usecols=[0, 1], header=None, names=['GeneID', 'KEGG_Pathway'])
-    fpkm_matrix_df = pd.read_csv(args.fpkmmatrix, sep='\t')
-    samples_df = pd.read_csv(args.samples, sep='\t')
+    kegg_clean_df = load_table(args.keggclean, usecols=[0, 1], dtype=str,
+                               header=None, names=['GeneID', 'KEGG_Pathway'])
+    fpkm_matrix_df = load_table(args.fpkmmatrix, dtype={'GeneID': str})
+    if len(fpkm_matrix_df.columns) == 2:
+        logger.error('fpkm_matrix 文件只有两列，无法进行 heatmap 绘制')
+        sys.exit(1)
+    samples_df = load_table(args.samples, dtype=str, usecols=[0, 1])
     
     each_ko_gene_heatmap(ko_list, kegg_clean_df, fpkm_matrix_df, samples_df, args.outputdir)
 
