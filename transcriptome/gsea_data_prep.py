@@ -11,7 +11,7 @@ from load_input import load_table, write_output_df
 
 
 def parse_input():
-    p = argparse.ArgumentParser(help='有 GeneSymbol 使用 GeneSymbol 文件')
+    p = argparse.ArgumentParser(description='有 GeneSymbol 使用 GeneSymbol 文件')
     p.add_argument('-e', '--expression', type=str, help='fpkm_matrix_filtered.txt')
     p.add_argument('-s', '--samples', type=str, help='samples_described.txt')
     p.add_argument('-c', '--compare', type=str, help='compare_info.txt')
