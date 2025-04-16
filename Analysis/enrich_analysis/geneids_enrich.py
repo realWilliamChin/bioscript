@@ -15,14 +15,16 @@ from load_input import load_table, write_output_df
 
 def parse_input():
     p = argparse.ArgumentParser()
-    p.add_argument('-i', '--ids-dir', dest='ids_dir', help='cluster id 文件夹')
+    p.add_argument('-i', '--ids-dir', dest='ids_dir', required=True,
+                   help='包含单 GeneID 列所有文件的文件夹')
     p.add_argument('--ids-header', dest='ids_header', action='store_true',
                         help='所有 id 文件是否有 header(GeneID)')
     p.add_argument('-k', '--kegg-clean', dest="kegg_clean", required=True,
                    help='kegg_clean.txt 文件')
     p.add_argument('-g', '--gene-go', dest="gene_go", required=True,
                    help='swiss 注释出来的的 gene_go.txt 文件')
-    p.add_argument('-o', '--output-dir', dest='output_dir', help='文件输出目录')
+    p.add_argument('-o', '--output-dir', dest='output_dir', default=os.getcwd(),
+                   help='文件输出目录')
     
     args = p.parse_args()
     
@@ -38,6 +40,8 @@ def main():
     args = parse_input()
     ids_dir, ids_header = args.ids_dir, args.ids_header
     for module_file in os.listdir(ids_dir):
+        if not os.path.isfile(os.path.join(ids_dir, module_file)):
+            continue
         logger.info(f'正在处理 {module_file}')
         module_df = load_table(
             os.path.join(ids_dir, module_file),
