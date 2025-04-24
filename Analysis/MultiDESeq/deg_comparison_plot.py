@@ -17,8 +17,8 @@ from load_input import load_table, write_output_df
 
 def parse_input():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', type=str, help='输入文件')
-    parser.add_argument('-o', type=str, default='DEGs_comparison.png',
+    parser.add_argument('-i', type=str, help='输入文件 DEG_summary.txt')
+    parser.add_argument('-o', type=str, default='DEGs_comparison_count_barplot.jpeg',
                         help='输出文件')
     args = parser.parse_args()
     return args
@@ -26,13 +26,8 @@ def parse_input():
 
 def main():
     args = parse_input()
-    # 读取数据，跳过注释行，使用制表符作为分隔符
-    deg_summary_df = pd.read_csv(args.i, sep='\t', comment='#', skipinitialspace=True)
-    
-    # 确保列名正确
+    deg_summary_df = load_table(args.i, comment='#', skipinitialspace=True)
     deg_summary_df.columns = ['Comparisons', 'Total DEGs', 'Up regulated', 'Down regulated']
-    
-    # 转换数值列为整数
     numeric_cols = ['Total DEGs', 'Up regulated', 'Down regulated']
     for col in numeric_cols:
         deg_summary_df[col] = pd.to_numeric(deg_summary_df[col], errors='coerce').fillna(0).astype(int)
