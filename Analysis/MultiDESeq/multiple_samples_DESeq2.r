@@ -283,17 +283,17 @@ corrplot(fpkm.cor, is.corr = F, col = rev(COL2("PiYG")), method = "color",
          cl.ratio = 0.1)
 dev.off()
 
-pdf("correlation.pdf", res = 72 * 5, 
-    height = (nrow(fpkm.cor) * cell_size) + 1000, width = (ncol(fpkm.cor) * cell_size) + 1000) 
-corrplot(fpkm.cor, is.corr = F, col = rev(COL2("PiYG")), method = "color", addCoef.col = "black", tl.col = "black", col.lim = c(min(fpkm.cor) - 0.01, max(fpkm.cor)), cl.ratio = 0.1)
-dev.off()
+# pdf("correlation.pdf", res = 72 * 5, 
+#     height = (nrow(fpkm.cor) * cell_size) + 1000, width = (ncol(fpkm.cor) * cell_size) + 1000) 
+# corrplot(fpkm.cor, is.corr = F, col = rev(COL2("PiYG")), method = "color", addCoef.col = "black", tl.col = "black", col.lim = c(min(fpkm.cor) - 0.01, max(fpkm.cor)), cl.ratio = 0.1)
+# dev.off()
 
 
 # head(deg_fpkm)
 # stat.deg
 # as.data.frame(matrix(stat.deg,nrow=nrow(comp_info),ncol=4,byrow=T),colnames=c("Groups","Total_DEGs","UP"))
 # stat.deg
-colnames(stat.deg) <- c("Groups", "Total DEGs", "Up regulated", "Down regulated")
+colnames(stat.deg) <- c("Comparisons", "Total DEGs", "Up regulated", "Down regulated")
 
 deg_first_line <- paste0("# 筛选条件：",filter_type, " < ",filter_value,"; FoldChange > ",deg_value,"\n")
 # write.lines(deg_first_line, paste0(deg_dir, "DEG_summary.txt"))
@@ -350,45 +350,35 @@ write.table(data, "anova_analysis_p.txt", sep = "\t", quote = F, row.names = F)
 # haha<-summary(mod)
 # summary(mod)[[1]][5]$Pr[1]
 #####################################################################
-# setwd("D:/pll/R_work/baisanye")
-# ??ȡ????????ֵ????
-# ?Ƽ?ʹ?? log ת?????Ļ???????ֵ?????Ͳ?ͬ????????ˮƽ??��????????????????
+
+# get the log2 transformed FPKM values
 gene <- read.delim(fpkm_file, row.names = 1, sep = "\t", check.names = FALSE, header = T)
 gene <- log2(gene + 1)
-# ??????????ֵ????????ת?ã?ʹ??Ϊ????????Ϊ????
+# transform the values to the same scale
 gene <- t(gene)
 
-# ????ʹ?? FactoMineR ???еķ?????ʵ?? PCA ?????;???????
-
-
-# ?????л???????ֵ?? PCA ????
+# PCA plot
 gene.pca <- PCA(gene, ncp = 2, scale.unit = TRUE, graph = FALSE)
-# plot(gene.pca)  #PCA ??ͼ
 
-# ??ȡ?????? PCA ǰ��???е?????
+# get the PCA coordinates
 pca_sample <- data.frame(gene.pca$ind$coord[, 1:2])
 head(pca_sample)
 
-# ??ȡ PCA ǰ��???Ĺ??׶?
 pca_eig1 <- round(gene.pca$eig[1, 2], 2)
 pca_eig2 <- round(gene.pca$eig[2, 2], 2)
 
-# ??ȡ???ϲ???????????Ϣ
+# get the group information
 group <- read.delim(samples_file, row.names = 2, sep = "\t", check.names = FALSE, header = T)
 group <- group[rownames(pca_sample), ]
 
-# ggplot2 ???ƶ?άɢ??ͼ
 p <- ggplot(data = pca_sample, aes(x = Dim.1, y = Dim.2)) +
-  geom_point(aes(color = group), size = 5) + # ???????????????????????????????????????
-  # scale_color_manual(values = c('orange', 'purple','blue','black')) +  #???????????????
+  geom_point(aes(color = group), size = 5) +
   theme(
     panel.grid = element_blank(), panel.background = element_rect(color = "black", fill = "transparent"),
     legend.key = element_rect(fill = "transparent")
-  ) + # ????????????????????????
-  labs(x = paste("PCA1:", pca_eig1, "%"), y = paste("PCA2:", pca_eig2, "%"), color = "") # ??? PCA ???????????????????????????????????????
-
+  ) +
+  labs(x = paste("PCA1:", pca_eig1, "%"), y = paste("PCA2:", pca_eig2, "%"), color = "")
 p <- p + geom_text_repel(data = pca_sample, aes(Dim.1, Dim.2, label = rownames(pca_sample)))
-
 cluster_border <- ddply(pca_sample, "group", function(df) df[chull(df[[1]], df[[2]]), ])
 p <- p + geom_polygon(data = cluster_border, aes(color = group), fill = NA, show.legend = FALSE)
 ggsave("Expression_data_evaluation/PCA.jpeg", p, dpi = 300, width = 10, height = 10)
