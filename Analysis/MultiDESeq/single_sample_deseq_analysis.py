@@ -26,8 +26,10 @@ def parse_input():
         
 def main():
     args = parse_input()
-    log2_matrix = load_table(args.i)
-    fpkm_reads_merged_df = load_table(args.fpkm_reads_merged)
+    log2_matrix = load_table(args.i, dtype={'GeneID': str})
+    fpkm_reads_merged_df = load_table(args.fpkm_reads_merged, dtype={'GeneID': str})
+    fpkm_cols = [col for col in fpkm_reads_merged_df.columns if col.endswith('_fpkm')]
+    fpkm_reads_merged_df[fpkm_cols] = fpkm_reads_merged_df[fpkm_cols].replace(0, 0.001)
 
     log2_matrix['GeneID'] = log2_matrix['GeneID'].astype(str)
 
@@ -44,9 +46,8 @@ def main():
     
     deg_summary_df = pd.DataFrame(columns=['Comparisons', 'Total DEGs', 'Up regulated', 'Down regulated'])
     for col in numeric_cols:
-        comparsion_name = col.replace('log2_', '')
-        treat = comparsion_name.split('-vs-')[0]
-        control = comparsion_name.split('-vs-')[1]
+        treat = col.split('-vs-')[0]
+        control = col.split('-vs-')[1]
         first_kns_cols = [col for col in fpkm_reads_merged_df.columns if col == 'NR_ID']
         if first_kns_cols:
             first_kns_col_idx = fpkm_reads_merged_df.columns.get_loc(first_kns_cols[0])
@@ -55,28 +56,28 @@ def main():
             kns_cols = []
         treat_control_kns_cols = ['GeneID', f'{treat}_fpkm', f'{control}_fpkm', f'{treat}_reads', f'{control}_reads'] + kns_cols
         up_genes = log2_matrix[(log2_matrix[col] >= bs_pos) | np.isinf(log2_matrix[col])]
-        up_genes = up_genes.rename(columns={col: f'{col}_FC'})
-        up_genes = up_genes[['GeneID', f'{col}_FC']]
+        up_genes = up_genes.rename(columns={col: f'log2_{col}_FC'})
+        up_genes = up_genes[['GeneID', f'log2_{col}_FC']]
         up_genes = pd.merge(up_genes, fpkm_reads_merged_df[treat_control_kns_cols], on='GeneID', how='left')
         down_genes = log2_matrix[(log2_matrix[col] <= -bs_pos) | np.isneginf(log2_matrix[col])]
-        down_genes = down_genes.rename(columns={col: f'{col}_FC'})
-        down_genes = down_genes[['GeneID', f'{col}_FC']]
+        down_genes = down_genes.rename(columns={col: f'log2_{col}_FC'})
+        down_genes = down_genes[['GeneID', f'log2_{col}_FC']]
         down_genes = pd.merge(down_genes, fpkm_reads_merged_df[treat_control_kns_cols], on='GeneID', how='left')
         
         deg_summary_df = pd.concat([
             deg_summary_df,
             pd.DataFrame({
-                'Comparisons': [comparsion_name],
+                'Comparisons': [col],
                 'Total DEGs': [len(up_genes) + len(down_genes)],
                 'Up regulated': [len(up_genes)],
                 'Down regulated': [len(down_genes)]
             })
         ], ignore_index=True)
         
-        write_output_df(up_genes['GeneID'], os.path.join(DEG_analysis_results, f'{comparsion_name}_Up_ID.txt'), index=False)
-        write_output_df(down_genes['GeneID'], os.path.join(DEG_analysis_results, f'{comparsion_name}_Down_ID.txt'), index=False)
-        write_output_df(up_genes, os.path.join(Expression_data, f'{comparsion_name}_Up_DEG_data.txt'), index=False)
-        write_output_df(down_genes, os.path.join(Expression_data, f'{comparsion_name}_Down_DEG_data.txt'), index=False)
+        write_output_df(up_genes['GeneID'], os.path.join(DEG_analysis_results, f'{col}_Up_ID.txt'), index=False)
+        write_output_df(down_genes['GeneID'], os.path.join(DEG_analysis_results, f'{col}_Down_ID.txt'), index=False)
+        write_output_df(up_genes, os.path.join(Expression_data, f'{col}_Up_DEG_data.txt'), index=False)
+        write_output_df(down_genes, os.path.join(Expression_data, f'{col}_Down_DEG_data.txt'), index=False)
 
     with open(os.path.join(DEG_analysis_results, 'DEG_summary.txt'), 'w') as f:
         f.write(f'# 筛选条件：FoldChange > {args.deg_value}\n')

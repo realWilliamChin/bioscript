@@ -21,10 +21,10 @@ from load_input import load_table, write_output_df
 
 def parse_input():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--fpkm', type=str, help='输入 FPKM 文件')
-    parser.add_argument('--samples', type=str, help='输入样本信息文件')
-    parser.add_argument('--compare', type=str, help='输入比较信息文件')
-    parser.add_argument('--output', type=str, default='comparsions_all_deg_counts',
+    parser.add_argument('-i', '--fpkm', help='输入 FPKM 文件')
+    parser.add_argument('-s', '--samples', help='输入样本信息文件')
+    parser.add_argument('-c', '--compare', help='输入比较信息文件')
+    parser.add_argument('-o', '--output-prefix', dest='output_prefix', default='comparsions_all_deg_counts',
                         help='输出文件, 默认是 comparsions_all_deg_counts.jpg 和 comparsions_all_deg_counts.txt')
     args = parser.parse_args()
     return args
@@ -49,7 +49,6 @@ def plot_fold_change_distribution(log2_matrix, output_jpg, output_table):
 
     for col in log2_matrix.columns:
         if col.startswith('log2_'):
-            compare_name = col.replace('log2_', '')
             # 统计每个差异倍数对应的基因数量
             counts = []
             for i, fc in enumerate(log2_fold_changes):
@@ -59,15 +58,15 @@ def plot_fold_change_distribution(log2_matrix, output_jpg, output_table):
                 counts.append(total_count)
             
             # 创建新的行并添加到DataFrame
-            new_row = {'Comparison': compare_name}
+            new_row = {'Comparison': col}
             for i, fc in enumerate(fold_changes):
                 new_row[f'deg{fc}'] = counts[i]
             all_deg_counts = pd.concat([all_deg_counts, pd.DataFrame([new_row])], ignore_index=True)
             
-            all_counts[compare_name] = counts  # 保存当前比较组的counts
+            all_counts[col] = counts  # 保存当前比较组的counts
             
             # 折线图
-            plt.plot(log2_fold_changes, counts, marker='o', label=compare_name)
+            plt.plot(log2_fold_changes, counts, marker='o', label=col)
     
     write_output_df(all_deg_counts, output_table, index=False)
     
@@ -89,23 +88,25 @@ def plot_fold_change_distribution(log2_matrix, output_jpg, output_table):
 
 def main():
     args = parse_input()
-    fpkm_df = load_table(args.fpkm)
     compare_df = load_table(args.compare)
+    fpkm_df = load_table(args.fpkm, dtype={'GeneID': str})
+    numeric_cols = fpkm_df.columns.difference(['GeneID'])
+    fpkm_df[numeric_cols] = fpkm_df[numeric_cols].replace(0, 0.001)
 
     log2_matrix = fpkm_df[['GeneID']].copy()
     for i, compare in compare_df.iterrows():
         sample_treat = compare['Treat']
         sample_control = compare['Control']
-        compare_name = f'log2_{sample_treat}-vs-{sample_control}'
-        
-        log2_matrix[compare_name] = np.where(fpkm_df[sample_control] == 0, 
-                                         np.inf, 
-                                         fpkm_df[sample_treat] / fpkm_df[sample_control])
-        log2_matrix[compare_name] = np.log2(log2_matrix[compare_name])
+        compare_name = f'{sample_treat}-vs-{sample_control}'
+        log2_matrix[compare_name] = np.log2(fpkm_df[sample_treat] / fpkm_df[sample_control])
     
     write_output_df(log2_matrix, 'log2_fpkm_matrix.txt', index=False)
  
-    plot_fold_change_distribution(log2_matrix, args.output + '.jpg', args.output + '.txt')
+    plot_fold_change_distribution(
+        log2_matrix,
+        args.output_prefix+ '.jpg',
+        args.output_prefix + '.txt'
+    )
     
     logger.success(f'{__file__} Done!')
 
