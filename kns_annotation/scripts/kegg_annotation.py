@@ -128,6 +128,10 @@ class EmailReceiver:
         return result
     
     
+class KeggUploadError(Exception):
+    """KEGG 上传相关的异常"""
+    pass
+
 def upload_fasta_to_kegg(fasta_file, org_lst, eamil_address):
     fasta_file_name = fasta_file.split('/')[-1]
     # step.1 读取文件为上传的格式
@@ -209,28 +213,21 @@ def upload_fasta_to_kegg(fasta_file, org_lst, eamil_address):
     # upload file
     logger.info(f'uploading {fasta_file_name}...')
     response = requests.post(upload_file_url, headers=headers, data=payload)
-    if response.status_code == 200:
-        logger.info(f'uploaded {fasta_file_name}...')
-    else:
-        logger.critical(f'upload failed {fasta_file_name}!')
-        logger.critical(response.text)
-        exit(1)
+    if response.status_code != 200:
+        raise KeggUploadError(f'上传失败 {fasta_file_name}! 状态码: {response.status_code}\n{response.text}')
+    
     html = etree.HTML(response.text)
     
     # check upload status
     sub_element = html.xpath('//div[@id="main"]/p[1]/text()')[0]
     right_sub = 'Job Request'
-    # An eamil has been sent to email_address for confirmation.
-    # res_element = html.xpath('//p[@class="res"]/text()')[0]
-    # right_res = f'An email has been sent to {eamil_address} for confirmation.'
+    
     if sub_element == right_sub:
         logger.success('upload success!')
     elif 'Sorry' in sub_element:
-        logger.critical(f'upload failed!\nerror message: {sub_element}')
-        sys.exit(1)
+        raise KeggUploadError(f'上传失败!\n错误信息: {sub_element}')
     else:
-        logger.critical(f'upload failed!\n{response.text}')
-        sys.exit(1)
+        raise KeggUploadError(f'上传失败!\n{response.text}')
     
 
 def email_link_click(link):
@@ -257,7 +254,12 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
     # 用来判断是否是同一个邮件
     mail_date = mail_content['date']
 
-    upload_fasta_to_kegg(fasta_file, org_lst, username)
+    try:
+        upload_fasta_to_kegg(fasta_file, org_lst, username)
+    except KeggUploadError as e:
+        logger.critical(f"上传失败: {str(e)}")
+        raise
+
     time.sleep(5)
     job_ID = None
     job_key = None
@@ -275,14 +277,14 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
                 break
             else:
                 logger.critical(f'Job request Failed! not Submitted ID:{job_ID}!')
-                sys.exit(1)
+                raise KeggUploadError(f'任务提交失败! ID:{job_ID}')
         elif mail_content['date'] == mail_date:
             logger.info(f'receiving job request email {t+1} times ...')
             time.sleep(5)
             t += 1
         else:
             logger.critical(f'Job request Failed!\n{mail_content}')
-            sys.exit(1)
+            raise KeggUploadError('任务请求失败!')
             
     # step.2 获取任务提交状态
     status_link = None
@@ -302,19 +304,27 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
             t += 1
         else:
             logger.critical(f'Job Accept Failed!\n{mail_content}')
-            sys.exit(1)
+            raise KeggUploadError('任务接受失败!')
             
     # step.3 获取任务完成状态
     # 校验是否同一个任务
     if job_ID != status_ID:
         logger.error('request_ID and status_ID are not the same!')
+        raise KeggUploadError('任务ID不匹配!')
     
+    # 根据序列数量动态计算等待时间
     fasta_seq_num = len([record for record in SeqIO.parse(fasta_file, "fasta")])
-    wait_times = int(fasta_seq_num/1000)*60
+    base_wait_time = 60  # 基础等待时间（分钟）
+    wait_times = max(int(fasta_seq_num/1000)*base_wait_time, base_wait_time)  # 至少等待基础时间
     logger.info(f'Job is running wait for {wait_times/60} minutes ...')
-    time.sleep(wait_times)
     
-    for t in range(1, 60):
+    # 使用指数退避策略进行等待
+    max_retries = 60
+    base_sleep_time = 300  # 5分钟
+    max_sleep_time = 1800  # 30分钟
+    current_sleep_time = base_sleep_time
+    
+    for t in range(1, max_retries):
         mail_content = mail.receive_mail(username, password)
         
         if 'Annotation was completed' in mail_content['subject'] and 'kaas@genome.jp' in mail_content['from']:
@@ -337,7 +347,7 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
                 logger.success('checking file done ...')
             else:
                 logger.critical(f'get file failed!, file is not correct ID{job_ID},key{job_key}!\n{resp}')
-                sys.exit(1)
+                raise KeggUploadError('获取结果文件失败!')
                 
             # output file
             with open(output_file, 'w') as kegg_annotation:
@@ -346,20 +356,22 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
             
             break
         elif mail_content['date'] == mail_date:
-            logger.info(f'Job is running, checked email {t} times(5min) ...')
-            if t == 60:
-                logger.error(f'Job maybe error, Have been waiting 360 minutes ...')
-                sys.exit(1)
-            time.sleep(300)
+            logger.info(f'Job is running, checked email {t} times({current_sleep_time/60}min) ...')
+            if t == max_retries:
+                logger.error(f'Job maybe error, Have been waiting {max_retries*base_sleep_time/60} minutes ...')
+                raise KeggUploadError('任务执行超时!')
+            time.sleep(current_sleep_time)
+            # 使用指数退避策略增加等待时间
+            current_sleep_time = min(current_sleep_time * 1.5, max_sleep_time)
             t += 1
         else:
             logger.critical(f'Job Failed!\n{mail_content}')
-            sys.exit(1)
+            raise KeggUploadError('任务执行失败!')
 
 
 def ko03000(kegg_gene_df, kegg_tier3_df):
     ko03000_def_df_file = '/home/colddata/qinqiang/script/kns_annotation/scripts/ko03000_def.txt'
-    ko03000_def_df = pd.read_csv(ko03000_def_df_file, sep='\t')
+    ko03000_def_df = load_table(ko03000_def_df_file)
     ko03000_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03000")]['GeneID'].tolist()
     ko03022_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03022")]['GeneID'].tolist()
     
@@ -371,93 +383,111 @@ def ko03000(kegg_gene_df, kegg_tier3_df):
     return ko03000_df, ko03022_df
 
 
-def parse_keg(ko_file, specie_type, all_id_file, fpkm, reads, output_prefix):
-    kegg_db = load_table('/home/colddata/qinqiang/script/kns_annotation/scripts/kegg_db.txt')
-    ko_df = load_table(ko_file, header=None, names=['GeneID', 'KO_ID'])
-    ko_df = ko_df.dropna(subset=['KO_ID'])
-    ko_df = pd.merge(left=ko_df, right=kegg_db, on='KO_ID', how='left')
-    ko_df = ko_df[['GeneID', 'KEGG_Pathway', 'Category', 'Metabolism_Class', 'KO_ID', 'Gene_Symbol', 'Enzyme_Description']]
-    kegg_clean_file = output_prefix + '_KEGG_clean.txt'
-    
+def filter_ko_df(ko_df, specie_type):
     # 植物物种过滤动物的一些注释
     if specie_type == 'plant':
-        # 过滤掉包含 A09160 和 A09190 的行
-        ko_df = ko_df[~ko_df['Metabolism_Class'].str.contains('A09160', na=False)]
-        ko_df = ko_df[~ko_df['Metabolism_Class'].str.contains('A09190', na=False)]
+        # 定义需要过滤的类别
+        filter_categories = {
+            'A09160': 'Human Diseases',  # 人类疾病
+            'A09190': 'Organismal Systems',  # 生物系统
+            'A09150': {  # 生物系统（部分保留）
+                'keep_patterns': [
+                    '09158:Development and regeneration',  # 发育和再生
+                    '09159:Environmental adaptation'  # 环境适应
+                ]
+            }
+        }
         
-        # 对于包含 A09150 的行，只保留包含特定字符串的行
-        mask = ko_df['Metabolism_Class'].str.contains('A09150:Organismal Systems', na=False)
-        if mask.any():
-            ko_df.loc[mask] = ko_df.loc[mask][
-                ko_df['Category'].str.contains('09158:Development and regeneration|09159:Environmental adaptation', na=False)
-            ]
+        # 过滤掉完全不需要的类别
+        for category in ['A09160', 'A09190']:
+            ko_df = ko_df[~ko_df['Category'].str.contains(category, na=False)]
+        
+        # 处理需要部分保留的类别
+        if 'A09150' in filter_categories:
+            mask = ko_df['Category'].str.contains('A09150:Organismal Systems', na=False)
+            if mask.any():
+                keep_pattern = '|'.join(filter_categories['A09150']['keep_patterns'])
+                ko_df = ko_df[~mask | (mask & ko_df['Subcategory'].str.contains(keep_pattern, na=False))]
         
         # 删除所有空值行
-        ko_df = ko_df.dropna(subset=['Metabolism_Class'])
+        ko_df = ko_df.dropna(subset=['Category'])
         
-    write_output_df(ko_df, kegg_clean_file, header=False, index=False)
-        # for each_line in f1:
-        #     if 'A09160' in each_line:
-        #         continue
-        #     if 'A09190' in each_line:
-        #         continue
-        #     if 'A09150' in each_line:
-        #         if '09158:Development and regeneration' not in each_line and '09159:Environmental adaptation' not in each_line:
-        #             continue
-        #     f2.write(each_line)
-                
+    return ko_df
+
+
+def parse_keg(ko_file, specie_type, all_id_file, fpkm, reads, output_prefix):
+    kegg_db = load_table('/home/colddata/qinqiang/script/kns_annotation/scripts/kegg_db.txt')
+    ko_df = load_table(ko_file, header=None, names=['GeneID', 'KO_ID'], dtype=str)
+    ko_df = ko_df.dropna(subset=['KO_ID'])
+    ko_df = pd.merge(left=ko_df, right=kegg_db, on='KO_ID', how='left')
+    ko_df = ko_df[['GeneID', 'KEGG_Pathway', 'Subcategory', 'Category', 'KO_ID', 'Gene_symbol', 'Enzyme_Description']]
     
+    # 过滤，保存 KEGG_clean.txt 文件
+    kegg_clean_file = output_prefix + 'KEGG_clean.txt'
+    ko_df = filter_ko_df(ko_df, specie_type)
+    write_output_df(ko_df, kegg_clean_file, header=False, index=False)
+                
     # 生成 KEGG_gene_def 文件
     kegg_gene_def_titles = ['GeneID', 'Pathway', 'Level2', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number']
-    kegg_clean_df = pd.read_csv(kegg_clean_file, sep='\t', header=None, names=kegg_gene_def_titles, dtype={"GeneID": str})
+    kegg_clean_df = load_table(kegg_clean_file, header=None, names=kegg_gene_def_titles, dtype={"GeneID": str})
     gene_def_df = kegg_clean_df.drop(columns=['Pathway', 'Level2', 'Level1']).copy()
     gene_def_df.drop_duplicates(subset=['GeneID', 'KEGG_ID'], keep='first', inplace=True)
-    logger.info('生成 KEGG_gene_def 文件，去重前的数量:{}，去重后的数量:{}'.format(kegg_clean_df.shape[0]-1, gene_def_df.shape[0]-1))
-    gene_def_df['EC_number'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[1].str.replace(']', '').str.split(' ', expand=True)[0]
+    logger.info('输出 KEGG_gene_def 文件，去重前的数量:{}，去重后的数量:{}'.format(kegg_clean_df.shape[0]-1, gene_def_df.shape[0]-1))
+    
+    # 提取 EC 编号
+    def extract_ec_number(desc):
+        try:
+            ec_match = re.search(r'\[(EC \d+\.\d+\.\d+\.\d+)\]', desc)
+            return ec_match.group(1) if ec_match else '---'
+        except (AttributeError, TypeError):
+            return '---'
+            
+    gene_def_df['EC_number'] = gene_def_df['Description EC_number'].apply(extract_ec_number)
     gene_def_df['KEGG_def'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[0].str.strip()
-    gene_def_df.fillna(value='NA', inplace=True)
-    # Gene_shortname 不能设置空为 NA，设置为空（张老师说的）好像是某个软件识别 NA 会有问题
-    gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0].fillna(value='')
+    gene_def_df.fillna(value='---', inplace=True)
+    
+    # Gene_shortname 不能设置空为 NA，好像是某个软件识别 NA 会有问题（张老师说的）
+    gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0].fillna('')
     gene_def_df.drop(columns='Description EC_number', inplace=True)
-    gene_def_df.to_csv(output_prefix + '_KEGG_gene_def.txt', sep='\t', index=False)
+    write_output_df(gene_def_df, output_prefix + 'KEGG_gene_def.txt', header=False, index=False)
     
     # 如果指定了 -i allgeneid 文件，则生成 all_gene_id + KEGG gene_short_name 新文件
     if all_id_file:
-        all_gene_df = pd.read_csv(all_id_file, sep='\t', names=['GeneID'], dtype={"GeneID": str})
+        all_gene_df = load_table(all_id_file, header=None, names=['GeneID'], dtype={"GeneID": str})
         all_gene_df = pd.merge(left=all_gene_df, right=gene_def_df[['GeneID', 'Gene_shortname']], on='GeneID', how='left')
         all_gene_df.fillna(value='', inplace=True)
-        all_gene_df.to_csv(output_prefix + '_shortname.txt', sep='\t', index=False)
+        write_output_df(all_gene_df, output_prefix + 'shortname.txt', header=False, index=False)
     
     # 生成 tier2 文件
-    tier2_name = output_prefix + '_KEGG_tier2.txt'
+    tier2_name = output_prefix + 'KEGG_tier2.txt'
     tier2_df = kegg_clean_df.copy()
     tier2_df.drop(columns=['Pathway', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number'], inplace=True)
     tier2_df['Level2'] = tier2_df['Level2'].str.replace('\\','').str.replace(' / ', '_').str.replace('/', '_').str.replace(', ', '').str.replace(',', '_')
     tier2_df.drop_duplicates(keep='first', inplace=True)
-    tier2_df.to_csv(tier2_name, sep='\t', index=False, header=None)
+    write_output_df(tier2_df, tier2_name, header=False, index=False)
     
     # tier3 文件，后来改名 KEGG.txt 了
     # geneid \t ko pathway
     # no header
-    tier3_name = output_prefix + '_KEGG.txt'
+    tier3_name = output_prefix + 'KEGG.txt'
     tier3_df = kegg_clean_df.copy()
     tier3_df.drop(columns=['Level2', 'Level1', 'KEGG_ID', 'Gene_shortname', 'Description EC_number'], inplace=True)
     tier3_df['Pathway'] = tier3_df['Pathway'].str.replace('\\','').str.replace(' / ', '_').str.replace('/', '_').str.replace(', ', '').str.replace(',', '_')
     tier3_df.drop_duplicates(keep='first', inplace=True)
-    tier3_df.to_csv(tier3_name, sep='\t', index=False, header=None)
+    write_output_df(tier3_df, tier3_name, header=False, index=False)
     
     # ko03022_basal_transcription_factor.txt (子集) from tier3
     # 比对 ko03000_def.txt 加上定义
     ko03000_df, ko03022_df = ko03000(gene_def_df, tier3_df)
-    ko03000_df.to_csv(output_prefix + '_ko03000_transcription_factors.txt', sep='\t', index=False)
-    ko03022_df.to_csv(output_prefix + '_ko03022_basal_transcription_factor.txt', sep='\t', index=False)
+    write_output_df(ko03000_df, output_prefix + 'ko03000_transcription_factors.txt', index=False)
+    write_output_df(ko03022_df, output_prefix + 'ko03022_basal_transcription_factor.txt', index=False)
     
     # ko03000 需要增加表达量，生成新文件 (2024_02_22)
     if fpkm and reads:
         ko03000_fpkm_reads_df = merge_fpkm_reads(fpkm, reads)
         ko03000_fpkm_reads_df = pd.merge(ko03000_fpkm_reads_df, ko03000_df, on='GeneID', how='inner')
         # ko03000_fpkm_reads_df = ko03000_fpkm_reads_df[ko03000_fpkm_reads_df['GeneID'].isin(ko03000_df['GeneID'])]
-        ko03000_fpkm_reads_df.to_csv(output_prefix + '_ko03000_expression_data_def.txt', sep='\t', index=False)
+        write_output_df(ko03000_fpkm_reads_df, output_prefix + 'ko03000_expression_data_def.txt', index=False)
 
 
 def split_fasta(fasta_file, split_parts: int):
@@ -533,13 +563,18 @@ def parse_input():
     else:
         args.fpkm, args.reads = False, False
     
-    return parser.parse_args()
+    if args.output_prefix:
+        if not args.output_prefix.endswith('_'):
+            args.output_prefix = args.output_prefix + '_'
+    else:
+        args.output_prefix = ''
+    
+    return args
 
 
 def main():
     args = parse_input()
     ko_file = args.ko_file
-    
     # 分割 fasta 文件，合并写入 keg 文件
     if args.split and args.split > 1:
         split_fasta(args.fasta, args.split)
@@ -547,12 +582,13 @@ def main():
         fasta_file_list = [f'{os.path.join(split_dir, x)}' for x in os.listdir(split_dir)]
         sp_file_lst = []
         for i, fasta_file in enumerate(fasta_file_list):
-            ko_sp_file = ko_file.replace('.ko', f'_{i}.ko')
+            ko_sp_file = f'{ko_file}.{i}'
             sp_file_lst.append(ko_sp_file)
             kegg_anno(args.mail_type, args.username, args.password, fasta_file, args.org_lst, ko_sp_file)
         with open(ko_file, "w") as outfile:
             for filepath in sp_file_lst:
                 outfile.write(filepath.read_text())
+
     # 直接运行注释
     elif args.org_lst and args.fasta:
         kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, ko_file)
@@ -560,10 +596,8 @@ def main():
     # 解析 keg 文件
     parse_keg(ko_file, args.type, args.allid, args.fpkm, args.reads, args.output_prefix)
     
-    # ko 与数据库合并
-    
     # 画图
-    kegg_levelb_count_barplot(f'{args.output_prefix}_KEGG_clean.txt', f'{args.output_prefix}_KEGG_levelB_count.jpeg')
+    kegg_levelb_count_barplot(f'{args.output_prefix}KEGG_clean.txt', f'{args.output_prefix}KEGG_levelB_count.jpeg')
     
     logger.success('Done!')
 
