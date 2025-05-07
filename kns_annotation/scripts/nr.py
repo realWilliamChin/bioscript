@@ -16,8 +16,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import Counter
 from loguru import logger
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/Fasta/'))
+sys.path.append('/home/colddata/qinqiang/script/CommonTools/Fasta/')
 from get_sequence_from_list import get_seq_from_idlist
+sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
+from load_input import load_table, write_output_df
 
 
 def parse_input():
@@ -74,11 +76,11 @@ def nr_annotation(fasta_file, blast_file, outfmt):
 
 
 def nr(nr_blast_file, gene_basicinfo_file, nr_columns, output_prefix):
-    data_frame = pd.read_csv(nr_blast_file, sep='\t', names=nr_columns, dtype=str)
+    data_frame = load_table(nr_blast_file, names=nr_columns, dtype={'GeneID': str})
 
     data_frame = data_frame.sort_values(by=['qseqid', 'bitscore'], ascending=[True, False])
     data_frame = data_frame.drop_duplicates(subset=['qseqid'], keep='first')
-    data_frame.to_csv(output_prefix +  'nr_uniq.blast', sep='\t', index=False)
+    write_output_df(data_frame, output_prefix +  'nr_uniq_blast.txt', index=False)
     nr_gene_def_df = data_frame[['qseqid', 'sseqid', 'stitle']].copy()
     nr_gene_def_df.columns = ['GeneID', 'NCBI_ID', 'NR_Def']
     nr_gene_def_df['NR_Def'] = nr_gene_def_df['NR_Def'].str.split(n=1).str[1]
@@ -89,16 +91,16 @@ def nr(nr_blast_file, gene_basicinfo_file, nr_columns, output_prefix):
         nr_gene_def_df = nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file)
     else:
         print('没有检测到 gene_basicinfo 文件，或文件输入有误，如没有输入 -b 参数，忽略此条消息')
-        
-    nr_gene_def_df.to_csv(output_prefix + 'nr_gene_def.txt', sep='\t', index=False)
+    
+    write_output_df(nr_gene_def_df, output_prefix + 'nr_gene_def.txt', index=False)
     
     nr_TF_def_df = nr_gene_def_df[nr_gene_def_df['NR_Def'].str.contains('transcription')]
     nr_TF_def_df = nr_TF_def_df.sort_values(by='NR_Def', key=lambda x: x.str.lower())
-    nr_TF_def_df.to_csv(output_prefix + 'nr_TF_def.txt', sep='\t', index=False)
+    write_output_df(nr_TF_def_df, output_prefix + 'nr_TF_def.txt', index=False)
 
 
 def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
-    gff_basicinfo_df = pd.read_csv(gene_basicinfo_file, sep='\t', usecols=['GeneID', 'Gene_Def'])
+    gff_basicinfo_df = load_table(gene_basicinfo_file, usecols=['GeneID', 'Gene_Def'], dtype={'GeneID': str})
     print(f'总基因数量是 {gff_basicinfo_df.shape[0]} 个')
     
     # 没有注释上的
@@ -123,9 +125,8 @@ def nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file):
 
 
 def get_not_annotationed_fasta(fasta, nr_uniq_blast_file, output_prefix):
-    nr_uniq_bast_df = pd.read_csv(nr_uniq_blast_file, sep='\t', usecols=[0], skiprows=1, names=['GeneID'])
-    get_seq_from_idlist(nr_uniq_bast_df, fasta, 'off', output_prefix + "nr_not_annotationed.fasta")
-
+    nr_uniq_blast_df = load_table(nr_uniq_blast_file, header=0, usecols=[0], names=['GeneID'], dtype={'GeneID': str})
+    get_seq_from_idlist(nr_uniq_blast_df, fasta, 'off', output_prefix + "nr_not_annotationed.fasta")
 
 
 def specie_count(uniq_blast_file, output_file):
@@ -145,8 +146,8 @@ def specie_count(uniq_blast_file, output_file):
 
 
 def spcie_count_plot(specie_count_file, output_pic_file):
-    
-    species = pd.read_csv(specie_count_file, sep="\t", header=None).loc[:9,]
+    species = load_table(specie_count_file, header=None, dtype={0: str})
+    species = species.loc[:9, :]
     species.columns = ["Species", "Count"]
 
     # 创建饼图
@@ -181,7 +182,7 @@ def spcie_count_plot(specie_count_file, output_pic_file):
 
 def identity_plot(uniq_blast_file, output_pic_file):
     # 读取数据
-    id_nr = pd.read_csv(uniq_blast_file, sep="\t", usecols=[2,], skiprows=1, )
+    id_nr = load_table(uniq_blast_file, skiprows=1, usecols=[2], dtype={0: str})
     id_data = id_nr.iloc[:, 0]
 
     # 创建分箱区间并统计
@@ -248,9 +249,9 @@ def main():
     if args.not_annotationed:
         get_not_annotationed_fasta(args.fasta, args.blast, out_prefix)
     
-    specie_count(out_prefix + 'nr_uniq.blast', out_prefix + 'nr_specie_count.txt')
+    specie_count(out_prefix + 'nr_uniq_blast.txt', out_prefix + 'nr_specie_count.txt')
     spcie_count_plot(out_prefix + 'nr_specie_count.txt', out_prefix + 'sp_distribution_Top10.jpeg')
-    identity_plot(out_prefix + 'nr_uniq.blast', out_prefix + 'id_distribution.jpeg')
+    identity_plot(out_prefix + 'nr_uniq_blast.txt', out_prefix + 'id_distribution.jpeg')
     
     logger.success('Done!')
 
