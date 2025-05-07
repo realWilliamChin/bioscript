@@ -437,8 +437,10 @@ def parse_keg(ko_file, specie_type, all_id_file, fpkm, reads, output_prefix):
     # 提取 EC 编号
     def extract_ec_number(desc):
         try:
-            ec_match = re.search(r'\[(EC \d+\.\d+\.\d+\.\d+)\]', desc)
-            return ec_match.group(1) if ec_match else '---'
+            ec_match = re.search(r'\[EC[^]]*\]', desc)
+            if ec_match:
+                return ec_match.group(0).strip('[]')
+            return '---'
         except (AttributeError, TypeError):
             return '---'
             
@@ -449,7 +451,7 @@ def parse_keg(ko_file, specie_type, all_id_file, fpkm, reads, output_prefix):
     # Gene_shortname 不能设置空为 NA，好像是某个软件识别 NA 会有问题（张老师说的）
     gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0].fillna('')
     gene_def_df.drop(columns='Description EC_number', inplace=True)
-    write_output_df(gene_def_df, output_prefix + 'KEGG_gene_def.txt', header=False, index=False)
+    write_output_df(gene_def_df, output_prefix + 'KEGG_gene_def.txt', index=False)
     
     # 如果指定了 -i allgeneid 文件，则生成 all_gene_id + KEGG gene_short_name 新文件
     if all_id_file:
