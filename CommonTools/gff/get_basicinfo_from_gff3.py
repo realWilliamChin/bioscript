@@ -5,36 +5,17 @@
 import os
 import re
 import argparse
+from loguru import logger
 
 
 def parse_input():
     argparser = argparse.ArgumentParser(description='处理一些 gff3 文件，生成 chromesome geneid startpos endpos strand')
     argparser.add_argument('-g', '--gff', help='gff3 file，默认是当前文件夹下的 gff3 或者 gff 文件')
     argparser.add_argument('-p', '--prefix', required=True, help='输出文件的前缀')
-    argparser.add_argument('-t', '--gfftype', choices=['embl', 'ncbi', 'other'],
-                           help='gff 类型, embl or ncbi，默认自动检测，检测失败手动输入')
     argparser.add_argument('--re', default='gene-(.*?);', help='指定正则表达式，用来提取 geneid，默认为 gene-(.*?);')
     args = argparser.parse_args()
     
-    if args.gfftype == 'other':
-        if not args.re_pattern:
-            argparser.error('指定 other 类型时，必须指定 re_pattern')
-    
     return args
-
-
-def detect_gff_type(gff_file):
-    with open(gff_file, 'r') as f:
-        gff_data = f.read()
-        embl_type_count = gff_data.count("ID=gene:")
-        ncbi_type_count = gff_data.count("ID=gene-")
-        if embl_type_count > 0 and ncbi_type_count == 0:
-            return "embl"
-        elif embl_type_count == 0 and ncbi_type_count > 0:
-            return "ncbi"
-        else:
-            print("nr_gff.py 注释检测 gff 类型失败！将尝试对 gff 进行解析")
-            return "other"
 
 
 def get_all_id(gene_basicinfo_file, key_name):
@@ -44,58 +25,37 @@ def get_all_id(gene_basicinfo_file, key_name):
     os.system(command)
     
 
-def get_basic_info(gff_file, output_file, gff_type, re_pattern):
+def get_basic_info(gff_file, output_file, re_pattern):
     # ncbi 的 chromosome
     ncbi_chromosome = None
     
     with open(output_file, 'w') as gff3_w:
-        gff3_w.write('GeneID\tChr_Number\tStart\tEnd\tStrand\tGene_Def\n')
+        gff3_w.write('GeneID\tChromosome\tStart\tEnd\tStrand\tGene_type\n')
     with open(gff_file, 'r') as file:
         for line in file:
             line = line.strip()
+            columns = line.split('\t')
             # 过滤空行
             if not line or len(line.split('\t')) < 3:
                 continue
             if 'chromosome=' in line:
-                ncbi_chromosome = re.search('chromosome=(.*?);', line).group(1)
+                chromosome = re.search('chromosome=(.*?);', line).group(1)
+            else:
+                chromosome = columns[0]
             if line.startswith('#'):
                 continue
             if 'gene' not in line.split('\t')[2].lower():
                 continue
             
-            columns = line.split('\t')
-            # 根据 embl 和 ncbi 分形式提取
-            if gff_type == 'embl':
-                chromosome = columns[0]
-                try:
-                    gene_id = re.search('ID=gene:(.*?);', line).group(1)
-                except Exception:
-                    continue
-                try:
-                    biotype = re.search('biotype=(.*?);', line).group(1)
-                except Exception:
-                    biotype = 'NA'
-            elif gff_type == 'ncbi':
-                chromosome = ncbi_chromosome
-                try:
-                    gene_id = re.search('GeneID:(.*?);', line).group(1).split(',')[0]
-                except Exception:
-                    continue
-                try:
-                    biotype = line.split('gene_biotype=')[1].strip().split(';')[0]
-                except Exception:
-                    biotype = 'NA'
-            else:
-                chromosome = columns[0]
-                try:
-                    biotype = re.search('biotype=(.*?);', line).group(1)
-                except AttributeError:
-                    biotype = 'NA'
-                try:
-                    gene_id = re.search(re_pattern, line).group(1).split(',')[0]
-                except Exception:
-                    print('GeneID not found, save to not_fount.txt')
-                    open('not_found.txt', 'a').write(line + '\n')
+            try:
+                biotype = re.search('biotype=(.*?)(?:;|$)', line).group(1)
+            except AttributeError:
+                biotype = '---'
+            try:
+                gene_id = re.search(re_pattern, line).group(1).split(',')[0]
+            except Exception:
+                logger.warning('GeneID not found, save to not_found.txt')
+                open('not_found.txt', 'a').write(line + '\n')
                 
             
             start_pos = int(columns[3])
@@ -114,17 +74,14 @@ def main():
     else:
         gff_file = [x for x in os.listdir() if x.endswith('.gff3') or x.endswith('.gff') or x.endswith('.gtf')][0]
 
-    if args.gfftype == 'auto_detect':
-        args.gfftype = detect_gff_type(gff_file)
-
     gene_basicinfo_name = args.prefix + '_gene_basicinfo.txt'
     
     # 生成 gene_basicinfo 文件
-    get_basic_info(gff_file, gene_basicinfo_name, args.gfftype, args.re)
+    get_basic_info(gff_file, gene_basicinfo_name, args.re)
     # 生成 gene_id 的文件
     get_all_id(gene_basicinfo_name, args.prefix)
     
-    print('Done!')
+    logger.info('Done!')
 
 
 if __name__ == '__main__':
