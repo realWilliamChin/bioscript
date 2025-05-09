@@ -35,17 +35,20 @@ def load_table(table_file, *args, **kwargs):
 
     # 根据文件扩展名选择读取函数
     ext = table_file.split('.')[-1]
-    if ext in ['csv', 'tsv']:
-        reader = pd.read_csv
-    elif ext in ['xls', 'xlsx']:
+    if ext in ['xls', 'xlsx']:
         reader = pd.read_excel
-    elif ext == 'txt':
+    elif ext in ['txt', 'tsv', 'blast']:
         reader = lambda file, **kwargs: pd.read_csv(file, sep='\t', **kwargs)
     else:
-        raise ValueError(f"不支持的文件格式: {ext}")
+        reader = lambda file, **kwargs: pd.read_csv(file, **kwargs)
 
     # 读取数据, 并将 *args, **kwargs 传递给读取函数
     df = reader(table_file, *args, **kwargs)
+    
+    # 检查列名中是否包含 geneid/GeneID/gene_id, 如果有则将其转换为字符串类型（经常忘，写在这里）
+    gene_id_cols = [col for col in df.columns if 'geneid' in col.lower() or 'gene_id' in col.lower()]
+    if gene_id_cols:
+        df[gene_id_cols] = df[gene_id_cols].astype(str)
     return df
 
 
@@ -60,14 +63,12 @@ def write_output_df(df, output_file, *args, **kwargs):
         output_file (_type_): _description_
     """
     ext = output_file.split('.')[-1]
-    if ext in ['csv', 'tsv']:
-        df.to_csv(output_file, *args, **kwargs)
-    elif ext in ['xls', 'xlsx']:
-        df.to_excel(output_file, *args, **kwargs)
-    elif ext == 'txt':
+    if ext in ['xls', 'xlsx']:
+        df.to_excel(output_file, engine='openpyxl', *args, **kwargs)
+    elif ext in ['txt', 'tsv', 'blast']:
         df.to_csv(output_file, sep='\t', *args, **kwargs)
     else:
-        raise ValueError(f"不支持的文件格式: {ext}")
+        df.to_csv(output_file, *args, **kwargs)
 
 
 def main():
