@@ -36,7 +36,7 @@ def load_table(table_file, *args, **kwargs):
     # 根据文件扩展名选择读取函数
     ext = table_file.split('.')[-1]
     if ext in ['xls', 'xlsx']:
-        reader = pd.read_excel
+        reader = lambda file, **kwargs: pd.read_excel(file, **kwargs, engine='openpyxl')
     elif ext in ['txt', 'tsv', 'blast']:
         reader = lambda file, **kwargs: pd.read_csv(file, sep='\t', **kwargs)
     else:
@@ -46,7 +46,7 @@ def load_table(table_file, *args, **kwargs):
     df = reader(table_file, *args, **kwargs)
     
     # 检查列名中是否包含 geneid/GeneID/gene_id, 如果有则将其转换为字符串类型（经常忘，写在这里）
-    gene_id_cols = [col for col in df.columns if 'geneid' in col.lower() or 'gene_id' in col.lower()]
+    gene_id_cols = [col for col in df.columns if 'geneid' in str(col).lower() or 'gene_id' in str(col).lower()]
     if gene_id_cols:
         df[gene_id_cols] = df[gene_id_cols].astype(str)
     return df
