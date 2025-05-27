@@ -15,7 +15,8 @@ from data_check import df_drop_row_sum_eq_zero
 from data_check import df_drop_element_side_space
 from Rscript import draw_multigroup_heatmap
 from Rscript import anova_analysis
-# from genedf_add_knsdef import add_kns_def
+from load_input import load_table, write_output_df
+
 
 
 def parse_input():
@@ -35,13 +36,19 @@ def parse_input():
     return args
 
 
-def group_vs_group_heatmap(group_target_gene_file, samples_file):
-    df = pd.read_csv(group_target_gene_file, sep='\t')
+def group_vs_group_heatmap(group_target_gene_file, samples_file, output_dir):
+    df = load_table(group_target_gene_file, dtype={"GeneID": str})
     fpkm_df = df[['GeneID'] + [col for col in df.columns if col.endswith('FPKM')]]
     no_FPKM_str_columns = [col.replace('_FPKM', '') for col in fpkm_df.columns[1:]]
     fpkm_df.columns = ['GeneID'] + no_FPKM_str_columns
     ontology_df = df[['GeneID', 'SubOntology', 'Ontology']]
-    group_vs_group_heatmap_fname = group_target_gene_file.replace('_data.txt', '_heatmap.xlsx')
+    
+    os.makedirs(os.path.join(output_dir, 'Prep_files'), exist_ok=True)
+    group_vs_group_heatmap_fname = os.path.join(
+        output_dir,
+        'Prep_files',
+        os.path.basename(group_target_gene_file).replace('_data.txt', '_heatmap.xlsx')
+    )
     group_vs_group_heatmap_pname = group_target_gene_file.replace('_data.txt', '_heatmap.jpeg')
     
     group1 = df.head(1)['sampleA'].values[0]
@@ -56,6 +63,32 @@ def group_vs_group_heatmap(group_target_gene_file, samples_file):
         ontology_df.to_excel(writer, sheet_name='Sheet3', index=False)
     
     draw_multigroup_heatmap(group_vs_group_heatmap_fname, group_vs_group_heatmap_pname, other_args='--no-cluster-rows')
+
+
+def deg_target_gene_summary(target_gene_data_list):
+    """将每组目标基因相关的 DEG data 有表达的（Up 和 Down）合并
+
+    Args:
+        target_gene_data_list (list): target_gene_data list
+
+    Returns:
+        pd.DataFrame: 汇总文件
+    """
+    filtered_df_list = []
+    for each_target_gene_data in target_gene_data_list:
+        target_gene_data_df = load_table(each_target_gene_data, dtype={'GeneID': str})
+        if 'regulation' not in target_gene_data_df.columns:
+            logger.warning(f"文件 {each_target_gene_data} 中缺少 regulation 列")
+            continue
+        target_gene_data_df = target_gene_data_df[target_gene_data_df['regulation'].str.lower() != 'nosignificant']
+        # 去掉列名包含 _FPKM 和 _reads 的列
+        columns_to_keep = [col for col in target_gene_data_df.columns if '_FPKM' not in col and '_reads' not in col]
+        target_gene_data_df = target_gene_data_df[columns_to_keep]
+        filtered_df_list.append(target_gene_data_df)
+    
+    summary_df = pd.concat(filtered_df_list)
+    
+    return summary_df
 
 
 def main():
@@ -127,6 +160,8 @@ def main():
     
     draw_multigroup_heatmap(all_gene_ko_heatmap_filename, heatmap_filename, other_args='--no-cluster-rows')
     
+    
+    result_target_gene_data_list = []
     if args.deg_data_dir:
         deg_data_list = os.listdir(args.deg_data_dir)
         for deg_data_file in deg_data_list:
@@ -146,10 +181,19 @@ def main():
             result_df.columns = [col.replace('_df2', '') for col in result_df.columns]
             result_df.set_index('GeneID')
             # result_df.dropna(inplace=True)
-            result_df.to_csv(f'{compare_name}_target_gene_data.txt', sep='\t', index=False)
+            result_df.to_csv(os.path.join(args.output, f'{compare_name}_target_gene_data.txt'), sep='\t', index=False)
+            result_target_gene_data_list.append(os.path.join(args.output, f'{compare_name}_target_gene_data.txt'))
             
             logger.info(f'正在画 {compare_name} heatmap')
-            group_vs_group_heatmap(f'{args.output}/{compare_name}_target_gene_data.txt', samples_file)
+            group_vs_group_heatmap(
+                os.path.join(args.output, f'{compare_name}_target_gene_data.txt'),
+                samples_file,
+                args.output
+            )
+    
+    logger.info('正在对结果汇总')
+    target_gene_summary_df = deg_target_gene_summary(result_target_gene_data_list)
+    write_output_df(target_gene_summary_df, os.path.join(args.output, 'Target_gene_summary_data.txt'), index=False)
     
     logger.success("Done")
 
