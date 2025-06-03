@@ -73,7 +73,7 @@ def gsea(gobp, gocc, gomf, kegg_tier2, kegg_tier3, output_path):
                             globals()[dic1][go_id] = content+';;'+key+'\t'+id
         for each2 in globals()[dic1]:
             output=globals()[dic1][each2].split(';;')[0]+' '+'['+each2+']'+'\t'+globals()[dic1][each2].split(';;')[-1]+'\n'
-            f2.write(output)
+            f2.write(output.replace("GO:", "GO_"))
 
 
 def main():
