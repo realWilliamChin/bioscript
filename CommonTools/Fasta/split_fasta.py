@@ -1,8 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Author: Mitchell R. Vollger
+import os, sys
 import argparse
 import pysam
+from loguru import logger
+
+
+def split_fasta(fasta_file, split_parts: int):
+    split_cmd = f'seqkit split -p {split_parts} {fasta_file}'
+    logger.info(f'运行命令 {split_cmd}')
+    os.system(split_cmd)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
