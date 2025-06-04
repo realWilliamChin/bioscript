@@ -9,9 +9,12 @@ args = parser.parse_args()
 
 with open(args.input, 'r', encoding='utf-8') as input_f, open(args.output, 'a+', encoding='utf-8') as output_f:
     for line in input_f.readlines():
-        print(line)
+        # print(line)
         if 'gene' in line:
+            gene_id = line.split('ID=')[1].split(';')[0].strip()
             output_f.write(line)
-            output_f.write(line.replace('gene', 'exon').replace('ID=', 'ID=exon-'))
+            output_f.write(line.replace('gene', 'mRNA').replace('ID=', 'ID=mRNA-').strip() + f';Parent={gene_id}\n')
+            output_f.write(line.replace('gene', 'CDS').replace('ID=', 'ID=CDS-').strip() + f';Parent={gene_id}\n')
+            output_f.write(line.replace('gene', 'exon').replace('ID=', 'ID=exon-').strip() + f';Parent={gene_id}\n')
         else:
             output_f.write(line)
