@@ -20,9 +20,7 @@ def parse_input():
     return p.parse_args()
 
 
-def data2fpkm(input_file, output_file):
-    df = load_table(input_file)
-    
+def data2fpkm(df):
     if not df.iloc[:, 1:].apply(pd.to_numeric, errors='coerce').notnull().all().all():
         logger.critical("输入文件中包含非数值数据，请检查。")
         sys.exit(1)
@@ -34,11 +32,12 @@ def data2fpkm(input_file, output_file):
     normalized_df = df.iloc[:, 1:].div(column_sums, axis=1) * 100
     normalized_df.insert(0, df.columns[0], row_names)
     
-    # 输出到文件
-    write_output_df(normalized_df, output_file, index=False)
+    return normalized_df
 
 
 if __name__ == "__main__":
     args = parse_input()
-    data2fpkm(args.input_file, args.output_file)
+    df = load_table(args.input_file)
+    out_df = data2fpkm(df)
     
+    write_output_df(out_df, args.output_file, index=False)
