@@ -113,22 +113,69 @@ def up_down_idlist_geneid2kid(down_df, up_df, output_prefix, kegg_clean_file):
     write_output_df(pre_passed_path_df, output_prefix + '_pre_passed_path.txt', index=False)
 
 
-def transcriptome(ko_list_file, enrich_dir, deg_data_dir, samples_described_df, kegg_pathway_df,
+def kegg_summary(input_target_df, df_list):
+    """kegg summary 汇总文件
+
+    Args:
+        input_target_df (str): 输入文件 KEGG_Pathway_ID，Ontology，Subontology ...
+        df_list (list): 需要汇总的 dataframe list
+
+    Returns:
+        pd.DataFrame: 输出结果 dataframe
+    """
+    kegg_output_summary_df = pd.concat(df_list)
+    kegg_output_summary_df.drop(columns=['Ontology'], inplace=True)
+    kegg_output_summary_df.rename(columns={'ID': 'KEGG_Pathway_ID'}, inplace=True)
+    if 'Ontology' in input_target_df.columns and 'SubOntology' in input_target_df.columns:
+        kegg_output_summary_df = pd.merge(
+            kegg_output_summary_df,
+            input_target_df[['KEGG_Pathway_ID', 'Ontology', 'SubOntology']],
+            how='left',
+            on='KEGG_Pathway_ID'
+        )
+    return kegg_output_summary_df
+
+
+def ko03000_deg_data_summary(input_dir):
+    """每个组间 ko03000 相关目标基因有表达结果汇总
+
+    Args:
+        input_dir (str): 结果目录
+
+    Returns:
+        pd.DataFrame: 结果 dataframe
+    """
+    ko03000_df_list = []
+    for each_dir in os.listdir(input_dir):
+        if '-vs-' not in each_dir:
+            continue
+        ko03000_data_df = load_table(
+            os.path.join(input_dir, each_dir, 'DEG_expression_data', f'{each_dir}_ko03000_DEG_data.csv'),
+            header = 0,
+            usecols = ['GeneID', 'sampleA', 'sampleB', 'pvalue', 'padj', 'regulation', 'FC', 'KEGG_Description']
+        )
+        ko03000_data_df = ko03000_data_df[ko03000_data_df['regulation'].str.lower() != 'nosignificant']
+        ko03000_df_list.append(ko03000_data_df)
+    ko03000_df = pd.concat(ko03000_df_list)
+    return ko03000_df
+
+
+def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_df, kegg_pathway_df,
                   kegg_clean_file, treat_color, control_color, output_dir):
     """
-    针对转录组的 KEGG 分析
+    DEG 数据的 KEGG 分析
     """
-    ko_list = load_table(ko_list_file, usecols=[0])['KEGG_Pathway_ID'].values.tolist()
+    input_target_ko_df = load_table(ko_list_file)
+    ko_list = input_target_ko_df['KEGG_Pathway_ID'].values.tolist()
     deg_data_list = [x for x in os.listdir(deg_data_dir) if x.endswith('_DEG_data.txt')]
     
     kegg_output_summary_df_list = []
     for deg_data_file in deg_data_list:
-
         # 读取 DEG_data.txt 文件，获取比较组信息
         deg_data_df = load_table(os.path.join(deg_data_dir, deg_data_file), dtype=str)
         treat_group = deg_data_df.iloc[0, 1]
         control_group = deg_data_df.iloc[0, 2]
-        compare_info = treat_group + '_vs_' + control_group
+        compare_info = treat_group + '-vs-' + control_group
         compare_info_dir = os.path.join(output_dir, compare_info)
         
         # 转录组 KEGG 分析输出文件夹创建
@@ -170,7 +217,7 @@ def transcriptome(ko_list_file, enrich_dir, deg_data_dir, samples_described_df, 
         logger.info(f"====正在处理 {compare_info}====")
         up_df = deg_data_df[deg_data_df['regulation'] == 'Up']['GeneID']
         down_df = deg_data_df[deg_data_df['regulation'] == 'Down']['GeneID']
-        
+
         crt_group_samples = samples_described_df[samples_described_df['group'].isin([treat_group, control_group])]['sample'].to_list()
         fpkm_df = deg_data_df[["GeneID"] + [x + '_FPKM' for x in crt_group_samples]]
         # 把 fpkm_df 的所有列名带 _FPKM 的去掉
@@ -179,7 +226,6 @@ def transcriptome(ko_list_file, enrich_dir, deg_data_dir, samples_described_df, 
         treat_group_samples_name = samples_described_df[samples_described_df['group'].isin([treat_group,])]['sample'].to_list()
         control_group_samples_name = samples_described_df[samples_described_df['group'].isin([control_group,])]['sample'].to_list()
         logger.debug(f"crt_group_samples: {crt_group_samples}")
-        # if args.kogene_heatmap:
         
         # 画热图准备文件 Sheet2 samples group color
         heatmap_sheet2_samplegroupcolor_df = pd.DataFrame(columns=['samples', 'group', 'colors'])
@@ -210,11 +256,11 @@ def transcriptome(ko_list_file, enrich_dir, deg_data_dir, samples_described_df, 
             with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
                 ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
                 heatmap_sheet2_samplegroupcolor_df.to_excel(writer, index=False, sheet_name='Sheet2')
-            if ko_num_fpkm_expr_df.shape[0] > 1:
+            if 100 >= ko_num_fpkm_expr_df.shape[0] > 1:
                 logger.info(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
                 draw_twogroup_heatmap(ko_num_fpkm_expr_df_file, ko_num_fpkm_expr_pic_name)
             else:
-                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行，无法画热图")
+                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行或超过 100 行，不执行画热图")
         
             # 输出每个 ko 的 deg_data 文件
             ko_num_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{ko_number}_DEG_data.csv")
@@ -243,8 +289,12 @@ def transcriptome(ko_list_file, enrich_dir, deg_data_dir, samples_described_df, 
         # 对每个比较组的文件进行整理
         os.system(f"mv *.png {kegg_pathway_graph_dir}")
 
-    kegg_output_summary_df = pd.concat(kegg_output_summary_df_list)
-    kegg_output_summary_df.to_excel(os.path.join(output_dir, 'Target_KEGG_analysis_summary.xlsx'), engine='openpyxl', index=False)
+    
+    kegg_summary_df = kegg_summary(input_target_ko_df, kegg_output_summary_df_list)
+    write_output_df(kegg_summary_df, os.path.join(output_dir, 'Target_KEGG_analysis_summary.csv'), index=False)
+    
+    ko03000_summary_df = ko03000_deg_data_summary(output_dir)
+    write_output_df(ko03000_summary_df, os.path.join(output_dir, 'ko03000_DEG_data_summary.csv'), index=False)
 
 
 def parse_input():
@@ -276,10 +326,10 @@ def parse_input():
 def main():
     args = parse_input()
     
-    samples_described_df = pd.read_csv(args.samplesinfo, sep='\t', usecols=[0, 1], dtype=str)
-    kegg_pathway_df = pd.read_csv(args.kegg_clean, sep='\t', names=['GeneID', 'KEGG_Pathway'], usecols=[0, 1], dtype=str)
+    samples_described_df = load_table(args.samplesinfo, usecols=[0, 1], dtype=str)
+    kegg_pathway_df = load_table(args.kegg_clean, usecols=[0, 1], names=['GeneID', 'KEGG_Pathway'], dtype=str)
     
-    transcriptome(args.target_ko_file, args.enrich_dir, args.deg_data_dir, samples_described_df, kegg_pathway_df,
+    deg_kegg_analysis(args.target_ko_file, args.enrich_dir, args.deg_data_dir, samples_described_df, kegg_pathway_df,
                 args.kegg_clean, args.treat_color, args.control_color, args.output_dir)
     
     logger.success('Done!')
