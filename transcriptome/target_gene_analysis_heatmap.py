@@ -191,9 +191,10 @@ def main():
                 args.output
             )
     
-    logger.info('正在对结果汇总')
-    target_gene_summary_df = deg_target_gene_summary(result_target_gene_data_list)
-    write_output_df(target_gene_summary_df, os.path.join(args.output, 'Target_gene_summary_data.txt'), index=False)
+    if len(result_target_gene_data_list) > 0:
+        logger.info('正在对结果汇总')
+        target_gene_summary_df = deg_target_gene_summary(result_target_gene_data_list)
+        write_output_df(target_gene_summary_df, os.path.join(args.output, 'Target_gene_summary_data.txt'), index=False)
     
     logger.success("Done")
 
