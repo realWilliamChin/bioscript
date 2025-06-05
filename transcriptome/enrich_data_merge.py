@@ -13,11 +13,12 @@ from load_input import load_table
 
 def parse_input():
     p = argparse.ArgumentParser()
-    p.add_argument('-i', '--input-dir', dest='input_dir', default=os.getcwd(), type=str,
+    p.add_argument('-i', '--input-dir', dest='input_dir', default=os.getcwd(),
                    help='input data dir')
-    p.add_argument('-c', '--compare-info', dest='compare_info', default=os.getcwd(), type=str,
+    p.add_argument('-c', '--compare-info', dest='compare_info',
                    help='input compare_info.txt file')
-    p.add_argument('-o', '--output-file', dest='output_file', default='Enrichment_summary.xlsx', type=str,
+    p.add_argument('-o', '--output-file', dest='output_file',
+                   default='DEG_enrichment_significant_pathway_summary.xlsx',
                    help='output file endswith .xlsx, GO in sheet1, KEGG in sheet2')
     
     return p.parse_args()
@@ -32,7 +33,7 @@ def main():
     
     compare_df = load_table(args.compare_info)
     for i, compare in compare_df.iterrows():
-        compare_info = compare['Treat'] + "_vs_" + compare['Control']
+        compare_info = compare['Treat'] + "-vs-" + compare['Control']
 
         for enrich_file in os.listdir(args.input_dir):
             if enrich_file.startswith(compare_info) and enrich_file.endswith('Down_EnrichmentGO.xlsx'):
@@ -66,7 +67,7 @@ def main():
         go_up_summary = pd.concat(go_enrich_df_up_list)
         go_up_summary['p.adjust'] = go_up_summary['p.adjust'].astype(float)
         go_up_summary = go_up_summary[go_up_summary['Count'] >= 2]
-        go_up_summary = go_up_summary[go_up_summary['p.adjust'] <= 0.05]
+        go_up_summary = go_up_summary[go_up_summary['p.adjust'] < 0.05]
         go_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
         
         kegg_down_summary = pd.concat(kegg_enrich_df_down_list)
