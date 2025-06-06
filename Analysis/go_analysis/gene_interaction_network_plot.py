@@ -46,27 +46,34 @@ def VennNetworkPlot(
     r: float = 0.5,
     k: float = None,
     ax: axes.Axes = None,
+    max_label_length: int = 20,
+    label_background: bool = True,
+    label_padding: float = 0.1,
 ):
     """
     Plot venn network.
 
     Parameters
     ----------
-    :param edge_data: a dataFrame with three columns: source, target, color
-    :param edge_width: width of edges
-    :param edge_style: line or curve
-    :param source_node_size: size of source nodes
-    :param source_font_size: font size of source labels
-    :param target_node_size: size of target nodes
-    :param target_font_size: font size of target labels
-    :param show_node_margin: whether to show margin of nodes when style is curve
-    :param show_node_color: whether to show node color according to different source
-    :param show_source_label: whether to show source labels
-    :param show_target_label: whether to show target labels
-    :param r: radius of the fixed nodes based on circle center (0, 0)
-    :param k: optimal distance between nodes for spring layout
-    :param ax: axes object to plot on (default: None)
-    :return: axes object
+    :param edge_data: 包含三列的数据框：source（源节点）、target（目标节点）和color（颜色）
+    :param edge_width: 边的宽度
+    :param edge_style: 边的样式（直线或曲线）
+    :param plot_title: 图表标题
+    :param source_node_size: 源节点的大小
+    :param source_font_size: 源节点标签的字体大小
+    :param target_node_size: 目标节点的大小
+    :param target_font_size: 目标节点标签的字体大小
+    :param show_node_margin: 当样式为曲线时是否显示节点边距
+    :param show_node_color: 是否根据不同的源节点显示不同的节点颜色
+    :param show_source_label: 是否显示源节点标签
+    :param show_target_label: 是否显示目标节点标签
+    :param r: 基于圆心(0,0)的固定节点半径
+    :param k: spring布局中节点之间的最佳距离
+    :param ax: 用于绘图的坐标轴对象（默认：None）
+    :param max_label_length: 标签换行前的最大长度
+    :param label_background: 是否显示标签背景
+    :param label_padding: 标签文本周围的内边距
+    :return: 坐标轴对象
     """
     # get axes object 坐标轴范围限制
     if ax is None:
@@ -163,28 +170,84 @@ def VennNetworkPlot(
         for p in ax.patches:
             p.shrinkA = p.shrinkB = 0.0  # 箭头收缩值设置为零,删除空隙
 
-    # show fixed nodes or source nodes with label
+    def wrap_label(label, max_length):
+        """将长标签自动换行"""
+        if len(label) <= max_length:
+            return label
+        words = label.split()
+        lines = []
+        current_line = []
+        current_length = 0
+        
+        for word in words:
+            if current_length + len(word) + 1 <= max_length:
+                current_line.append(word)
+                current_length += len(word) + 1
+            else:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+                current_length = len(word)
+        
+        if current_line:
+            lines.append(' '.join(current_line))
+        
+        return '\n'.join(lines)
+
+    def adjust_font_size(nodes_count):
+        """根据节点数量自动调整字体大小"""
+        if nodes_count < 50:
+            return source_font_size, target_font_size
+        elif nodes_count < 100:
+            return max(8, source_font_size - 2), max(6, target_font_size - 2)
+        else:
+            return max(6, source_font_size - 4), max(4, target_font_size - 4)
+
+    # 根据节点数量调整字体大小
+    total_nodes = len(G.nodes)
+    adjusted_source_font_size, adjusted_target_font_size = adjust_font_size(total_nodes)
+
+    # 处理标签
     if show_source_label:
+        source_labels = {node: wrap_label(node, max_label_length) for node in fixed_nodes}
         nx.draw_networkx_labels(
             G,
             pos,
-            labels=dict(zip(fixed_nodes, fixed_nodes)),
-            font_size=source_font_size,
+            labels=source_labels,
+            font_size=adjusted_source_font_size,
             font_color="black",
             font_weight="bold",
             ax=ax,
+            bbox=dict(
+                facecolor='white',
+                edgecolor='none',
+                alpha=0.7 if label_background else 0,
+                pad=label_padding,
+                boxstyle='round,pad=0.3'
+            )
         )
-    # show target nodes with label
+
     if show_target_label:
+        target_labels = {
+            node: wrap_label(node, max_label_length)
+            for node in G.nodes if node not in fixed_nodes
+        }
         nx.draw_networkx_labels(
             G,
             pos,
-            labels={node: node for node in G.nodes if node not in fixed_nodes},
-            font_size=target_font_size,
+            labels=target_labels,
+            font_size=adjusted_target_font_size,
             font_color="black",
             font_weight="normal",
             ax=ax,
+            bbox=dict(
+                facecolor='white',
+                edgecolor='none',
+                alpha=0.7 if label_background else 0,
+                pad=label_padding,
+                boxstyle='round,pad=0.3'
+            )
         )
+
     ax.set_axis_off()
 
     return ax
@@ -225,10 +288,14 @@ def draw_enrichnetplot(df, output_pic_name):
         source_node_size=200,
         target_node_size=100,
         show_node_color=True,
-        target_font_size=7,
+        target_font_size=6,
         show_target_label=True,
-        k=0.15,
+        k=0.25,
         ax=ax,
+        plot_title=os.path.basename(output_pic_name).split('.')[0],
+        max_label_length=12,
+        label_background=False,
+        label_padding=0.2
     )
     plt.savefig(output_pic_name)
 

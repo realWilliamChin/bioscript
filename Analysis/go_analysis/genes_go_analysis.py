@@ -9,10 +9,9 @@ from pathlib import Path
 from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Plot/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from Rscript import enrichment_barplot
-import enrichnet_plt
+import gene_interaction_network_plot
 from load_input import load_table, write_output_df
 if sys.version_info < (3, 10):
     logger.critical("Python 版本低于 3.10，请使用 conda 激活 python310 环境运行程序！")
@@ -107,7 +106,7 @@ def geneids_go_analysis(target_go_df, enrich_data_dir, output_dir):
                 enrichnet_data['target'].extend(genes)
             enrichnet_df = pd.DataFrame(enrichnet_data)
             enrichnet_df = enrichnet_df.drop_duplicates()
-            enrichnet_plt.draw_enrichnetplot(
+            gene_interaction_network_plot.draw_enrichnetplot(
                 enrichnet_df,
                 os.path.join(go_analysis_network_graph_dir, f'{module_name}_{ontology_name}_enrichnet.png')
             )

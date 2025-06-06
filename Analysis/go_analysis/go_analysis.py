@@ -10,10 +10,9 @@ from pathlib import Path
 from loguru import logger
 import datetime
 
+import gene_interaction_network_plot
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
 from Rscript import enrichment_barplot
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Plot/'))
-import enrichnet_plt
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from load_input import load_table, write_output_df
 from data_check import df_drop_element_side_space
@@ -203,7 +202,7 @@ def transcriptome_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontolo
                 enrichnet_data['target'].extend(genes)
             enrichnet_df = pd.DataFrame(enrichnet_data)
             enrichnet_df = enrichnet_df.drop_duplicates()
-            enrichnet_plt.draw_enrichnetplot(enrichnet_df, enrichnet_file_name)
+            gene_interaction_network_plot.draw_enrichnetplot(enrichnet_df, enrichnet_file_name)
         
         # 对每个 GO_ID 的相关基因，对上 DEG_data.txt 出一个表
         for go_id in go_id_list:
