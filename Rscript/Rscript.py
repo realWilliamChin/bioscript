@@ -10,13 +10,13 @@ import subprocess
 from loguru import logger
 
 
-def draw_barplot(input_file, output_file):
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/barplot/barplot.R \
+def enrichment_barplot(input_file, output_file):
+    cmd = f"Rscript /home/colddata/qinqiang/script/Analysis/enrich_analysis/enrichment_barplot.r \
         -f {input_file} \
         -o {output_file}"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
-        logger.error(f"{input_file} draw_barplot 画图失败")
+        logger.error(f"{input_file} enrichment_barplot 画图失败")
         logger.error(f"标准输出：{ret.stdout.decode()}")
         logger.error(f"标准错误: {ret.stderr.decode()}")
         return False
@@ -25,7 +25,7 @@ def draw_barplot(input_file, output_file):
 
 
 def draw_pathview(regulation, passed_path):
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/pathview/pathview.R \
+    cmd = f"Rscript /home/colddata/qinqiang/script/Analysis/pathview/pathview.R \
         -r {regulation} \
         -p {passed_path}"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
