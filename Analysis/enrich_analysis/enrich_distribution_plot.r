@@ -133,12 +133,15 @@ for (i in infiles) {
     coord_flip() +
     ggtitle(paste0(out.name, "_Enrich_Graph", sep = "")) +
     theme(
-      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-      axis.title = element_text(size = 14, face = "bold"),
-      legend.title = element_text(face = "bold"))
+      plot.title = element_text(size = 20, face = "bold", hjust = 0.5),  # 设置标题字体大小
+      axis.title = element_text(size = 20, face = "bold"),  # 设置 x 轴标签字体大小
+      axis.text.y = element_text(size = 16, face = "bold"),  # 设置 y 轴标签字体大小
+      legend.title = element_text(size = 20, face = "bold"),  # Ontology 图例标题字体大小
+      legend.text = element_text(size = 18, face = "bold")  # GO_BP/CC/MF 的图例字体大小
+    )
   # height 根据 datafile 的行数调整
   go_p_height <- 2 + 0.4 * nrow(dt.total)
-  ggsave(paste0(barplot_dir, "/", out.name, "_enrich_GObarplot.png", sep = ""), bar.p, dpi = 320, width = 20, height = go_p_height)
+  ggsave(paste0(barplot_dir, "/", out.name, "_enrich_GObarplot.png", sep = ""), bar.p, dpi = 320, width = 24, height = go_p_height)
 }
 
 xlsx_files <- list.files(path = crd, pattern = "\\.xlsx$", full.names = TRUE)
