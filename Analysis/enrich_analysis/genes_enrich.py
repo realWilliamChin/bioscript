@@ -51,7 +51,7 @@ def main():
             dtype={"GeneID": str}
         )
         
-        module_name = module_file.split('_')[0]
+        module_name = module_file.split('.')[0]
         tmp_file = os.path.join(args.output_dir, f'{module_name}_ID.txt')
         write_output_df(module_df, tmp_file, index=False, header=False)
         enrich_analysis(tmp_file, args.gene_go, args.kegg_clean, args.output_dir)
