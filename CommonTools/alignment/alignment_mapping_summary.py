@@ -9,13 +9,16 @@ from loguru import logger
 
 
 def parse_input():
-    args = argparse.ArgumentParser(description='')
-    args.add_argument('-i', '--input', help='mapping_summary 文件目录', default='.')
-    args.add_argument('-s', '--samples', help='samples_described.txt', default='samples_described.txt')
-    args.add_argument('--msf', help='output mapping summary file (默认: mapping_summary.txt)', default='mapping_summary.txt')
-
-    parsed_args = args.parse_args()
-    return parsed_args
+    args = argparse.ArgumentParser()
+    args.add_argument('-i', '--input', default='.',
+                      help='mapping_summary 文件目录')
+    args.add_argument('-s', '--samples', default='samples_described.txt',
+                      help='samples_described.txt')
+    args.add_argument('-o', '--output', default='mapping_summary.txt', 
+                      help='output mapping summary file (默认: mapping_summary.txt)')
+    
+    args = args.parse_args()
+    return args
 
 
 def summary_hisat2_mapping(mapping_file_dir, samples_file, output_file):
@@ -30,7 +33,7 @@ def summary_hisat2_mapping(mapping_file_dir, samples_file, output_file):
     open(output_file, 'w').write('\t'.join(column_name)+'\n')
     samples_data = pd.read_csv(samples_file, sep='\t', usecols=['sample'])
     for sample in samples_data['sample'].to_list():
-        mapping_file = os.path.join(mapping_file_dir, f'{sample}_mapping.txt')
+        mapping_file = os.path.join(mapping_file_dir, f'{sample}_mapping_stat.txt')
         with open(mapping_file) as f2:
             data_list=[]
             for line in f2:
@@ -51,4 +54,4 @@ def summary_hisat2_mapping(mapping_file_dir, samples_file, output_file):
 
 if __name__ == '__main__':
     args = parse_input()
-    summary_hisat2_mapping(args.input, args.samples, args.msf)
+    summary_hisat2_mapping(args.input, args.samples, args.output)
