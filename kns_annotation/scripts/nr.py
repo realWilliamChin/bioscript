@@ -135,7 +135,7 @@ def specie_count(uniq_blast_file, output_file):
         lines = f.readlines()[1:]
 
     # 提取倒数第二列（即 [][] 之间的内容）
-    extracted = [line.split("[")[-1].split("]")[0] for line in lines]
+    extracted = [line.split("[")[-1].split("]")[0] for line in lines if '[' in line]
 
     counts = Counter(extracted)
     sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)
