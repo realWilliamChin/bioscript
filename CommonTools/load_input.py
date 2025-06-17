@@ -37,7 +37,7 @@ def load_table(table_file, *args, **kwargs):
     ext = table_file.split('.')[-1]
     if ext in ['xls', 'xlsx']:
         reader = lambda file, **kwargs: pd.read_excel(file, **kwargs, engine='openpyxl')
-    elif ext in ['txt', 'tsv', 'blast']:
+    elif ext in ['txt', 'tsv', 'blast', 'gff', 'gff3', 'gtf']:
         reader = lambda file, **kwargs: pd.read_csv(file, sep='\t', **kwargs)
     else:
         reader = lambda file, **kwargs: pd.read_csv(file, **kwargs)
@@ -65,7 +65,7 @@ def write_output_df(df, output_file, *args, **kwargs):
     ext = output_file.split('.')[-1]
     if ext in ['xls', 'xlsx']:
         df.to_excel(output_file, engine='openpyxl', *args, **kwargs)
-    elif ext in ['txt', 'tsv', 'blast']:
+    elif ext in ['txt', 'tsv', 'blast', 'gff', 'gff3', 'gtf']:
         df.to_csv(output_file, sep='\t', *args, **kwargs)
     else:
         df.to_csv(output_file, *args, **kwargs)
