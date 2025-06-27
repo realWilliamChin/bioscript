@@ -68,8 +68,8 @@ def generate_intersection_summary(sets, labels, output_name):
         others = sets[:i] + sets[i+1:]
         unique = s - set.union(*others) if others else s
         results.append({
-            '组合': label,
-            '数量': len(unique)
+            'Fraction_ID': f'{label}_only',
+            'Count': len(unique)
         })
     
     # 处理所有可能的交集
@@ -89,7 +89,7 @@ def generate_intersection_summary(sets, labels, output_name):
             result = intersection - other_union
             
             results.append({
-                'Fraction_ID': '_'.join(current_labels),
+                'Fraction_ID': f'{"_".join(current_labels)}_common_only',
                 'Count': len(result)
             })
     
