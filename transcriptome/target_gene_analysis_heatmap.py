@@ -14,21 +14,26 @@ sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from data_check import df_drop_row_sum_eq_zero
 from data_check import df_drop_element_side_space
 from Rscript import draw_multigroup_heatmap
-from Rscript import anova_analysis
 from load_input import load_table, write_output_df
 
 
 
 def parse_input():
-    parser = argparse.ArgumentParser(description='')
+    parser = argparse.ArgumentParser()
+    # 输入文件
     parser.add_argument('-i', '--targetgene', dest="target_gene_file", type=str, required=True,
                            help='输入文件，target gene 文件，至少包含两列，GeneID 和 Ontology')
     parser.add_argument('--fpkm', type=str, required=True, help='输入 fpkm_matrix.txt 文件')
     parser.add_argument('--kns', type=str, help='anova_p 文件添加定义输出')
     parser.add_argument('--deg-data-dir', dest='deg_data_dir', type=str, help='[必须]输入 DEG_data.txt 文件')
-    parser.add_argument('--mean', default=False, type=bool, help='使用每组中的平均数画 heatmap')
     parser.add_argument('-s', '--samplesinfo', type=str, required=True,
-                           help='输入样品信息文件')
+                        help='输入样品信息文件')
+    # 运行参数
+    parser.add_argument('--mean', default=False, type=bool, help='使用每组中的平均数画 heatmap')
+    parser.add_argument('--specie-type', dest='specie_type',
+                        choices=['homo_sapiens', 'mus_musculus', 'other'], default='other',
+                        help='输入运行的物种类型，人，小鼠，或者其他，人小鼠使用 GeneSymbol 作为索引画图')
+    # 输出
     parser.add_argument('-o', '--output', type=str, default=os.getcwd(), help='输出目录')
     
     args = parser.parse_args()
@@ -36,12 +41,17 @@ def parse_input():
     return args
 
 
-def group_vs_group_heatmap(group_target_gene_file, samples_file, output_dir):
+def group_vs_group_heatmap(group_target_gene_file, samples_file, specie_type, output_dir):
     df = load_table(group_target_gene_file, dtype={"GeneID": str})
-    fpkm_df = df[['GeneID'] + [col for col in df.columns if col.endswith('FPKM')]]
+    if specie_type in ['homo_sapiens', 'mus_musculus']:
+        index_col = 'GeneSymbol'
+    else:
+        index_col = 'GeneID'
+    df.dropna(subset=index_col, inplace=True)
+    fpkm_df = df[[index_col] + [col for col in df.columns if col.endswith('FPKM')]]
     no_FPKM_str_columns = [col.replace('_FPKM', '') for col in fpkm_df.columns[1:]]
-    fpkm_df.columns = ['GeneID'] + no_FPKM_str_columns
-    ontology_df = df[['GeneID', 'SubOntology', 'Ontology']]
+    fpkm_df.columns = [index_col] + no_FPKM_str_columns
+    ontology_df = df[[index_col, 'SubOntology', 'Ontology']]
     
     os.makedirs(os.path.join(output_dir, 'Prep_files'), exist_ok=True)
     group_vs_group_heatmap_fname = os.path.join(
@@ -91,59 +101,26 @@ def deg_target_gene_summary(target_gene_data_list):
     return summary_df
 
 
-def main():
-    args = parse_input()
-    output_dir = args.output
-    target_gene_file, samples_file, fpkm_matrix_file = args.target_gene_file, args.samplesinfo, args.fpkm
+def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, specie_type, group_mean, output_pic):
+    sample_columns = samples_df['sample'].tolist()
     
-    target_gene_def_df = pd.read_csv(target_gene_file, sep='\t', dtype={'GeneID': str})
-    target_gene_def_df = df_drop_element_side_space(target_gene_def_df)
-    target_gene_def_df['Ontology'] = target_gene_def_df['Ontology'].str.strip()
+    # 目标基因添加 fpkm 值，准备画图文件
+    gene_fpkm_df = pd.merge(target_gene_df, fpkm_matrix_df, on='GeneID', how='inner')
+    gene_fpkm_df.sort_values(by=['Ontology', 'SubOntology'], inplace=True)
     
-    target_gene_df = target_gene_def_df[['GeneID', 'Ontology', 'SubOntology']]
-    s_df_count = target_gene_df.shape[0]
-    target_gene_df = target_gene_df.drop_duplicates(subset=['GeneID'])
-    
-    if target_gene_df.shape[0] != s_df_count:
-        logger.warning(f"输入文件 ID 有重复，已进行去重，数量 {s_df_count - target_gene_df.shape[0]}")
-        
-    fpkm_matrix_df = pd.read_csv(fpkm_matrix_file, sep='\t', dtype={'GeneID': str})
-    fpkm_matrix_df = df_drop_row_sum_eq_zero(fpkm_matrix_df)
-    gene_fpkm_df = pd.merge(target_gene_df, fpkm_matrix_df, on='GeneID', how='left')
-    gene_fpkm_df.drop(columns=['Ontology', 'SubOntology'], inplace=True)
-    # anova_file_name = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_anova_p.txt'))
-    # gene_fpkm_df.to_csv(anova_file_name, sep='\t', index=False)
-    # anova_analysis(anova_file_name, samples_file, anova_file_name)
-    # anova_gene_fpkm_df = pd.read_csv(anova_file_name, sep='\t', dtype={'GeneID': str})
-    # if args.kns:
-    #     logger.info(f'正在对相关基因添加定义')
-    #     anova_gene_fpkm_def_df = add_kns_def(anova_gene_fpkm_df, kns_file=args.kns)
-    #     anova_gene_fpkm_def_df.to_csv(anova_file_name, sep='\t', index=False)
-    
-    # 添加定义改为使用原有定义(2024_06_05:张老师)
-    # anova_gene_fpkm_def_df = pd.merge(anova_gene_fpkm_df, target_gene_def_df, on='GeneID', how='left')
-    # anova_gene_fpkm_def_df.to_csv(anova_file_name, sep='\t', index=False)
-
-    # 基因都是挑出来的基因，不需要对 p 值筛选画图 (2024_06_18:张老师)
-    # anova_gene_fpkm_df = anova_gene_fpkm_df[anova_gene_fpkm_df['p_value'] <= 0.05]
-    # anova_gene_fpkm_df.drop(columns=['p_value', 'BH_p_value'], inplace=True)
-    # anova_gene_fpkm_df = pd.merge(anova_gene_fpkm_df, target_gene_df, on='GeneID', how='left')
-    # anova_gene_fpkm_df = anova_gene_fpkm_df.sort_values(by=['Ontology'])
-    anova_gene_fpkm_df = pd.merge(gene_fpkm_df, target_gene_df, on='GeneID', how='left')
-    anova_gene_fpkm_df.dropna(how='any', inplace=True)
-    anova_gene_fpkm_df = anova_gene_fpkm_df.sort_values(by=['Ontology', 'SubOntology'])
-    
-    samples_df = pd.read_csv(samples_file, sep='\t', usecols=[0, 1])
-    samples_df = samples_df[['sample', 'group']]
-
-    # multigroup_heatmap 输入文件
-    all_gene_ko_heatmap_filename = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_heatmap.xlsx'))
-    heatmap_filename = all_gene_ko_heatmap_filename.replace('.xlsx', '.jpeg')
-    multigroup_heatmap_data_df = anova_gene_fpkm_df.loc[:, (anova_gene_fpkm_df.columns != 'Ontology') & (anova_gene_fpkm_df.columns != 'SubOntology')].copy()
-    multigroup_heatmap_sheet3_df = anova_gene_fpkm_df[['GeneID', 'SubOntology', 'Ontology']].copy()
+    # 先画全部基因的热图（原有功能）
+    all_gene_heatmap_filename = output_pic.replace('.jpeg', '.xlsx')
+    # multigroup_heatmap_data_df = gene_fpkm_df.loc[:, (gene_fpkm_df.columns != 'Ontology') & (gene_fpkm_df.columns != 'SubOntology')].copy()
+    if specie_type in ['homo_sapiens', 'mus_musculus']:
+        gene_fpkm_df.dropna(subset='GeneSymbol', inplace=True)
+        multigroup_heatmap_data_df = gene_fpkm_df[['GeneSymbol'] + sample_columns].copy()
+        multigroup_heatmap_sheet3_df = gene_fpkm_df[['GeneSymbol', 'SubOntology', 'Ontology']].copy()
+    else:
+        multigroup_heatmap_data_df = gene_fpkm_df[['GeneID'] + sample_columns].copy()
+        multigroup_heatmap_sheet3_df = gene_fpkm_df[['GeneID', 'SubOntology', 'Ontology']].copy()
     
     # 根据 samplesinfo 每组中的平均数画 heatmap
-    if args.mean:
+    if group_mean:
         for each_group in samples_df['group'].unique():
             group_samples = samples_df[samples_df['group'] == each_group]['sample']
             multigroup_heatmap_data_df[each_group] = multigroup_heatmap_data_df[group_samples].mean(axis=1)
@@ -152,14 +129,60 @@ def main():
         samples_df['sample'] = samples_df['group']
         samples_df = samples_df[['sample', 'group']]
 
-    
-    with pd.ExcelWriter(all_gene_ko_heatmap_filename, engine='openpyxl') as writer:
+    with pd.ExcelWriter(all_gene_heatmap_filename, engine='openpyxl') as writer:
         multigroup_heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
         samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
         multigroup_heatmap_sheet3_df.to_excel(writer, sheet_name='Sheet3', index=False)
+    draw_multigroup_heatmap(all_gene_heatmap_filename, output_pic, other_args='--no-cluster-rows')
+
+    # 每个 Ontology 单独画图
+    for ontology, sub_df in gene_fpkm_df.groupby('Ontology'):
+        if specie_type in ['homo_sapiens', 'mus_musculus']:
+            sub_df = sub_df.dropna(subset=['GeneSymbol'])
+            heatmap_data_df = sub_df[['GeneSymbol'] + sample_columns].copy()
+            heatmap_sheet3_df = sub_df[['GeneSymbol', 'SubOntology', 'Ontology']].copy()
+        else:
+            heatmap_data_df = sub_df[['GeneID'] + sample_columns].copy()
+            heatmap_sheet3_df = sub_df[['GeneID', 'SubOntology', 'Ontology']].copy()
+        sub_samples_df = samples_df.copy()
+        if group_mean:
+            for each_group in sub_samples_df['group'].unique():
+                group_samples = sub_samples_df[sub_samples_df['group'] == each_group]['sample']
+                heatmap_data_df[each_group] = heatmap_data_df[group_samples].mean(axis=1)
+            heatmap_data_df.drop(columns=sub_samples_df['sample'], inplace=True)
+            sub_samples_df = sub_samples_df.drop(columns=['sample']).drop_duplicates(subset=['group'])
+            sub_samples_df['sample'] = sub_samples_df['group']
+            sub_samples_df = sub_samples_df[['sample', 'group']]
+        # 处理文件名中的非法字符
+        safe_ontology = str(ontology).replace('/', '_').replace(' ', '_')
+        ontology_excel = all_gene_heatmap_filename.replace('.xlsx', f'_{safe_ontology}.xlsx')
+        ontology_pic = output_pic.replace('.jpeg', f'_{safe_ontology}.jpeg')
+        with pd.ExcelWriter(ontology_excel, engine='openpyxl') as writer:
+            heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
+            sub_samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
+            heatmap_sheet3_df.to_excel(writer, sheet_name='Sheet3', index=False)
+        draw_multigroup_heatmap(ontology_excel, ontology_pic, other_args='--no-cluster-rows')
+
+
+def main():
+    # 数据加载预处理
+    args = parse_input()
+    output_dir = args.output
+    target_gene_file, samples_file, fpkm_matrix_file = args.target_gene_file, args.samplesinfo, args.fpkm
     
-    draw_multigroup_heatmap(all_gene_ko_heatmap_filename, heatmap_filename, other_args='--no-cluster-rows')
+    samples_df = pd.read_csv(samples_file, sep='\t', usecols=[0, 1])
+    samples_df = samples_df[['sample', 'group']]
     
+    
+    target_gene_def_df = load_table(target_gene_file, dtype={'GeneID': str})
+    target_gene_def_df = df_drop_element_side_space(target_gene_def_df)
+        
+    fpkm_matrix_df = load_table(fpkm_matrix_file, dtype={'GeneID': str})
+    fpkm_matrix_df = df_drop_row_sum_eq_zero(fpkm_matrix_df)
+    
+    all_gene_heatmap_pic = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_heatmap.jpeg'))
+    target_gene_heatmap(target_gene_def_df, fpkm_matrix_df, samples_df, args.specie_type, args.mean, all_gene_heatmap_pic)
+
     
     result_target_gene_data_list = []
     if args.deg_data_dir:
@@ -172,15 +195,13 @@ def main():
             compare_name = os.path.basename(deg_data_file).replace('_DEG_data.txt', '')
             logger.info(f'正在找相关基因添加定义 {compare_name}')
             deg_data_file = os.path.join(args.deg_data_dir, deg_data_file)
-            deg_data_df = pd.read_csv(deg_data_file, sep='\t', dtype={'GeneID': str})
+            deg_data_df = load_table(deg_data_file, dtype={'GeneID': str})
 
             # result_df = pd.merge(deg_data_df, right=target_gene_def_df, on='GeneID', how='left', suffixes=('_df1', '_df2'))
             result_df = pd.merge(target_gene_def_df, right=deg_data_df, on='GeneID', how='inner', suffixes=('_df1', '_df2'))
             cols_to_drop = [col for col in result_df.columns if col.endswith('_df1')]
             result_df.drop(columns=cols_to_drop, inplace=True)
             result_df.columns = [col.replace('_df2', '') for col in result_df.columns]
-            result_df.set_index('GeneID')
-            # result_df.dropna(inplace=True)
             result_df.to_csv(os.path.join(args.output, f'{compare_name}_target_gene_data.txt'), sep='\t', index=False)
             result_target_gene_data_list.append(os.path.join(args.output, f'{compare_name}_target_gene_data.txt'))
             
@@ -188,6 +209,7 @@ def main():
             group_vs_group_heatmap(
                 os.path.join(args.output, f'{compare_name}_target_gene_data.txt'),
                 samples_file,
+                args.specie_type,
                 args.output
             )
     
