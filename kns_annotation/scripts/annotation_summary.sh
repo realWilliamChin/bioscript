@@ -16,10 +16,10 @@ OUTPUT_PIC=$6
 OUTPUT_SUMMARY_FILE=$7
 
 # 创建临时文件
-GO_ID="GO_ID_list.txt"
-SWISS_ID="Swiss_ID_list.txt"
-KEGG_ID="KEGG_ID_list.txt"
-NR_ID="NR_ID_list.txt"
+GO_ID="GO.txt"
+SWISS_ID="Swiss.txt"
+KEGG_ID="KEGG.txt"
+NR_ID="NR.txt"
 
 # 处理输入文件
 tail -n +2 ${SWISS_GOID} | cut -f 1 > ${GO_ID}
