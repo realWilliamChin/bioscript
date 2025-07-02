@@ -5,6 +5,7 @@
 import os
 import sys
 import pandas as pd
+import numpy as np
 import argparse
 import subprocess
 from loguru import logger
@@ -101,6 +102,23 @@ def deg_target_gene_summary(target_gene_data_list):
     return summary_df
 
 
+def genesymbol_data_pre_process(df: pd.DataFrame) -> pd.DataFrame:
+    # 如果 GeneSymbol 有 NA 则会去除一些
+    df_source_lines_num = df.shape[0]
+    df.dropna(subset='GeneSymbol', inplace=True)
+    df['GeneSymbol'] = df['GeneSymbol'].replace(['NA', 'N/A', '-', '---', 'na', 'n/a', ''], np.nan)
+    df_dropedna_lines_num = df.shape[0]
+    df.drop_duplicates(subset='GeneSymbol', inplace=True)
+    df_droped_duplicates_lines_num = df.shape[0]
+    if df_dropedna_lines_num != df_droped_duplicates_lines_num:
+        logger.info(f'对输入表预处理之前为 {df_source_lines_num}')
+        logger.info(f'去 NA 之后为 {df_dropedna_lines_num}')
+        logger.info(f'去重复之后为 {df_droped_duplicates_lines_num}')
+        logger.warning(f'输入文件有 GeneSymbol 为空或重复，将会去重再分析画图')
+    
+    return df
+
+
 def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, specie_type, group_mean, output_pic):
     sample_columns = samples_df['sample'].tolist()
     
@@ -112,7 +130,6 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, specie_type,
     all_gene_heatmap_filename = output_pic.replace('.jpeg', '.xlsx')
     # multigroup_heatmap_data_df = gene_fpkm_df.loc[:, (gene_fpkm_df.columns != 'Ontology') & (gene_fpkm_df.columns != 'SubOntology')].copy()
     if specie_type in ['homo_sapiens', 'mus_musculus']:
-        gene_fpkm_df.dropna(subset='GeneSymbol', inplace=True)
         multigroup_heatmap_data_df = gene_fpkm_df[['GeneSymbol'] + sample_columns].copy()
         multigroup_heatmap_sheet3_df = gene_fpkm_df[['GeneSymbol', 'SubOntology', 'Ontology']].copy()
     else:
@@ -170,12 +187,15 @@ def main():
     output_dir = args.output
     target_gene_file, samples_file, fpkm_matrix_file = args.target_gene_file, args.samplesinfo, args.fpkm
     
-    samples_df = pd.read_csv(samples_file, sep='\t', usecols=[0, 1])
-    samples_df = samples_df[['sample', 'group']]
-    
-    
+    # 加载为 DataFrame
+    samples_df = load_table(samples_file, usecols=[0, 1], dtype=str)
     target_gene_def_df = load_table(target_gene_file, dtype={'GeneID': str})
+    
+    # 对文件预处理
+    samples_df = samples_df[['sample', 'group']]
     target_gene_def_df = df_drop_element_side_space(target_gene_def_df)
+    if args.specie_type.lower() in ['homo_sapiens', 'mus_musculus']:
+        target_gene_def_df = genesymbol_data_pre_process(target_gene_def_df)
         
     fpkm_matrix_df = load_table(fpkm_matrix_file, dtype={'GeneID': str})
     fpkm_matrix_df = df_drop_row_sum_eq_zero(fpkm_matrix_df)
@@ -186,12 +206,8 @@ def main():
     
     result_target_gene_data_list = []
     if args.deg_data_dir:
-        deg_data_list = os.listdir(args.deg_data_dir)
+        deg_data_list = [x for x in os.listdir(args.deg_data_dir) if x.endswith('_DEG_data.txt')]
         for deg_data_file in deg_data_list:
-            
-            if not deg_data_file.endswith('_DEG_data.txt'):
-                continue
-
             compare_name = os.path.basename(deg_data_file).replace('_DEG_data.txt', '')
             logger.info(f'正在找相关基因添加定义 {compare_name}')
             deg_data_file = os.path.join(args.deg_data_dir, deg_data_file)
