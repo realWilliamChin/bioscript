@@ -103,19 +103,19 @@ def process_go(swiss_df, ref_df):
 
 def swiss_bpccmf_barplot(bp_file, cc_file, mf_file, output):
     # 读取 BP 数据
-    BP = load_table(bp_file, header=None)
+    BP = load_table(bp_file, header=None, dtype={'GeneID': str})
     BP_count = BP[1].value_counts().reset_index()
     BP_count.columns = ["Term", "Count"]
     BP_20 = BP_count.sort_values(by="Count", ascending=False).head(20)
 
     # 读取 CC 数据
-    CC = load_table(cc_file, header=None)
+    CC = load_table(cc_file, header=None, dtype={'GeneID': str})
     CC_count = CC[1].value_counts().reset_index()
     CC_count.columns = ["Term", "Count"]
     CC_20 = CC_count.sort_values(by="Count", ascending=False).head(20)
 
     # 读取 MF 数据
-    MF = load_table(mf_file, header=None)
+    MF = load_table(mf_file, header=None, dtype={'GeneID': str})
     MF_count = MF[1].value_counts().reset_index()
     MF_count.columns = ["Term", "Count"]
     MF_20 = MF_count.sort_values(by="Count", ascending=False).head(20)
@@ -149,7 +149,7 @@ def main():
     
     swiss_file = args.blast if args.blast else [x for x in os.listdir() if '_swiss.blast' in x][0]
     # 读取 swiss 参考文件和 blast 文件，并初始化
-    swiss_df = load_table(swiss_file, usecols=[0, 1, 14, 15], names=['GeneID', 'GOID', 'bitscore', 'Swiss_Def'])
+    swiss_df = load_table(swiss_file, usecols=[0, 1, 14, 15], names=['GeneID', 'GOID', 'bitscore', 'Swiss_Def'], dtype={'GeneID': str})
     swiss_df = swiss_df.sort_values(by=['GeneID', 'bitscore'], ascending=[True, False])
     swiss_df = swiss_df.drop(columns=['bitscore'])
     swiss_df = swiss_df.drop_duplicates(subset='GeneID', keep='first')
@@ -161,7 +161,7 @@ def main():
     write_output_df(swiss_df, args.output_prefix + 'swiss_gene_def.txt', index=False, header=['GeneID', 'Swissprot_ID', 'Swiss_Def'])
 
     ref_file = '/home/data/ref_data/db/swiss_go_txt/Swiss_protein_go.txt'
-    ref_df = load_table(ref_file, skiprows=1, names=['GOID', 'GO_BP', 'GO_CC', 'GO_MF'])
+    ref_df = load_table(ref_file, skiprows=1, names=['GOID', 'GO_BP', 'GO_CC', 'GO_MF'], dtype={'GOID': str})
 
     # 生成 idNO_def 文件
     idNO_def_filename = args.output_prefix + 'swiss_idNo_def.txt'
