@@ -242,7 +242,7 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
 
         # 循环每个 ko number 筛选表达量画热图
         for ko_number in ko_list:
-            ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number)]['GeneID'])].copy()
+            ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number, na=False)]['GeneID'])].copy()
             if ko_num_fpkm_expr_df.shape[0] == 0:
                 logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表为空")
                 continue
@@ -264,7 +264,7 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
         
             # 输出每个 ko 的 deg_data 文件
             ko_num_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{ko_number}_DEG_data.csv")
-            ko_num_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number)]['GeneID'])]
+            ko_num_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number, na=False)]['GeneID'])]
             write_output_df(ko_num_deg_data_df, ko_num_deg_data_file, index=False)
             
         # R pathview 画图准备文件 regulation
