@@ -24,9 +24,7 @@ def parse_input():
     return args
 
 
-def main():
-    args = parse_input()
-    deg_summary_df = load_table(args.i, comment='#', skipinitialspace=True)
+def deg_summary_plot(deg_summary_df, output_file):
     deg_summary_df.columns = ['Comparisons', 'Total DEGs', 'Up regulated', 'Down regulated']
     numeric_cols = ['Total DEGs', 'Up regulated', 'Down regulated']
     for col in numeric_cols:
@@ -70,7 +68,13 @@ def main():
 
     # 调整布局并保存
     plt.tight_layout()
-    plt.savefig(args.o, dpi=300, bbox_inches='tight')
+    plt.savefig(output_file, dpi=300, bbox_inches='tight')
+
+
+def main():
+    args = parse_input()
+    deg_summary_df = load_table(args.i, comment='#', skipinitialspace=True)
+    deg_summary_plot(deg_summary_df, args.o)
 
 
 if __name__ == '__main__':
