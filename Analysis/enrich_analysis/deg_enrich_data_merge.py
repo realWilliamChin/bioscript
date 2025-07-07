@@ -13,12 +13,9 @@ from load_input import load_table
 
 def parse_input():
     p = argparse.ArgumentParser()
-    p.add_argument('-i', '--input-dir', dest='input_dir', default=os.getcwd(),
-                   help='input data dir')
-    p.add_argument('-c', '--compare-info', dest='compare_info',
-                   help='input compare_info.txt file')
-    p.add_argument('-o', '--output-file', dest='output_file',
-                   default='DEG_enrichment_significant_pathway_summary.xlsx',
+    p.add_argument('-i', '--input-dir', default=os.getcwd(), help='input data dir')
+    p.add_argument('-c', '--compare-info',  help='input compare_info.txt file')
+    p.add_argument('-o', '--output-file', default='DEG_enrichment_significant_pathway_summary.xlsx',
                    help='output file endswith .xlsx, GO in sheet1, KEGG in sheet2')
     
     return p.parse_args()
