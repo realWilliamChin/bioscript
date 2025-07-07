@@ -1,18 +1,11 @@
-suppressPackageStartupMessages(library(ggthemes))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(pheatmap))
-suppressPackageStartupMessages(library(reshape2))
-suppressPackageStartupMessages(library(ggcorrplot))
-suppressPackageStartupMessages(library(corrplot))
-suppressPackageStartupMessages(library(FactoMineR))
-suppressPackageStartupMessages(library(plyr))
-suppressPackageStartupMessages(library(dplyr))
-suppressPackageStartupMessages(library(ropls))
-suppressPackageStartupMessages(library(ggrepel))
-suppressPackageStartupMessages(library(mixOmics))
-suppressPackageStartupMessages(library(openxlsx))
-suppressPackageStartupMessages(library(optparse))
-suppressPackageStartupMessages(library(magrittr))
+pkgs <- c(
+  "ggthemes", "ggplot2", "pheatmap", "reshape2", "ggcorrplot", "corrplot",
+  "FactoMineR", "plyr", "dplyr", "ropls", "ggrepel", "mixOmics",
+  "openxlsx", "optparse", "magrittr"
+)
+suppressPackageStartupMessages(
+  invisible(lapply(pkgs, require, character.only = TRUE))
+)
 rm(list = ls())
 Sys.setenv(R_LIBS="/opt/biosoft/R-4.2.2/lib64/R/library")
 # setwd("/home/colddata/qinqiang/MetaboliteProject/2024_12_30_山东肿瘤医院_非靶代谢_redo/test")
@@ -45,10 +38,10 @@ if (is.null(opt$input) || is.null(opt$samples)) {
 
 # 定义颜色方案
 my_set_colors <- c(
-  "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#800000", 
-  "#008000", "#000080", "#808000", "#800080", "#008080", 
-  "#C0C0C0", "#808080", "#FFA500", "#A52A2A", "#1ee1c4",
-  "#ffaec9", "#c8bfe7", "#2196f3"
+  "#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF",
+  "#999999", "#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3", "#A6D854", "#FFD92F", "#E5C494",
+  "#B3B3B3", "#1B9E77", "#D95F02", "#7570B3", "#E7298A", "#66A61E", "#E6AB02", "#A6761D",
+  "#666666", "#A6CEE3", "#1F78B4", "#B2DF8A", "#33A02C", "#FB9A99", "#E31A1C", "#FDBF6F"
 )
 
 # heatmap_plot <- function(data_frame, output_pic, log2data = FALSE, log2pic_fname = NA, ...) {
@@ -88,17 +81,25 @@ heatmap_plot <- function(data_frame, output_pic) {
     print(paste0("数据检查: 有 ", data_rows_before - data_rows_after, " 行被过滤"))
   }
 
+  p1_height <- 3 + (nrow(data_frame) / 8)
+  p1_width <- 3 + ncol(data_frame) * 0.6
+
+  # 自动调整字体大小
+  fontsize_row <- max(4, min(16, p1_height * 0.8))
+  fontsize_col <- max(4, min(30, p1_width * 2.4))
+  fontsize_all <- max(fontsize_row, fontsize_col) * 2
+
   all.heatmap <- pheatmap(
     data_frame,
     show_rownames = nrow(data_frame) <= 100,
     encoding = "UTF-8",
     cluster_cols = FALSE,
-    scale = 'row'
+    cluster_rows = TRUE, # 非靶代谢不聚类FALSE，靶向代谢聚类TRUE
+    scale = 'row',
+    fontsize_row = fontsize_row,
+    fontsize_col = fontsize_col
   )
 
-  p1_height <- 3 + (nrow(data_frame) / 8)
-  p1_width <- 3 + ncol(data_frame) * 0.6
-  
   if ((p1_width - p1_height) > 5 * p1_height) {
     p1_width <- p1_height * 5
   } else if ((p1_height - p1_width) > 3 * p1_width) {
@@ -125,6 +126,14 @@ row_class_heatmap <- function(data_frame, compound_def, out_pic_name) {
   names(my_gene_colors) <- unique(annotation_df$Class)
   ann_colors <- list(Class = my_gene_colors)
 
+  p1_height <- 3 + (nrow(data_frame) / 8)
+  p1_width <- 8 + ncol(data_frame) * 0.6
+
+  # 自动调整字体大小
+  fontsize_row <- max(4, min(10, p1_height * 0.8))
+  fontsize_col <- max(4, min(30, p1_width * 2.4))
+  fontsize_all <- max(fontsize_row, fontsize_col) * 2
+
   # 使用pheatmap绘制热图
   p1 <- pheatmap(
     data_frame,
@@ -134,12 +143,11 @@ row_class_heatmap <- function(data_frame, compound_def, out_pic_name) {
     show_rownames = TRUE,
     show_colnames = TRUE,
     annotation_names_row = TRUE,
-    scale = 'row'
+    scale = 'row',
+    fontsize_row = fontsize_row,
+    fontsize_col = fontsize_col
   )
 
-  p1_height <- 3 + (nrow(data_frame) / 8)
-  p1_width <- 8 + ncol(data_frame) * 0.6
-  
   if ((p1_width - p1_height) > 5 * p1_height) {
     p1_width <- p1_height * 5
   } else if ((p1_height - p1_width) > 3 * p1_width) {
@@ -210,21 +218,14 @@ cor_plot <- function(data_frame, out_pic_name) {
 }
 
 # PCA分析绘图
-pca_plot <- function(reads_data_frame = NA, fpkm_data_frame = NA, 
-                    samples_file, output_dir) {
-  if (is.data.frame(fpkm_data_frame)) {
-    data_frame <- log2(fpkm_data_frame + 1)
-  } else {
-    data_frame <- reads_data_frame
-  }
-
+pca_plot <- function(data_frame, samples_file, output_prefix) {
   data_frame <- t(data_frame)
   gene.pca <- PCA(data_frame, ncp = 2, scale.unit = TRUE, graph = FALSE)
   
   pca_component_compound_table <- as.data.frame(gene.pca[['var']][['cor']])
-  pca_component_compound_table_file_name <- file.path(
-    output_dir, 
-    "Metabolite_PCA_component_compound.xlsx"
+  pca_component_compound_table_file_name <- paste0(
+    output_prefix, 
+    "PCA_component_compound.xlsx"
   )
   
   write.xlsx(
@@ -260,8 +261,8 @@ pca_plot <- function(reads_data_frame = NA, fpkm_data_frame = NA,
       legend.key = element_rect(fill = "transparent")
     ) +
     labs(
-      x = paste("PCA1:", pca_eig1, "%"), 
-      y = paste("PCA2:", pca_eig2, "%"), 
+      x = paste("PC1:", pca_eig1, "%"), 
+      y = paste("PC2:", pca_eig2, "%"), 
       color = ""
     ) +
     geom_text_repel(aes(label = rownames(pca_sample)))
@@ -281,12 +282,58 @@ pca_plot <- function(reads_data_frame = NA, fpkm_data_frame = NA,
   )
 
   ggsave(
-    file.path(output_dir, "Metabolite_PCA_analysis.jpeg"), 
+    paste0(output_prefix, "PCA_analysis.jpeg"), 
     p, 
     dpi = 300, 
     width = 10, 
     height = 10
   )
+}
+
+# 检查数据框列类型并转换为数值类型的函数
+check_and_convert_numeric <- function(data_frame) {
+  print(paste("检查输入数据的列类型..."))
+  problematic_columns <- c()
+  
+  for (col_name in colnames(data_frame)) {
+    col_data <- data_frame[[col_name]]
+    
+    # 检查是否为数值类型
+    if (!is.numeric(col_data)) {
+      # 如果是字符类型，先尝试去除空格
+      if (is.character(col_data)) {
+        col_data_cleaned <- trimws(col_data, which = "both")
+        # 将空字符串转换为NA
+        col_data_cleaned[col_data_cleaned == ""] <- NA
+      } else {
+        col_data_cleaned <- col_data
+      }
+      
+      # 尝试转换为数值类型
+      col_data_numeric <- suppressWarnings(as.numeric(col_data_cleaned))
+      
+      # 检查转换是否成功
+      if (all(is.na(col_data_numeric)) || length(unique(col_data_numeric[!is.na(col_data_numeric)])) == 0) {
+        problematic_columns <- c(problematic_columns, col_name)
+        print(paste("警告: 列", col_name, "无法转换为数值类型"))
+      } else {
+        data_frame[[col_name]] <- col_data_numeric
+      }
+    }
+  }
+  
+  # 如果有问题列，输出并退出程序
+  if (length(problematic_columns) > 0) {
+    print(paste("以下列无法转换为数值类型:"))
+    for (col in problematic_columns) {
+      print(paste("  -", col))
+    }
+    print("程序退出")
+    quit(status = 1)
+  }
+  
+  print(paste("所有列类型检查完成，数据已转换为数值类型"))
+  return(data_frame)
 }
 
 # 代谢物分析主函数
@@ -404,12 +451,13 @@ metabolite_analysis <- function(
   plot_width <- 5 + num_samples * 0.2
   plot_height <- 4 + num_samples * 0.2
 
+
   p1 <- ggplot(df1, aes(x = comp1, y = comp2, color = group)) +
     theme_bw() +
-    geom_point(size = 1.8) +
+    geom_point(size = 5) +
     geom_text_repel(
       aes(label = samples),
-      size = 2,
+      size = 5,
       box.padding = 0.35,
       point.padding = 0.5
     ) +
@@ -957,9 +1005,23 @@ zujianfenxi <- function(
       system(down_df_cmd)
       
       if (is.data.frame(definition_df)) {
+        # 保证 up_df/down_df 是数据框且有 KEGG 列
+        if (!is.data.frame(up_df)) {
+          up_df <- data.frame(KEGG = up_df)
+        } else if (!"KEGG" %in% colnames(up_df)) {
+          up_df <- data.frame(KEGG = up_df[[1]])
+        }
+        if (!is.data.frame(down_df)) {
+          down_df <- data.frame(KEGG = down_df)
+        } else if (!"KEGG" %in% colnames(down_df)) {
+          down_df <- data.frame(KEGG = down_df[[1]])
+        }
+        # 检查 definition_df 是否有 KEGG 列
+        if (!"KEGG" %in% colnames(definition_df)) {
+          stop("definition_df 没有 KEGG 列，无法 merge")
+        }
         up_df <- merge(up_df, definition_df, by = "KEGG", all.x = TRUE)
         down_df <- merge(down_df, definition_df, by = "KEGG", all.x = TRUE)
-        
         write.table(
           up_df, 
           file = up_df_filename, 
@@ -968,7 +1030,6 @@ zujianfenxi <- function(
           col.names = TRUE, 
           quote = FALSE
         )
-        
         write.table(
           down_df, 
           file = down_df_filename, 
@@ -1069,6 +1130,9 @@ samples_file <- opt$samples
 
 # 读取数据
 reads_data <- read.xlsx(opt$input, sheet = 1, rowNames = TRUE)
+# 检查并转换数据框列类型
+reads_data <- check_and_convert_numeric(reads_data)
+
 sample_info <- read.table(
   samples_file, 
   sep = "\t", 
@@ -1104,11 +1168,33 @@ if (file.exists(Compound_def_file)) {
 # 主程序流程
 if (opt$runtype == "normal") {
   # 整体分析
-  zhengtifenxi_heatmap_pic_name <- file.path(
-    zhengtifenxi_dir, 
-    "All_metabolites_heatmap.jpeg"
+  ztfx_heatmap_pic_name <- file.path(zhengtifenxi_dir, "All_metabolites_heatmap.jpeg")
+  heatmap_plot(reads_data, ztfx_heatmap_pic_name)
+  
+  grouped_means <- sapply(unique(sample_info$group), function(g) {
+    samples_in_group <- sample_info$sample[sample_info$group == g]
+    if (length(samples_in_group) == 1) {
+      reads_data[[samples_in_group]]
+    } else {
+      rowMeans(reads_data[, samples_in_group, drop = FALSE])
+    }
+  })
+  grouped_means <- as.data.frame(grouped_means)
+  colnames(grouped_means) <- unique(sample_info$group)
+  rownames(grouped_means) <- rownames(reads_data)
+  row_class_heatmap(
+    grouped_means,
+    definition_df,
+    file.path(zhengtifenxi_dir, "All_metabolites_groupmean_heatmap.jpeg")
   )
-  heatmap_plot(reads_data, zhengtifenxi_heatmap_pic_name)
+  
+  write.xlsx(
+    grouped_means,
+    file = file.path(zhengtifenxi_dir, "All_metabolites_groupmean.xlsx"),
+    sheetName = "Sheet1",
+    rowNames = TRUE,
+    colNames = TRUE
+  )
 
   if (opt$log2data) {
     log2data_reads_data <- log2(reads_data + 1)
@@ -1129,11 +1215,11 @@ if (opt$runtype == "normal") {
     reads_data, 
     file.path(zhengtifenxi_dir, 'Metabolite_correlation_graph.png')
   )
-  
+
   pca_plot(
-    reads_data_frame = reads_data, 
+    data_frame = reads_data, 
     samples_file = samples_file, 
-    output_dir = zhengtifenxi_dir
+    output_prefix = file.path(zhengtifenxi_dir, 'Metabolite_')
   )
 
   # 多组分析
@@ -1177,8 +1263,12 @@ if (opt$runtype == "normal") {
   )
   
   pca_plot(
-    reads_data_frame = FALSE, 
-    fpkm_data_frame = fpkm, 
+    # if (is.data.frame(fpkm_data_frame)) {
+    #   data_frame <- log2(fpkm_data_frame + 1)
+    # } else {
+    #   data_frame <- reads_data_frame
+    # }
+    data_frame = fpkm, 
     samples_file = "samples_described.txt", 
     output_dir = zhengtifenxi_dir
   )
