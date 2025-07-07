@@ -9,26 +9,24 @@ import pandas as pd
 import openpyxl
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome'))
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools'))
-from genedf_add_expression_and_def import add_kns_def
+from deg_comparison_plot import deg_summary_plot
+sys.path.append('/home/colddata/qinqiang/script/CommonTools')
 from check_SampDesAndCompInfo import check_sample_comp
-from transcriptome_enrich import transcriptome_enrich
+from load_input import load_table, write_output_df
+sys.path.append('/home/colddata/qinqiang/script/Analysis/enrich_analysis')
+from deg_enrich import deg_enrich
+from deg_enrich_data_merge import deg_enrich_data_merge
 
 
 def parse_input():
     parser = argparse.ArgumentParser(description='输入 kegg, nr, swiss file 的路径')
-    parser.add_argument('-w', '--workdir', type=str, help='输入工作目录，默认当前目录', default='./')
-    parser.add_argument('-k', '--kegg', type=str, help='kegg_gene_def file')
-    parser.add_argument('-n', '--nr', type=str, help='nr_gene_def file')
-    parser.add_argument('-s', '--swiss', type=str, help='swiss_gene_def file')
-    parser.add_argument('--kns', type=str, help='输入 kns_def.txt，则不用输入上面的三个')
     parser.add_argument('--degvalue', type=float, help='deg value FC 值小于多少')
+    parser.add_argument('--kns', type=str, help='输入 kns_def.txt')
     parser.add_argument('--genego', type=str, help='gene_go swiss 注释出来的文件')
     parser.add_argument('--keggclean', type=str, help='KEGG_clean.txt kegg 注释出来的文件')
-    parser.add_argument('--degiddir', type=str, default='./DEG_analysis_results',
-                        help='默认 DEG_analysis_results 目录，读取所有 ID.txt 文件')
+    parser.add_argument('-o', '--output-dir', help='分析结果输出目录，默认当前目录', default=os.getcwd())
     
+    # 下面输入基本默认即可
     parser.add_argument('--samples', type=str, default='samples_described.txt', help='默认 samples_described.txt')
     parser.add_argument('--compare', type=str, default='compare_info.txt', help='默认 compare_info.txt')
     parser.add_argument('--fpkm', type=str, default='fpkm_matrix_filtered.txt', help='默认 fpkm_matrix_filtered.txt')
@@ -37,24 +35,12 @@ def parse_input():
     parser.add_argument('--filter-value', dest='filter_value', type=float, default=0.05, help='默认 0.05')
 
     args = parser.parse_args()
-    
-    args.workdir = os.path.abspath(args.workdir)
 
     return args
 
 
-def transcriptome_r_deseq(work_dir, fpkm_file, reads_file, samples_file, compare_file, 
-                          filter_type, filter_value, deg_value, output_dir):
-    os.chdir(work_dir)
-    # samples_file = 'samples_described.txt'
-    # compare_file = 'compare_info.txt'
-    # fpkm_file = 'fpkm_matrix_filtered.txt'
-    # reads_file = 'reads_matrix_filtered.txt'
-    # logger.info(f"检测组间比较 R 脚本准备文件是否缺失")
-    # for f in [samples_file, compare_file, fpkm_file, reads_file]:
-    #     if f not in os.listdir():
-    #         logger.critical(f'无法执行组间比较脚本，{f} 文件不存在')
-    #         sys.exit(1)
+def deg_r_deseq(fpkm_file, reads_file, samples_file, compare_file, 
+                filter_type, filter_value, deg_value, output_dir):
             
     logger.info(f'检查 {samples_file} 和 {compare_file} 文件是否符合要求')
     rep = check_sample_comp(samples_file, compare_file)
@@ -62,7 +48,6 @@ def transcriptome_r_deseq(work_dir, fpkm_file, reads_file, samples_file, compare
         logger.critical(f'样本描述文件 {samples_file} 和比较文件 {compare_file} 不符合要求')
         sys.exit(1)
         
-    logger.info(f'运行 multiple_samples_DESeq2.r 脚本中，fc 值为 {deg_value}')
     cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/Analysis/MultiDESeq/multiple_samples_DESeq2.r \
         --degvalue {deg_value} \
         --fpkm {fpkm_file} \
@@ -83,28 +68,13 @@ def transcriptome_r_deseq(work_dir, fpkm_file, reads_file, samples_file, compare
         return True
 
 
-# def transcriptome_enrich(work_dir, gene_go_file, kegg_clean_file, data_dir, compare_file):
-#     os.chdir(work_dir)
-#     logger.info(f'运行 enrich.r 脚本中...')
-#     cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/transcriptome/enrich.r \
-#         --genego {gene_go_file} \
-#         --keggclean {kegg_clean_file} \
-#         --compare {compare_file}"
-#     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#     if ret.returncode != 0:
-#         logger.error(f"enrich.r 程序运行失败")
-#         logger.error(f"标准输出：{ret.stdout.decode()}")
-#         logger.error(f"标准错误: {ret.stderr.decode()}")
-#         return False
-#     else:
-#         return True
-
-
-def transcriptome_enrich_distribution(work_dir):
+def deg_enrich_distribution(work_dir):
+    cur_dir = os.getcwd()
     os.chdir(work_dir)
     logger.info(f'运行 enrich_distribution_plot 脚本中')
     cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript /home/colddata/qinqiang/script/Analysis/enrich_analysis/enrich_distribution_plot.r"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    os.chdir(cur_dir)
     if ret.returncode != 0:
         logger.error(f"enrich_distribution_plot.r 程序运行失败")
         logger.error(f"标准输出：{ret.stdout.decode()}")
@@ -114,13 +84,13 @@ def transcriptome_enrich_distribution(work_dir):
         return True
         
 
-def process_deresults(de_results_file, kegg_file, nr_file, swiss_file, kns_file):
+def process_deresults(de_results_file, kns_df):
     if de_results_file.endswith('xlsx'):
-        de_df = pd.read_excel(de_results_file, engine='openpyxl', dtype=str)
-        de_reads_df = pd.read_csv(de_results_file.replace('.xlsx', '') + '_readCounts.matrix', sep='\t', dtype=str)
+        de_df = load_table(de_results_file, dtype=str)
+        de_reads_df = load_table(de_results_file.replace('.xlsx', '') + '_readCounts.matrix', dtype=str)
     else:
-        de_df = pd.read_csv(de_results_file, sep='\t', dtype={"GeneID": str})
-        de_reads_df = pd.read_csv(de_results_file + '_readCounts.matrix', sep='\t', dtype={"GeneID": str})
+        de_df = load_table(de_results_file, sep='\t', dtype=str)
+        de_reads_df = load_table(de_results_file + '_readCounts.matrix', sep='\t', dtype=str)
     de_reads_df.columns = [de_reads_df.columns.tolist()[0]] + [x + '_raw_reads' for x in de_reads_df.columns.tolist()[1:]]
     de_df = pd.merge(left=de_df, right=de_reads_df, on=de_reads_df.columns.tolist()[0], how='left')
     # 排序 down，up，NOsig。down 的 FC 值从小到大，up 的 FC 值从大到小
@@ -132,11 +102,8 @@ def process_deresults(de_results_file, kegg_file, nr_file, swiss_file, kns_file)
     de_df_nosig = de_df[de_df['regulation'] == 'NoSignificant'].copy()
     # 合并
     de_df = pd.concat([de_df_down, de_df_up, de_df_nosig])
-    if kns_file or kegg_file or nr_file or swiss_file:
-        # 添加注释
-        de_df = add_kns_def(de_df, kegg_file, nr_file, swiss_file, kns_file)
+    de_df = pd.merge(left=de_df, right=kns_df, on='GeneID', how='left')
     return de_df
-    
 
 
 def main():
@@ -144,40 +111,53 @@ def main():
     
     # 运行 R 脚本
     if args.degvalue:
-        rep = transcriptome_r_deseq(args.workdir, args.fpkm, args.reads, args.samples, args.compare, 
-                                    args.filter_type, args.filter_value, args.degvalue, args.workdir)
+        logger.info(f'正在执行 deseq 分析, {args.degvalue}')
+        rep = deg_r_deseq(args.fpkm, args.reads, args.samples, args.compare, args.filter_type, args.filter_value, args.degvalue, args.output_dir)
         if not rep:
             logger.critical(f'R 脚本运行失败')
             sys.exit(1)
-    if args.degvalue and args.genego and args.keggclean:
-        enrich_dir = os.path.join(args.workdir, 'Pathway_enrichment_analysis')
-        transcriptome_enrich(
+        logger.info(f'对 DEG_summary 画图')
+        deg_summary_df = load_table(os.path.join(args.output_dir, 'DEG_analysis_results', 'DEG_summary.txt'), comment='#', skipinitialspace=True)
+        deg_summary_plot(deg_summary_df, os.path.join(args.output_dir, 'DEG_analysis_results', 'DEG_summary_plot.jpeg'))
+    else:
+        logger.info(f'未输入 degvalue，不执行 r deseq 分析，将针对现有 deseq 结果进行处理')
+    if args.genego and args.keggclean:
+        logger.info('正在执行 deg enrich')
+        enrich_dir = os.path.join(args.output_dir, 'Pathway_enrichment_analysis')
+        os.makedirs(enrich_dir, exist_ok=True)
+        deg_enrich(
             compare = args.compare,
-            degdata_dir = args.degiddir,
+            degdata_dir = os.path.join(args.output_dir, 'DEG_analysis_results'),
             genego_file = args.genego,
             keggclean_file = args.keggclean,
             outputdir = enrich_dir
         )
-        transcriptome_enrich_distribution(enrich_dir)
-        os.chdir(args.workdir)
+        logger.info('正在执行 deg distribution 画图')
+        deg_enrich_distribution(enrich_dir)
+        deg_enrich_data_merge(
+            os.path.join(args.output_dir, 'Pathway_enrichment_analysis', 'Pathway_enrichment_raw_data'),
+            args.compare,
+            os.path.join(args.output_dir, 'Pathway_enrichment_analysis', 'Pathway_enrichment_raw_data', 'DEG_enrichment_significant_pathway_summary.xlsx')
+        )
     
-    de_results_output_dir = os.path.join(args.workdir, 'DEG_analysis_results/Expression_data')
+    de_results_output_dir = os.path.join(args.output_dir, 'DEG_analysis_results/Expression_data')
 
-    for de_results_file in os.listdir(args.workdir):
+    kns_df = load_table(args.kns, dtype={"GeneID": str})
+    for de_results_file in os.listdir(args.output_dir):
         if de_results_file.endswith('DE_results') or de_results_file.endswith('DE_results.xlsx'):
             logger.info(f'processing---{de_results_file}')
-            de_df = process_deresults(de_results_file, args.kegg, args.nr, args.swiss, args.kns)
+            de_df = process_deresults(de_results_file, kns_df)
             deg_filename = os.path.basename(de_results_file).replace('DE_results', 'DEG_data.txt')
             deg_data_file = os.path.join(de_results_output_dir, deg_filename)
-            de_df.to_csv(deg_data_file, sep='\t', index=False)
+            write_output_df(de_df, deg_data_file, index=False)
         
 
     for up_down_id_file in os.listdir("DEG_analysis_results"):
         up_down_id_file = os.path.join("DEG_analysis_results", up_down_id_file)
         if up_down_id_file.endswith('Down_ID.txt') or up_down_id_file.endswith('Up_ID.txt'):
-            up_down_id_df = pd.read_csv(up_down_id_file, sep='\t', names=['GeneID'], dtype={"GeneID": str})
-            result_df = add_kns_def(up_down_id_df, args.kegg, args.nr, args.swiss, args.kns)
-            result_df.to_csv(up_down_id_file.replace('.txt', '_def.txt'), sep='\t', index=False)
+            up_down_id_df = load_table(up_down_id_file, dtype={"GeneID": str}, header=None, names=['GeneID'])
+            result_df = pd.merge(left=up_down_id_df, right=kns_df, on='GeneID', how='left')
+            write_output_df(result_df, up_down_id_file.replace('.txt', '_def.txt'), index=False)
 
     png_file = 'deg_line_plot.jpeg'
     count_summary_file = 'all_deg_count_summary.txt'
@@ -186,7 +166,7 @@ def main():
         os.rename(png_file, os.path.join('Expression_data_evaluation', png_file))
     if os.path.exists(count_summary_file):
         os.rename(count_summary_file, os.path.join('Expression_data_evaluation', count_summary_file))
-
+    
     logger.success('Done!')
 
 
