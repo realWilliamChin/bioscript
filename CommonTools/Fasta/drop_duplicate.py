@@ -11,17 +11,19 @@ def parse_arguments():
     parser.add_argument('-i', '--input', required=True, help='Input FASTA file')
     parser.add_argument('-o', '--output', required=True, help='Output FASTA file')
     parser.add_argument('-s', '--split', default='@@@', help='序列名以哪个字符串分割，默认不分割')
+    parser.add_argument('--keep-split-number', dest='keep_split_number', default=0, type=int,
+                        help='split 切割之后选择第几个字符串作为基因名称，从 0 开始，默认是 0')
     parser.add_argument('--keep', choices=['long', 'first'], default='long',
                         help='去除重复的选项，选择保留最长的，或者是第一个')
     return parser.parse_args()
 
 
-def filter_duplicates(fasta_file, strsplit, keep='long'):
+def filter_duplicates(fasta_file, strsplit, keep_split_number, keep='long'):
     sequences = {}
 
     # 读取 FASTA 文件，并将序列保存到字典中
     for record in SeqIO.parse(fasta_file, "fasta"):
-        sequence_id = record.id.split(strsplit, 1)[0]
+        sequence_id = record.id.split(strsplit, 1)[keep_split_number]
         sequence = str(record.seq)
         length = len(sequence)
         
@@ -44,7 +46,7 @@ def write_sequences(output_file, sequences):
 
 def main():
     args = parse_arguments()
-    filtered_sequences = filter_duplicates(args.input, args.split, args.keep)
+    filtered_sequences = filter_duplicates(args.input, args.split, args.keep_split_number, args.keep)
     write_sequences(args.output, filtered_sequences)
     logger.success(f"已成功去除重复序列，并保存到 {args.output} 文件中")
 
