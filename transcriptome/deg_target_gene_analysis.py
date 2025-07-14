@@ -14,6 +14,7 @@ sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from data_check import df_drop_row_sum_eq_zero
 from data_check import df_drop_element_side_space
+from data_check import df_replace_illegal_folder_chars
 from Rscript import draw_multigroup_heatmap
 from load_input import load_table, write_output_df
 
@@ -95,6 +96,7 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, g
 
     # 每个 Ontology 单独画图
     for ontology, sub_df in gene_fpkm_df.groupby('Ontology'):
+        logger.info(f'正在画 {ontology} heatmap')
         heatmap_data_df = sub_df[['GeneSymbol'] + sample_columns].copy()
         heatmap_sheet3_df = sub_df[['GeneSymbol', 'SubOntology', 'Ontology']].copy()
         
@@ -103,7 +105,7 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, g
             heatmap_data_df, sub_samples_df = apply_group_mean(heatmap_data_df, sub_samples_df)
         
         ontology_excel = all_gene_heatmap_filename.replace('.xlsx', f'_{ontology}.xlsx')
-        ontology_pic = output_pic.replace('.jpeg', f'_{ontology}.jpeg')
+        ontology_pic = output_pic.replace('.jpg', f'_{ontology}.jpg')
         with pd.ExcelWriter(ontology_excel, engine='openpyxl') as writer:
             heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
             samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
@@ -214,10 +216,11 @@ def main():
     samples_df = load_table(samples_file, usecols=[0, 1], dtype=str)
     target_gene_def_df = load_table(target_gene_file, dtype={'GeneID': str})
     target_gene_def_df['Ontology'] = target_gene_def_df['Ontology'].str.replace('/', '_').str.replace(' ', '_')
+    target_gene_def_df = df_drop_element_side_space(target_gene_def_df)
+    target_gene_def_df = df_replace_illegal_folder_chars(target_gene_def_df, ['Ontology', 'SubOntology'])
     
     # 对文件预处理
     samples_df = samples_df[['sample', 'group']]
-    target_gene_def_df = df_drop_element_side_space(target_gene_def_df)
     if args.genesymbol:
         index_col = 'GeneSymbol'
         target_gene_def_df = genesymbol_data_pre_process(target_gene_def_df)
