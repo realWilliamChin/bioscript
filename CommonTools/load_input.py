@@ -7,6 +7,7 @@ import argparse
 import pandas as pd
 from loguru import logger
 import pandas as pd
+from openpyxl.styles import Font, Border, Side
 
 
 def parse_input():
@@ -64,7 +65,20 @@ def write_output_df(df, output_file, *args, **kwargs):
     """
     ext = output_file.split('.')[-1]
     if ext in ['xls', 'xlsx']:
-        df.to_excel(output_file, engine='openpyxl', *args, **kwargs)
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            df.to_excel(writer, engine='openpyxl', *args, **kwargs)
+            worksheet = writer.sheets['Sheet1']
+            # 无边框
+            no_border = Border(
+                left=Side(style='none'),
+                right=Side(style='none'),
+                top=Side(style='none'),
+                bottom=Side(style='none')
+            )
+            # 表头去除加粗
+            for cell in worksheet[1]:
+                cell.font = Font(bold=False)
+                cell.border = no_border
     elif ext in ['txt', 'tsv', 'blast', 'gff', 'gff3', 'gtf']:
         df.to_csv(output_file, sep='\t', *args, **kwargs)
     else:
