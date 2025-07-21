@@ -2,8 +2,12 @@
 # -*- coding: UTF-8 -*-
 # Created Time  : 3/6/2023 3:25 PM
 # Author        : WilliamGoGo
+import os, sys
 import argparse
 import pandas as pd
+
+sys.path.append('/home/colddata/qinqiang/script/CommonTools')
+from load_input import load_table, write_output_df
 
 
 def parse_input():
@@ -19,12 +23,7 @@ def parse_input():
     
     
 def reindex(lst, input_file, output_file):
-    if input_file.endswith('.csv'):
-        df = pd.read_csv(input_file, dtype=str)
-    elif input_file.endswith('.xlsx'):
-        df = pd.read_excel(input_file, dtype=str, engine='openpyxl')
-    else:
-        df = pd.read_csv(input_file, sep='\t', dtype=str)
+    df = load_table(input_file, dtype=str)
     df_columns = df.columns.values[1:]
     error_lst = []
     
@@ -45,12 +44,7 @@ def reindex(lst, input_file, output_file):
         print('输入的 title list 和输出的表 title 数量不匹配，请检查')
         exit(1)
 
-    if output_file.endswith('.csv'):
-        df.to_csv(output_file, index=False)
-    elif output_file.endswith('.xlsx'):
-        df.to_excel(output_file, index=False, engine='openpyxl')
-    else:
-        df.to_csv(output_file, sep='\t', index=False)
+    write_output_df(df, output_file, index=False)
 
 
 def main():
