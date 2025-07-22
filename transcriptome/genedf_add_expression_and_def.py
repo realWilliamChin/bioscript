@@ -43,7 +43,7 @@ def parse_input():
     return args
 
 
-def add_kns_def(file_df, for_merge_column, kegg_file=None, nr_file=None, swiss_file=None, kns_file=None):
+def add_kns_def(file_df, for_merge_column='GeneID', kegg_file=None, nr_file=None, swiss_file=None, kns_file=None, merge_how='left'):
     """对输入表添加基因定义"""
     result_df = file_df.copy()
     source_shape = file_df.shape[0]
@@ -86,7 +86,7 @@ def add_kns_def(file_df, for_merge_column, kegg_file=None, nr_file=None, swiss_f
         duplicate_cols = [col for col in kns_df.columns if col in result_df.columns and col != for_merge_column]
         if duplicate_cols:
             kns_df = kns_df.drop(columns=duplicate_cols)
-        result_df = pd.merge(left=result_df, right=kns_df, on=for_merge_column, how='left')
+        result_df = pd.merge(left=result_df, right=kns_df, on=for_merge_column, how=merge_how)
 
     diff_col = list(set(result_df.columns) - set(file_df.columns))
     result_df[diff_col] = result_df[diff_col].fillna(value='N/A')
@@ -137,16 +137,16 @@ def main():
     if args.expression:
         result_df = add_expression_data(df, args.expression, args.merge_how)
     else:
-        result_df = add_kns_def(df, for_merge_column, args.kegg, args.nr, args.swiss, args.kns)
+        result_df = add_kns_def(df, for_merge_column, args.kegg, args.nr, args.swiss, args.kns, args.merge_how)
     
     if args.output.endswith('.xlsx'):
         result_df = result_df.rename(columns={for_merge_column: args.input_header})
-        result_df.to_excel(args.output, index=False, engine='openpyxl')
+        write_output_df(result_df, args.output, index=False)
     if type(args.input_header) == str:
         result_df = result_df.rename(columns={for_merge_column: args.input_header})
-        result_df.to_csv(args.output, sep='\t', index=False)
+        write_output_df(result_df, args.output, index=False)
     elif type(args.input_header) == int:
-        result_df.to_csv(args.output, sep='\t', index=False, header=True)
+        write_output_df(result_df, args.output, index=False, header=True)
         
     logger.success('Done!')
 
