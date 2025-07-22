@@ -6,9 +6,11 @@
 import os, sys
 import argparse
 import pandas as pd
+from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+from load_input import load_table, write_output_df
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
 from genedf_add_expression_and_def import add_kns_def
 
@@ -27,8 +29,9 @@ def parse_input():
 
 
 def merge_fpkm_reads(fpkm_file, reads_file):
-    fpkm_df = pd.read_csv(fpkm_file, sep='\t', dtype={"GeneID": str})
-    reads_df = pd.read_csv(reads_file, sep='\t', dtype={"GeneID": str})
+    fpkm_df = load_table(fpkm_file, dtype={"GeneID": str})
+    reads_df = load_table(reads_file, dtype={"GeneID": str})
+    
     # 对 GeneID 列进行重命名，如果是用其他方式写的 gene_id geneid 等等
     if 'gene' in fpkm_df.columns[0].lower() and 'id' in fpkm_df.columns[0].lower():
         fpkm_df.rename(columns={fpkm_df.columns[0]: 'GeneID'}, inplace=True)
@@ -51,13 +54,10 @@ def merge_fpkm_reads(fpkm_file, reads_file):
 def main():
     args = parse_input()
     merged_df = merge_fpkm_reads(args.fpkm, args.reads)
-    result_df = add_kns_def(merged_df, args.kegg, args.nr, args.swiss, args.kns)
-    if args.output:
-        result_df.to_csv(args.output, sep='\t', index=False)
-    else:
-        result_df.to_csv('fpkm_and_reads_matrix_filtered_data_def.txt', sep='\t', index=False)
+    result_df = add_kns_def(merged_df, kegg_file=args.kegg, nr_file=args.nr, swiss_file=args.swiss, kns_file=args.kns)
+    write_output_df(result_df, args.output, index=False)
         
-    print('\nDone!\n')
+    logger.success('\nDone!\n')
 
 
 if __name__ == '__main__':
