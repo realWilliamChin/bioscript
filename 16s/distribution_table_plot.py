@@ -44,7 +44,6 @@ def plot_sample_level_percentages(stats_df, output_prefix):
     sample_total_counts = stats_df.sum(axis=0)
     
     # 计算每个分类级别在每个样本中的百分比
-    # 为了防止除以零，对于总数为零的样本，百分比设为0
     percentage_df = stats_df.div(sample_total_counts, axis=1) * 100
     percentage_df = percentage_df.fillna(0) # 填充NaN值为0
     
@@ -54,7 +53,7 @@ def plot_sample_level_percentages(stats_df, output_prefix):
     write_output_df(percentage_df_transposed, f'{output_prefix}level_percentages.txt', index=True)
     
     # 设置颜色调色板
-    colors = sns.color_palette("viridis", n_colors=len(stats_df.index))
+    colors = sns.color_palette("RdBu", n_colors=len(stats_df.index))
     
     # 绘制百分比图
     plt.figure(figsize=(14, 8))
