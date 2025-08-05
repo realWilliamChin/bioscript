@@ -372,12 +372,15 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
 def ko03000(kegg_gene_df, kegg_tier3_df):
     ko03000_def_df_file = '/home/colddata/qinqiang/script/kns_annotation/scripts/ko03000_def.txt'
     ko03000_def_df = load_table(ko03000_def_df_file)
-    ko03000_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03000")]['GeneID'].tolist()
-    ko03022_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03022")]['GeneID'].tolist()
+    
+    # 处理 NA/NaN 值
+    kegg_tier3_df['Pathway'] = kegg_tier3_df['Pathway'].fillna('N/A')
+    
+    ko03000_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03000", na=False)]['GeneID'].tolist()
+    ko03022_geneid_list = kegg_tier3_df[kegg_tier3_df['Pathway'].str.contains("ko03022", na=False)]['GeneID'].tolist()
     
     ko03000_df = kegg_gene_df[kegg_gene_df['GeneID'].isin(ko03000_geneid_list)][['GeneID', 'KEGG_ID']].copy()
     ko03022_df = kegg_gene_df[kegg_gene_df['GeneID'].isin(ko03022_geneid_list)][['GeneID', 'KEGG_ID']].copy()
-    # ko03000_df = ko03000_df
     ko03000_df = pd.merge(left=ko03000_df, right=ko03000_def_df, on='KEGG_ID', how='left')
     
     return ko03000_df, ko03022_df
@@ -388,12 +391,12 @@ def filter_ko_df(ko_df, specie_type):
     if specie_type == 'plant':
         # 定义需要过滤的类别
         filter_categories = {
-            'A09160': 'Human Diseases',  # 人类疾病
-            'A09190': 'Organismal Systems',  # 生物系统
-            'A09150': {  # 生物系统（部分保留）
+            'A09160': 'Human Diseases',
+            'A09190': 'Organismal Systems',
+            'A09150': {
                 'keep_patterns': [
-                    '09158:Development and regeneration',  # 发育和再生
-                    '09159:Environmental adaptation'  # 环境适应
+                    '09158:Development and regeneration',
+                    '09159:Environmental adaptatqion'
                 ]
             }
         }
@@ -440,13 +443,13 @@ def parse_keg(ko_file, specie_type, all_id_file, fpkm, reads, output_prefix):
             ec_match = re.search(r'\[EC[^]]*\]', desc)
             if ec_match:
                 return ec_match.group(0).strip('[]')
-            return '---'
+            return 'N/A'
         except (AttributeError, TypeError):
-            return '---'
+            return 'N/A'
             
     gene_def_df['EC_number'] = gene_def_df['Description EC_number'].apply(extract_ec_number)
     gene_def_df['KEGG_def'] = gene_def_df['Description EC_number'].str.split('[', expand=True)[0].str.strip()
-    gene_def_df.fillna(value='---', inplace=True)
+    gene_def_df.fillna(value='N/A', inplace=True)
     
     # Gene_shortname 不能设置空为 NA，好像是某个软件识别 NA 会有问题（张老师说的）
     gene_def_df['Gene_shortname'] = gene_def_df['Gene_shortname'].str.split(',', expand=True)[0].fillna('')
@@ -578,7 +581,7 @@ def main():
     args = parse_input()
     ko_file = args.ko_file
     # 分割 fasta 文件，合并写入 keg 文件
-    if args.split and args.split > 1:
+    if args.split and args.fasta:
         split_fasta(args.fasta, args.split)
         split_dir = f'{args.fasta}.split'
         fasta_file_list = [f'{os.path.join(split_dir, x)}' for x in os.listdir(split_dir)]
@@ -589,7 +592,8 @@ def main():
             kegg_anno(args.mail_type, args.username, args.password, fasta_file, args.org_lst, ko_sp_file)
         with open(ko_file, "w") as outfile:
             for filepath in sp_file_lst:
-                outfile.write(filepath.read_text())
+                with open(filepath, "r") as infile:
+                    outfile.write(infile.read())
 
     # 直接运行注释
     elif args.org_lst and args.fasta:
