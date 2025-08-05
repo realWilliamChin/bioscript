@@ -1,0 +1,24 @@
+paths:
+  log_dir: "logs"
+  input_data: "00_Cleandata"
+  samples_file: "samples_described.txt"
+
+  trinity_output: "01_Trinity"
+  annotation_output: "02_Annotation"
+  reference_dir: "03_Reference"
+  mapping_output: "04_Alignment"
+  expression_output: "05_Expression"
+
+
+specie: 'Fragaria'
+
+trinity:
+  run_type: 'max'  # max or all
+
+rsem:
+  threads: 4
+
+count_threshold: 50  # reads 过滤阈值
+
+
+use-conda: true

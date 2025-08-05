@@ -1,0 +1,34 @@
+include: 'rules/common.smk'
+include: 'rules/trinity.smk'
+include: 'rules/rsem.smk'
+include: 'rules/expression.smk'
+
+
+# 定义最终输出文件
+rule all:
+    input:
+        f'{WORK_DIR}/logs/samples_check.done',  # check sample data 输出
+        f'{WORK_DIR}/samples_trinity.txt',  # prep_trinity_run_file 输出
+        f'{TRINITY_DIR}/Trinity.fasta',  # Trinity 输出
+        f'{TRINITY_DIR}/unigene_longest.fasta',  # perl 输出
+        f'{TRINITY_DIR}/{SPECIE_NAME}_unigene.fasta',  # CD-HIT 去冗余输出
+        f'{TRINITY_DIR}/trinity_stats.txt',  # assemble report
+        f'{TRINITY_DIR}/seqkit_stats.txt',  # assemble report
+        f'{TRINITY_DIR}/assemble_report.txt',  # assemble report
+
+        f'{REFERENCE_DIR}/{SPECIE_NAME}.transcripts.fa',  # rsem prepare
+
+        expand(f'{MAPPING_DIR}/{{sample}}_mapping_stat.txt', sample=samples_list),  # rsem calculate expression
+        expand(f'{LOG_DIR}/rsem/{{sample}}_mapping.log', sample=samples_list),  # rsem calculate expression
+        expand(f"{MAPPING_DIR}/{{sample}}.genes.results", sample=samples_list),  # rsem calculate expression
+        expand(f"{MAPPING_DIR}/{{sample}}.isoforms.results", sample=samples_list),  # rsem calculate expression
+
+        # mapping_summary
+        f'{EXPRESSION_DIR}/gene_count_matrix.txt',
+        f'{EXPRESSION_DIR}/gene_fpkm_matrix.txt',
+        f'{EXPRESSION_DIR}/reads_matrix_filtered.txt',
+        f'{EXPRESSION_DIR}/fpkm_matrix_filtered.txt'
+
+
+
+
