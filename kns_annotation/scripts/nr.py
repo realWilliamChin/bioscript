@@ -24,11 +24,8 @@ from load_input import load_table, write_output_df
 
 def parse_input():
     parser = argparse.ArgumentParser(description='输入 nr.blast 文件的路径')
-    # parser.add_argument(dest='running_type', choices=['all', 'blast', 'parse_blast'], help='运行类型')
     
     parser.add_argument('-b', '--blast', type=str, help='nr.blast file')
-    parser.add_argument('--basicinfo', type=str, dest='basicinfo', 
-                        help='basicinfo 文件，如果 Gene_Def 都是 NA，则无需添加')
     parser.add_argument('-o', '--output-prefix', dest='output_prefix',
                         help='输出文件的前缀')
     parser.add_argument('--not-annotationed', action='store_true', dest='not_annotationed',
@@ -37,7 +34,7 @@ def parse_input():
     annotation = parser.add_argument_group('需要注释添加一下参数')
     annotation.add_argument('-f', '--fasta', help='输入需要去注释的 cds fasta 或 unigene fasta 文件（去重，名字精简）')
     annotation.add_argument('-n', '--outfmt', help="nr 输出格式",
-                            default="qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,stitle")
+                            default="qseqid,sseqid,pident,length,mismatch,gapopen,qstart,qend,sstart,send,evalue,bitscore,stitle,staxids")
 
     args = parser.parse_args()
     
@@ -80,17 +77,11 @@ def nr(nr_blast_file, gene_basicinfo_file, nr_columns, output_prefix):
 
     data_frame = data_frame.sort_values(by=['qseqid', 'bitscore'], ascending=[True, False])
     data_frame = data_frame.drop_duplicates(subset=['qseqid'], keep='first')
-    write_output_df(data_frame, output_prefix +  'nr_uniq_blast.txt', index=False)
+    write_output_df(data_frame, output_prefix + 'nr_uniq_blast.txt', index=False)
     nr_gene_def_df = data_frame[['qseqid', 'sseqid', 'stitle']].copy()
     nr_gene_def_df.columns = ['GeneID', 'NCBI_ID', 'NR_Def']
     nr_gene_def_df['NR_Def'] = nr_gene_def_df['NR_Def'].str.split(n=1).str[1]
     print(f'注释上的基因数量是 {nr_gene_def_df.shape[0]} 个')
-    
-    # 有参基因中没有注释上的 gene 的 biotype 类型，如果是无参不需要此步骤
-    if gene_basicinfo_file and os.path.exists(gene_basicinfo_file):
-        nr_gene_def_df = nr_def_add_not_protein_coding(nr_gene_def_df, gene_basicinfo_file)
-    else:
-        print('没有检测到 gene_basicinfo 文件，或文件输入有误，如没有输入 -b 参数，忽略此条消息')
     
     write_output_df(nr_gene_def_df, output_prefix + 'nr_gene_def.txt', index=False)
     
