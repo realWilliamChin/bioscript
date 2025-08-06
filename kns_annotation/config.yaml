@@ -1,0 +1,19 @@
+# 默认即可
+log_dir: "logs"
+kegg_dir: "kegg"
+nr_dir: "nr"
+swiss_dir: "swiss"
+cog_dir: "cog"
+biogrid_dir: "biogrid"
+gsea_dir: "gsea"
+transdecoder_dir: "transdecoder"
+
+# anno 参数
+anno_fasta: ""
+all_geneid_file: "{specie}_all_geneid.txt"
+basicinfo_file: ""  # 如果没有则空
+specie: 'Fragaria'
+specie_type: 'plant'  # plant animal fungus insect ...
+split_anno: 1  # 通常注释的 fasta 超过 5w 条序列则进行分割
+memory: 500
+kegg_anno_org_list: '' # 植物选择 ath, syn，然后再添加对应的纲里的模式种， 细菌选择 eco，再加属名对应的种

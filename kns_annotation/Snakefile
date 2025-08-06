@@ -1,0 +1,47 @@
+include: 'rules/common.smk'
+include: 'rules/anno.smk'
+
+# 定义最终输出文件
+rule all:
+    input:
+        rules.all_outputs.input
+
+# 定义最终输出文件
+rule all:
+    input:
+        # kegg
+        f'{KEGG_DIR}/{SPECIE_NAME}_KEGG_clean.txt',
+        f'{KEGG_DIR}/{SPECIE_NAME}_KEGG_gene_def.txt',
+
+        # nr
+        f'{NR_DIR}/{SPECIE_NAME}_nr.blast',
+        f'{NR_DIR}/{SPECIE_NAME}_nr_gene_def.txt',
+
+        # swiss
+        f'{SWISS_DIR}/{SPECIE_NAME}_GO_BP_ID.txt',
+        f'{SWISS_DIR}/{SPECIE_NAME}_GO_CC_ID.txt',
+        f'{SWISS_DIR}/{SPECIE_NAME}_GO_MF_ID.txt',
+        f'{SWISS_DIR}/{SPECIE_NAME}_swiss.blast',
+        f'{SWISS_DIR}/{SPECIE_NAME}_swiss_gene_def.txt',
+
+        # cog
+        f'{COG_DIR}/{SPECIE_NAME}.emapper.seed_orthologs',
+
+        # biogrid
+        f'{BIOGRID_DIR}/Biogrid_PPI_relation_from_{SPECIE_NAME}.txt',
+
+        # annotation summary
+        f'{WORK_DIR}/{SPECIE_NAME}_annotation_summary_venn.jpeg',
+        f'{WORK_DIR}/{SPECIE_NAME}_annotation_summary.txt',
+
+        # GSEA
+        f'{GSEA_DIR}/{SPECIE_NAME}_GO_BP_ID.GMT',
+        f'{GSEA_DIR}/{SPECIE_NAME}_GO_CC_ID.GMT',
+        f'{GSEA_DIR}/{SPECIE_NAME}_GO_MF_ID.GMT',
+        f'{GSEA_DIR}/{SPECIE_NAME}_KEGG_tier2.GMT',
+        f'{GSEA_DIR}/{SPECIE_NAME}_KEGG_tier3.GMT',
+
+        # merged
+        f'{WORK_DIR}/{SPECIE_NAME}_kns_gene_def.txt'
+
+
