@@ -1,5 +1,4 @@
 PATH=$PATH:/home/train/.aspera/connect/bin/
-PATH=$PATH:/opt/biosoft/sratoolkit/bin/
 PATH=$PATH:/opt/biosoft/FastQC/
 PATH=$PATH:/opt/biosoft/FastUniq/source/
 PATH=$PATH:/opt/biosoft/BLESS/
@@ -185,3 +184,8 @@ export R_LIBS=/opt/biosoft/R-4.2.2/lib64/R/library
 
 # make4
 # export PATH=/opt/biosoft/make-4.4/build:$PATH
+
+# sra toolkit
+# PATH=$PATH:/opt/biosoft/sratoolkit/bin/
+export SRA_TOOLKIT_PATH=/opt/biosoft/sratoolkit.3.1.1-centos_linux64/bin
+export PATH=$PATH:$SRA_TOOLKIT_PATH
