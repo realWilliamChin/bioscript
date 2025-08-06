@@ -2,21 +2,34 @@
 # -*- coding: UTF-8 -*-
 # Created Time  : 2023/6/6 20:32
 # Author        : WilliamGoGo
-import os
+import os, sys
 import pandas as pd
 import argparse
+from loguru import logger
+
+sys.path.append('/home/colddata/qinqiang/script/CommonTools')
+from load_input import load_table, write_output_df
+from Blast.blast_drop_dup import deduplicate_blast_results
 
 
-def parse_arguments():
+def parse_input():
     parser = argparse.ArgumentParser(description="biogrid, 使用 cds fasta 文件")
     parser.add_argument('-f', '--fasta', help='输入要比对的 cds_fasta 文件')
-    parser.add_argument('-d', '--database', choices=['plant', 'animal', 'fungus', 'insect'],
-                        help='输入比对的数据库')
-    parser.add_argument('--custom-database', help='自定义数据库')
-    parser.add_argument('-r', '--ref', help='自定义输入参考文件')
+    parser.add_argument('-d', '--database', choices=['plant', 'animal', 'animal_human', 'animal_mouse', 'fungus', 'insect'],
+                        help='输入比对的数据库, animal --> animal_human')
     parser.add_argument('-c', '--cpu', help='输入线程数，默认 20 线程', default=20)
     parser.add_argument('-p', '--prefix', required=True, help='输入输出文件的前缀')
-    parser.add_argument('--biogrid', action='store_true', help='不进行 blast 直接生成 biogrid 结果文件')
+    
+    # 创建自定义参数组
+    custom_group = parser.add_argument_group('自定义 biogrid 参考库，仍然需要输入 --fasta --cpu --prefix')
+    custom_group.add_argument('--custom-database', dest='custom_database', help='自定义数据库')
+    custom_group.add_argument('--custom-ref', dest='custom_ref', help='自定义输入参考文件')
+    
+    # 只进行解析
+    parse_biogrid_group = parser.add_argument_group('直接对 blast 结果解析')
+    parse_biogrid_group.add_argument('--biogrid', help='输入 blast 比对结果文件')
+    parse_biogrid_group.add_argument('--parse-ref', dest='parse_ref', help='输入参考文件')
+    
     args = parser.parse_args()
     
     # 添加已做好的 biogrid 数据库
@@ -24,32 +37,48 @@ def parse_arguments():
     if not args.database:
         pass
     elif args.database.lower() == 'plant':
+        specie_name = 'Arabidopsis_thaliana'
         plant_dir = os.path.join(biogrid_database, 'Plant_Biogrid_Arabidopsis_thalinan')
-        args.database = os.path.join(plant_dir, '00_Database', 'Arabidopsis_thaliana')
-        args.ref = os.path.join(plant_dir, 'BIOGRID-Arabidopsis_thaliana-embl.txt')
-    elif args.database.lower() == 'animal':
+        args.database = os.path.join(plant_dir, '00_Database', specie_name)
+        args.parse_ref = os.path.join(plant_dir, 'BIOGRID-Arabidopsis_thaliana-embl.txt')
+    elif args.database.lower() in ['animal_human', 'animal']:
+        specie_name = 'Homo_sapiens'
         animal_dir = os.path.join(biogrid_database, 'Animal_Biogrid_Homo_sapiens')
-        args.database = os.path.join(animal_dir, '00_Database', 'Homo_sapiens')
-        args.ref = os.path.join(animal_dir, 'BIOGRID-Homo_sapiens-embl.txt')
+        args.database = os.path.join(animal_dir, '00_Database', specie_name)
+        args.parse_ref = os.path.join(animal_dir, 'BIOGRID-Homo_sapiens-embl.txt')
     elif args.database.lower() == 'fungus':
+        specie_name = 'Saccharomyces_cerevisiae'
         fungus_dir = os.path.join(biogrid_database, 'Fungus_Biogrid_Saccharomyces_cerevisiae')
-        args.database = os.path.join(fungus_dir, '00_Database', 'Saccharomyces_cerevisiae')
-        args.ref = os.path.join(fungus_dir, 'BIOGRID-Saccharomyces_cerevisiae_embl_2.txt')
+        args.database = os.path.join(fungus_dir, '00_Database', specie_name)
+        args.parse_ref = os.path.join(fungus_dir, 'BIOGRID-Saccharomyces_cerevisiae_embl_2.txt')
     elif args.database.lower() == 'insect':
-        drosaphila_dir = os.path.join(biogrid_database, 'Biogrid_Drosophila_melanogaster')
-        args.database = os.path.join(drosaphila_dir, '00_Database', 'Drosophila_melanogaster')
-        args.ref = os.path.join(drosaphila_dir, 'BIOGRID-Drosophila_melanogaster-embl.txt')
-    elif args.database.lower() == 'mus':
-        mus_dir = os.path.join(biogrid_database, 'Biogrid_Mus_musculus')
-        args.database = os.path.join(mus_dir, '00_Database', 'Mus_musculus')
-        args.ref = os.path.join(mus_dir, 'BIOGRID-Mus_musculus-embl.txt')
+        specie_name = 'Drosophila_melanogaster'
+        drosaphila_dir = os.path.join(biogrid_database, 'Insect_Biogrid_Drosophila_melanogaster')
+        args.database = os.path.join(drosaphila_dir, '00_Database', specie_name)
+        args.parse_ref = os.path.join(drosaphila_dir, 'BIOGRID-Drosophila_melanogaster-embl.txt')
+    elif args.database.lower() == 'animal_mouse':
+        specie_name = 'Mus_musculus'
+        mus_dir = os.path.join(biogrid_database, 'Animal_Biogrid_Mus_musculus')
+        args.database = os.path.join(mus_dir, '00_Database', specie_name)
+        args.parse_ref = os.path.join(mus_dir, 'BIOGRID-Mus_musculus-embl.txt')
     else:
         pass
 
-    return args
+    return args, specie_name
 
 
 def exec_blast(fasta_file, num_threads, database, prefix):
+    """ 执行 blast 比对，生成 blast 结果
+
+    Args:
+        fasta_file (str): 输入 cds fasta 文件
+        num_threads (int): 线程数量
+        database (str): database 路径
+        prefix (str): 输出前缀
+
+    Returns:
+        str: 结果文件名
+    """
     blast_file_name = prefix + '.blast'
     pep_file_name = prefix + '_pep.fasta'
     # cds 转成 pep，后续需要清理一下序列
@@ -66,15 +95,8 @@ def exec_blast(fasta_file, num_threads, database, prefix):
         -outfmt "6 qacc sacc qcovhsp ppos length mismatch gapopen qstart qend sstart send evalue bitscore stitle"'
         
     os.system(blast_command)
+    
     return blast_file_name
-
-
-def drop_dup(blast_file):
-    blast_names = ['qacc','sacc','qcovhsp','ppos','length','mismatch','gapopen','qstart','qend','sstart','send','evalue','bitscore','stitle']
-    df = pd.read_csv(blast_file, sep='\t', names=blast_names, low_memory=False)
-    df.sort_values(by=['qacc', 'bitscore'], ascending=[True, False], inplace=True)
-    df.drop_duplicates(subset='qacc', keep='first', inplace=True)
-    df.to_csv(blast_file.replace('.blast', '_uniq.blast'), sep='\t', index=False)
 
 
 def biogrid(in_blast_file, ref_file, out_file):
@@ -137,24 +159,85 @@ def biogrid(in_blast_file, ref_file, out_file):
                             else:
                                 geneB = dic[gene2]
                                 content = id + '\t' + geneA + '\t' + geneB + '\t' + other + '\t' + source_database + '\n'
-                                f2.write(content)
+#                                 f2.write(content)
+
+# 改成 pandas 大概了解上面代码的逻辑
+# def biogrid(in_blast_file, ref_file, out_file):
+#     """
+#     使用 Pandas 处理 BioGRID 数据，将基因名映射到 EMBL ID
+    
+#     Args:
+#         in_blast_file: BLAST 结果文件路径
+#         ref_file: 参考文件路径
+#         out_file: 输出文件路径
+#     """
+#     blast_df = pd.read_csv(in_blast_file, sep='\t', header=0)
+#     # 构建基因名到 EMBL ID 的映射字典
+#     gene_to_embl = blast_df.groupby(blast_df.columns[1])[blast_df.columns[0]].agg(lambda x: ';'.join(x)).to_dict()
+    
+#     # 读取参考文件
+#     ref_df = pd.read_csv(ref_file, sep='\t', header=0)
+    
+#     # 创建结果列表
+#     results = []
+    
+#     # 处理每一行数据
+#     for _, row in ref_df.iterrows():
+#         gene1 = row[1]
+#         gene2 = row[2]
+#         id = row[0]
+#         other = row[3]
+#         source_database = row[4]
+        
+#         # 获取基因1的 EMBL ID
+#         embl1_list = gene_to_embl.get(gene1, [])
+#         if isinstance(embl1_list, str):
+#             embl1_list = embl1_list.split(';')
+            
+#         # 获取基因2的 EMBL ID
+#         embl2_list = gene_to_embl.get(gene2, [])
+#         if isinstance(embl2_list, str):
+#             embl2_list = embl2_list.split(';')
+            
+#         # 生成所有可能的组合
+#         for embl1 in embl1_list:
+#             for embl2 in embl2_list:
+#                 results.append({
+#                     'BioGRID Interaction ID': id,
+#                     'Embl_A': embl1,
+#                     'Embl_B': embl2,
+#                     'Throughput': other,
+#                     'Source_Database': source_database
+#                 })
+    
+#     # 创建结果 DataFrame 并保存
+#     result_df = pd.DataFrame(results)
+#     result_df.to_csv(out_file, sep='\t', index=False)
 
 
 def main():
-    args = parse_arguments()
+    args, specie_name = parse_input()
     biogrid_output = os.path.join(
         os.path.dirname(args.prefix),
-        f'Biogrid_PPI_relation_from_{os.path.basename(args.prefix)}.txt'
+        f'Biogrid_PPI_relation_from_{specie_name}.txt'
     )
     if args.biogrid:
-        biogrid(args.prefix + '_uniq.blast', args.ref, biogrid_output)
+        biogrid(args.biogrid, args.parse_ref, biogrid_output)
         return
     # 比对
-    blast_file = exec_blast(args.fasta, args.cpu, args.database, args.prefix)
+    exec_blast(args.fasta, args.cpu, args.database, args.prefix)
+    
     # 处理 blast 去重
-    drop_dup(blast_file)
-    # biogrid
-    biogrid(blast_file.replace('.blast', '_uniq.blast'), args.ref, biogrid_output)
+    blast_names = ['qacc','sacc','qcovhsp','ppos','length','mismatch','gapopen','qstart','qend','sstart','send','evalue','bitscore','stitle']
+    blast_df = load_table(args.prefix + '.blast', header=None, names=blast_names, low_memory=False)
+    uniq_blast_df = deduplicate_blast_results(blast_df, 'qacc', 'bitscore', 'max')
+    uniq_blast_file = args.prefix + '_uniq.blast'
+    write_output_df(uniq_blast_df, uniq_blast_file, index=False)
+
+    # uniq_blast 进行 biogrid
+    biogrid(uniq_blast_file, args.parse_ref, biogrid_output)
+    
+    logger.success(f'Done!')
 
 
 if __name__ == '__main__':
