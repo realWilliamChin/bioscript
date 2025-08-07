@@ -15,9 +15,9 @@ rule hisat2_alignment:
         """
         hisat2 -x {params.ref_index} \
             -p {threads} \
+            --fr \
             -I 200 \
             -X 400 \
-            --fr \
             --min-intronlen 20 \
             --max-intronlen 4000 \
             -1 {input.read1} \
@@ -26,8 +26,8 @@ rule hisat2_alignment:
             samtools sort \
             --threads {threads} \
             -O BAM \
-            -o - \
-            > {output.bam_results}
+            -o \
+            - > {output.bam_results}
         tail -n 1 {output.mapping_results}
         """
 
@@ -53,7 +53,7 @@ rule mapping_summary:
         mapping_results = expand(f'{MAPPING_DIR}/{{sample}}_mapping_stat.txt', sample=samples_list),
         samples_file = f'{SAMPLES_FILE}'
     output:
-        mapping_summary_file = f'{MAPPING_DIR}/mapping_summary.txt'
+        mapping_summary_file = f'{MAPPING_DIR}/alignment_report.txt'
     shell:
         """
         python /home/colddata/qinqiang/script/CommonTools/alignment/alignment_mapping_summary.py \

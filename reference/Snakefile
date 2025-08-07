@@ -16,7 +16,7 @@ rule all:
         expand(f'{MAPPING_DIR}/{{sample}}.bam', sample=samples_list),
         expand(f'{EXPRESSION_DIR}/fpkm/{{sample}}_fpkm.txt', sample=samples_list),
         expand(f'{EXPRESSION_DIR}/ballgown/{{sample}}/{{sample}}.gtf', sample=samples_list),
-        f'{MAPPING_DIR}/mapping_summary.txt',
+        f'{MAPPING_DIR}/alignment_report.txt',
 
         # Expression Data
         f'{EXPRESSION_DIR}/gene_fpkm_matrix.csv',

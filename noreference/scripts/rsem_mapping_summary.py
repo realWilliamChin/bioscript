@@ -13,7 +13,7 @@ def parse_input():
     args = argparse.ArgumentParser(description='')
     args.add_argument('-i', '--input', help='mapping_summary 文件目录', default='.')
     args.add_argument('-s', '--samples', help='sampels_described.txt')
-    args.add_argument('-o', '--output', help='output mapping summary file (默认: mapping_summary.txt)', default='mapping_summary.txt')
+    args.add_argument('-o', '--output', help='output mapping summary file (默认: alignment_report.txt)', default='alignment_report.txt')
 
     parsed_args = args.parse_args()
     return parsed_args

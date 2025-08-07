@@ -7,6 +7,7 @@ import pandas as pd
 import argparse
 import subprocess
 from loguru import logger
+import concurrent.futures
 
 
 def parse_input():
@@ -17,9 +18,9 @@ def parse_input():
     args.add_argument('-d', '--cd', help='cleandata file dir')
     args.add_argument('-o', '--result-dir', dest='result_dir', help='输出结果文件夹')
     args.add_argument('-r', '--ref', help='reference index，运行 salmon 时只需要输入目录')
-    args.add_argument('-n', '--cpu', help='运行线程数量 (默认: 30)', default=30, type=int)
-    args.add_argument('-p', '--parallel', dest='parallel_num', default=1, type=int, help='同时运行数量，通常为 3 或者 5')
-    args.add_argument('-m', '--msf', help='output mapping summary file (默认: mapping_summary.txt)', default='mapping_summary.txt')
+    args.add_argument('-n', '--cpu', help='单个样本比对线程数量 (默认: 4)', default=4, type=int)
+    args.add_argument('-p', '--parallel', dest='parallel_num', default=3, type=int, help='同时运行的样本数量 (默认: 3)')
+    args.add_argument('-m', '--msf', help='output mapping summary file (默认: alignment_report.txt)', default='alignment_report.txt')
 
     parsed_args = args.parse_args()
     return parsed_args
@@ -54,7 +55,7 @@ def alignment(alignment_type, sample_name, R1, R2, result_dir, ref_index, num_th
                 -R "@RG\\tID:{sample_name}\\tSM:{sample_name}\\tLB:WES\\tPL:Illumina" \
                 {ref_index} \
                 {R1} {R2} |\
-                samtools sort -O bam -@ {num_threads} -o - > {bam_file_name}'
+                samtools sort -O bam -@ {num_threads} -o {bam_file_name}'
                 
         elif alignment_type.lower() == 'salmon':
             gene_map_file = os.path.join(ref_index, 'gene_map.txt')
@@ -117,12 +118,62 @@ if __name__ == '__main__':
     os.makedirs(result_dir, exist_ok=True)
     
     samples_df = pd.read_csv(samples_file, sep='\t', usecols=['sample', 'R1', 'R2'])
-    
-    for index, row in samples_df.iterrows():
-    
-        sample_name = row['sample']
-        R1 = os.path.join(cleandata_dir, row['R1'])
-        R2 = os.path.join(cleandata_dir, row['R2'])
-    
-        logger.info(f'开始比对样本 {sample_name}, {R1} 和 {R2}')
-        alignment(alignment_type, sample_name, R1, R2, result_dir, ref, num_threads, gff_file)
+
+    # 控制同时运行的样本数量
+    with concurrent.futures.ProcessPoolExecutor(max_workers=parallel_num) as executor:
+        # 活跃的任务列表
+        active_futures = []
+        # 样本索引
+        sample_index = 0
+        total_samples = len(samples_df)
+        
+        # 首先提交parallel_num个任务
+        while len(active_futures) < parallel_num and sample_index < total_samples:
+            row = samples_df.iloc[sample_index]
+            sample_name = row['sample']
+            R1 = os.path.join(cleandata_dir, row['R1'])
+            R2 = os.path.join(cleandata_dir, row['R2'])
+            logger.info(f'开始比对样本 {sample_name}, {R1} 和 {R2}')
+            
+            future = executor.submit(
+                alignment, alignment_type, sample_name, R1, R2, result_dir, ref, num_threads, gff_file
+            )
+            active_futures.append((future, sample_name))
+            sample_index += 1
+        
+        # 处理完成的任务并提交新任务
+        while active_futures:
+            # 等待任意一个任务完成
+            done, not_done = concurrent.futures.wait(
+                [f for f, _ in active_futures],
+                return_when=concurrent.futures.FIRST_COMPLETED
+            )
+            
+            # 处理完成的任务
+            for future in done:
+                # 找到对应的样本名
+                for i, (f, name) in enumerate(active_futures):
+                    if f == future:
+                        sample_name = name
+                        active_futures.pop(i)
+                        break
+                
+                try:
+                    result = future.result()
+                    logger.info(f'样本 {sample_name} 比对完成，结果: {result}')
+                except Exception as exc:
+                    logger.error(f'样本 {sample_name} 运行时出错: {exc}')
+                
+                # 如果还有未处理的样本，提交新任务
+                if sample_index < total_samples:
+                    row = samples_df.iloc[sample_index]
+                    new_sample_name = row['sample']
+                    R1 = os.path.join(cleandata_dir, row['R1'])
+                    R2 = os.path.join(cleandata_dir, row['R2'])
+                    logger.info(f'开始比对样本 {new_sample_name}, {R1} 和 {R2}')
+                    
+                    new_future = executor.submit(
+                        alignment, alignment_type, new_sample_name, R1, R2, result_dir, ref, num_threads, gff_file
+                    )
+                    active_futures.append((new_future, new_sample_name))
+                    sample_index += 1

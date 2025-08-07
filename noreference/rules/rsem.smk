@@ -52,7 +52,7 @@ rule mapping_summary:
         mapping_results = expand(f'{MAPPING_DIR}/{{sample}}_mapping_stat.txt', sample=samples_list),
         samples_file = f'{SAMPLES_FILE}'
     output:
-        mapping_summary_file = f'{MAPPING_DIR}/mapping_summary.txt'
+        mapping_summary_file = f'{MAPPING_DIR}/alignment_report.txt'
     shell:
         """
         python /home/colddata/qinqiang/script/noreference/scripts/rsem_mapping_summary.py \
