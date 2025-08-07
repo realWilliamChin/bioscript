@@ -128,9 +128,9 @@ def kegg_summary(input_target_df, df_list):
     kegg_output_summary_df.rename(columns={'ID': 'KEGG_Pathway_ID'}, inplace=True)
     if 'Ontology' in input_target_df.columns and 'SubOntology' in input_target_df.columns:
         kegg_output_summary_df = pd.merge(
-            kegg_output_summary_df,
             input_target_df[['KEGG_Pathway_ID', 'Ontology', 'SubOntology']],
-            how='left',
+            kegg_output_summary_df,
+            how='right',
             on='KEGG_Pathway_ID'
         )
     return kegg_output_summary_df
@@ -150,7 +150,7 @@ def ko03000_deg_data_summary(input_dir):
         if '-vs-' not in each_dir:
             continue
         ko03000_data_df = load_table(
-            os.path.join(input_dir, each_dir, 'DEG_expression_data', f'{each_dir}_ko03000_DEG_data.csv'),
+            os.path.join(input_dir, each_dir, 'DEG_expression_data', f'{each_dir}_ko03000_DEG_data.xlsx'),
             header = 0,
             usecols = ['GeneID', 'sampleA', 'sampleB', 'pvalue', 'padj', 'regulation', 'FC', 'KEGG_Description']
         )
@@ -168,6 +168,9 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
     input_target_ko_df = load_table(ko_list_file)
     ko_list = input_target_ko_df['KEGG_Pathway_ID'].values.tolist()
     deg_data_list = [x for x in os.listdir(deg_data_dir) if x.endswith('_DEG_data.txt')]
+    if len(deg_data_list) == 0:
+        logger.error(f'{deg_data_dir} 没有找到 DEG_data.txt 文件')
+        sys.exit(1)
     
     kegg_output_summary_df_list = []
     for deg_data_file in deg_data_list:
@@ -263,7 +266,7 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
                 logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行或超过 100 行，不执行画热图")
         
             # 输出每个 ko 的 deg_data 文件
-            ko_num_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{ko_number}_DEG_data.csv")
+            ko_num_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{ko_number}_DEG_data.xlsx")
             ko_num_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number, na=False)]['GeneID'])]
             write_output_df(ko_num_deg_data_df, ko_num_deg_data_file, index=False)
             
@@ -291,10 +294,10 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
 
     
     kegg_summary_df = kegg_summary(input_target_ko_df, kegg_output_summary_df_list)
-    write_output_df(kegg_summary_df, os.path.join(output_dir, 'Target_KEGG_analysis_summary.csv'), index=False)
+    write_output_df(kegg_summary_df, os.path.join(output_dir, 'Target_KEGG_analysis_summary.xlsx'), index=False)
     
     ko03000_summary_df = ko03000_deg_data_summary(output_dir)
-    write_output_df(ko03000_summary_df, os.path.join(output_dir, 'ko03000_DEG_data_summary.csv'), index=False)
+    write_output_df(ko03000_summary_df, os.path.join(output_dir, 'ko03000_DEG_data_summary.xlsx'), index=False)
 
 
 def parse_input():
