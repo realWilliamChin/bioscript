@@ -5,7 +5,6 @@
 import os, sys
 import argparse
 import pandas as pd
-import subprocess
 from pathlib import Path
 from loguru import logger
 import datetime
@@ -16,30 +15,24 @@ from Rscript import enrichment_barplot
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from load_input import load_table, write_output_df
 from data_check import df_drop_element_side_space
+from data_check import df_replace_illegal_folder_chars
 from logger_config import get_logger
 
 if sys.version_info < (3, 10):
     logger.critical("Python 版本低于 3.10，请使用 conda 激活 python310 环境运行程序！")
-    logger.critical("当前 Python 版本为:", sys.version)
     sys.exit(1)
 
 
 def parse_input():
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-i', '--input', required=True, type=str, 
-                           help="输入文件，文件中至少包含三列，GO_ID、Ontology、SubOntology")
-    argparser.add_argument('-g', '--genego', required=True,
-                           help='GOID 文件,swiss 注释出来的的 gene_go.txt')
-    argparser.add_argument('-s', '--samples-described', dest='samples_described',
-                           help='输入 samples_described.txt 文件')
-    argparser.add_argument('-e', '--enrich-data-dir', dest='enrich_data_dir', type=str,
-                           help='转录组 输入 enrich.r 运行出来的结果文件夹')
-    argparser.add_argument('-d', '--deg-data-dir', dest='deg_data_dir', type=str,
-                           help='转录组 输入 DEG_data.txt 文件目录')
-    argparser.add_argument('-o', '--output', default=os.getcwd(),
-                           help='输出目录，默认为当前目录，输出目录如果不存在则会尝试创建')
-    argparser.add_argument('-l', '--log-name', dest='log_name',
-                           help='日志文件名（不需要包含.log后缀），默认为 go_analysis + 当前时间')
+    argparser.add_argument('-i', '--input', help="输入文件，文件中至少包含三列，GO_ID、Ontology、SubOntology")
+    argparser.add_argument('-c', '--compare', help='输入 compare_info.txt 文件')
+    argparser.add_argument('-g', '--genego', help='GOID 文件,swiss 注释出来的的 gene_go.txt')
+    argparser.add_argument('-s', '--samples-described', help='输入 samples_described.txt 文件')
+    argparser.add_argument('-e', '--enrich-data-dir', help='转录组 输入 enrich.r 运行出来的结果文件夹')
+    argparser.add_argument('-d', '--deg-data-dir', help='转录组 输入 DEG_data.txt 文件目录')
+    argparser.add_argument('-o', '--output', default=os.getcwd(), help='输出目录，默认为当前目录，输出目录如果不存在则会尝试创建')
+    argparser.add_argument('-l', '--log-name', dest='log_name', help='日志文件名（不需要包含.log后缀），默认为 go_analysis + 当前时间')
     
     args = argparser.parse_args()
     
@@ -58,7 +51,45 @@ def parse_input():
     return args
 
 
-def output_summary(df_list, samples_info_df):
+def goid_enrich_summary(target_go_df: pd.DataFrame, comparisons_df: pd.DataFrame, enrich_data_dir: str, output: str) -> None:
+    target_go_df = target_go_df.rename(columns={'GO_ID': 'GO_Def', 'ID': 'GO_ID'})
+    target_go_list = target_go_df['GO_ID'].values.tolist()
+    target_go_enrich_df_list = []
+    comparisons_df['comparisons'] = comparisons_df['Treat'] + '-vs-' + comparisons_df['Control']
+    comparison_list = comparisons_df['comparisons'].values.tolist()
+    for comparison in comparison_list:
+        up_enrich_df = load_table(os.path.join(enrich_data_dir, f'{comparison}_Up_EnrichmentGO.xlsx'))
+        down_enrich_df = load_table(os.path.join(enrich_data_dir, f'{comparison}_Down_EnrichmentGO.xlsx'))
+        target_go_enrich_up_df = up_enrich_df[up_enrich_df['ID'].isin(target_go_list)]
+        target_go_enrich_down_df = down_enrich_df[down_enrich_df['ID'].isin(target_go_list)]
+        
+        target_go_enrich_up_df.insert(0, 'Group', comparison)
+        target_go_enrich_up_df.insert(1, 'Regulation', 'Up')
+        target_go_enrich_down_df.insert(0, 'Group', comparison)
+        target_go_enrich_down_df.insert(1, 'Regulation', 'Down')
+        
+        target_go_enrich_df_list.append(target_go_enrich_up_df)
+        target_go_enrich_df_list.append(target_go_enrich_down_df)
+    
+    target_go_enrich_summary_df = pd.concat(target_go_enrich_df_list)
+    target_go_enrich_summary_df.drop(columns=['Ontology'], inplace=True)
+    target_go_enrich_summary_df.rename(columns={'ID': 'GO_ID'}, inplace=True)
+    if 'Ontology' in target_go_df.columns and 'SubOntology' in target_go_df.columns:
+        target_go_enrich_summary_df = pd.merge(
+            target_go_df[['GO_ID', 'Ontology', 'SubOntology']],
+            target_go_enrich_summary_df,
+            how='right',
+            on='GO_ID'
+        )
+    target_go_enrich_summary_df.sort_values(
+        by=['Ontology', 'SubOntology', 'Group', 'Regulation'],
+        ascending=[True, True, True, False],
+        inplace=True
+    )
+    write_output_df(target_go_enrich_summary_df, output, index=False)
+    
+
+def deg_output_summary(df_list, samples_info_df):
     processed_df_list = []
     max_samples_number = samples_info_df.groupby('group').size().max()
     for df in df_list:
@@ -75,7 +106,7 @@ def output_summary(df_list, samples_info_df):
         # 重命名 FPKM 列
         # 处理 treat 样本的 FPKM 列
         for i in range(1, max_samples_number + 1):
-            new_treat_fpkm = f"{treat}_{i}_FPKM"
+            new_treat_fpkm = f"sampleA_{i}_FPKM"
             if i <= len(df_treat_fpkm_column):
                 # 重命名现有列
                 df.rename(columns={df_treat_fpkm_column[i-1]: new_treat_fpkm}, inplace=True)
@@ -86,7 +117,7 @@ def output_summary(df_list, samples_info_df):
         
         # 处理 control 样本的 FPKM 列
         for i in range(1, max_samples_number + 1):
-            new_control_fpkm = f"{control}_{i}_FPKM"
+            new_control_fpkm = f"sampleB_{i}_FPKM"
             if i <= len(df_control_fpkm_column):
                 # 重命名现有列
                 df.rename(columns={df_control_fpkm_column[i-1]: new_control_fpkm}, inplace=True)
@@ -98,7 +129,7 @@ def output_summary(df_list, samples_info_df):
         # 重命名 reads 列
         # 处理 treat 样本的 reads 列
         for i in range(1, max_samples_number + 1):
-            new_treat_reads = f"{treat}_{i}_reads"
+            new_treat_reads = f"sampleA_{i}_reads"
             if i <= len(df_treat_reads_column):
                 # 重命名现有列
                 df.rename(columns={df_treat_reads_column[i-1]: new_treat_reads}, inplace=True)
@@ -109,7 +140,7 @@ def output_summary(df_list, samples_info_df):
         
         # 处理 control 样本的 reads 列
         for i in range(1, max_samples_number + 1):
-            new_control_reads = f"{control}_{i}_reads"
+            new_control_reads = f"sampleB_{i}_reads"
             if i <= len(df_control_reads_column):
                 # 重命名现有列
                 df.rename(columns={df_control_reads_column[i-1]: new_control_reads}, inplace=True)
@@ -125,14 +156,15 @@ def output_summary(df_list, samples_info_df):
     return output_summary_df
 
 
-def transcriptome_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list):
+def deg_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list):
     output_summary_df_list = []
     # 循环每个差异数据文件
+    
     for enrich_data in os.listdir(args.enrich_data_dir):
         if not enrich_data.endswith("_EnrichmentGO.xlsx") or enrich_data.startswith("~"):
             continue
         
-        logger.info(f'====正在处理 {enrich_data}====')
+        logger.info(f'\n====正在处理 {enrich_data}====')
         compare_info = enrich_data.replace('_EnrichmentGO.xlsx', '')  # 比对名称
         
         # 文件输出目录
@@ -149,6 +181,7 @@ def transcriptome_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontolo
         enrich_data_abspath = os.path.join(args.enrich_data_dir, enrich_data)
         enrich_go_df = pd.read_excel(enrich_data_abspath, engine='openpyxl')
         enrich_go_df = enrich_go_df.drop(columns=['Ontology'])
+        
         
         for ontology_name in ontology_list:
             logger.info(f"正在处理 {compare_info}_{ontology_name}")
@@ -230,22 +263,25 @@ def transcriptome_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontolo
         logger.warning('Target GO ID 在组间中没有任何目标基因')
     else:
         samples_info_df = load_table(args.samples_described)
-        output_summary_df = output_summary(output_summary_df_list, samples_info_df)
-        write_output_df(output_summary_df, os.path.join(args.output, 'Target_GO_analysis_summary.csv'), index=False)
+        output_summary_df = deg_output_summary(output_summary_df_list, samples_info_df)
+        write_output_df(output_summary_df, os.path.join(args.output, 'Target_GO_analysis_summary.xlsx'), index=False)
 
 
 def main():
     args = parse_input()
     target_go_df = load_table(args.input)
+    comparison_df = load_table(args.compare)
+    logger.info(f'正在对输入数据进行预处理，去除两边空格，替换 Ontology 非法字符')
     target_go_df = df_drop_element_side_space(target_go_df)
-    
+    target_go_df = df_replace_illegal_folder_chars(target_go_df, ['Ontology', 'SubOntology'])
     target_go_df['ID'] = target_go_df['GO_ID'].str.split("_").str[0]  # 为了和 enrich.r 出来的文件的 ID 对应上，添加一列只包含 ID 的列， GO:0010111
     ontology_list = list(set(target_go_df['Ontology'].tolist()))
     go_id_list = list(set(target_go_df['ID'].tolist()))
-    
     gene_go_df = load_table(args.genego, header=None, names=['GeneID', 'GO_ID'], dtype={"GeneID": str})
     
-    transcriptome_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list)
+    logger.info(f'执行 go 分析')
+    goid_enrich_summary(target_go_df, comparison_df, args.enrich_data_dir, os.path.join(args.output, 'Target_GO_Enrich_data_summary.xlsx'))
+    deg_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list)
     
     logger.success('Done!')
 
