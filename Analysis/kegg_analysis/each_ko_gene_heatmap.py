@@ -8,7 +8,7 @@ sys.path.append('/home/colddata/qinqiang/script/Rscript/')
 from Rscript import draw_multigroup_heatmap
 sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
 from load_input import load_table, write_output_df
-
+from data_check import df_drop_row_sum_eq_zero
 
 def parse_input():
     p = argparse.ArgumentParser()
@@ -61,6 +61,7 @@ def each_ko_gene_heatmap(kegg_id_list, kegg_clean_df, fpkm_matrix_df, samples_df
         # 添加 fpkm
         each_kegg_id_gene_fpkm_df = pd.merge(each_kegg_id_df, fpkm_matrix_df, on='GeneID', how='left')
         each_kegg_id_gene_fpkm_df.dropna(how='any', axis=0, inplace=True) # 去除掉为空的行
+        each_kegg_id_gene_fpkm_df = df_drop_row_sum_eq_zero(each_kegg_id_gene_fpkm_df)
         if each_kegg_id_gene_fpkm_df.shape[0] == 0:
             logger.error(f'{each_kegg_id} 相关基因表达量为空，跳过执行 multigroup heatmap')
             continue
