@@ -14,8 +14,8 @@ def parse_input():
                       help='mapping_summary 文件目录')
     args.add_argument('-s', '--samples', default='samples_described.txt',
                       help='samples_described.txt')
-    args.add_argument('-o', '--output', default='mapping_summary.txt', 
-                      help='output mapping summary file (默认: mapping_summary.txt)')
+    args.add_argument('-o', '--output', default='alignment_report.txt', 
+                      help='output mapping summary file (默认: alignment_report.txt)')
     
     args = args.parse_args()
     return args
