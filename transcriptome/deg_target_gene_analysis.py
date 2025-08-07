@@ -97,8 +97,8 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, g
     # 每个 Ontology 单独画图
     for ontology, sub_df in gene_fpkm_df.groupby('Ontology'):
         logger.info(f'正在画 {ontology} heatmap')
-        heatmap_data_df = sub_df[['GeneSymbol'] + sample_columns].copy()
-        heatmap_sheet3_df = sub_df[['GeneSymbol', 'SubOntology', 'Ontology']].copy()
+        heatmap_data_df = sub_df[[index_col] + sample_columns].copy()
+        heatmap_sheet3_df = sub_df[[index_col, 'SubOntology', 'Ontology']].copy()
         
         # if group mean 根据 samplesinfo 每组中的平均数画 heatmap
         if group_mean:
@@ -144,55 +144,55 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
     samples_df = samples_df[['sample', 'group']]
     deg_data_list = [x for x in os.listdir(deg_data_dir) if x.endswith('_DEG_data.txt')]
     for deg_data_file in deg_data_list:
-        comparsion_name = os.path.basename(deg_data_file).replace('_DEG_data.txt', '')
-        logger.info(f'正在画 {comparsion_name} heatmap')
+        comparison_name = os.path.basename(deg_data_file).replace('_DEG_data.txt', '')
+        logger.info(f'正在画 {comparison_name} heatmap')
         
-        group1 = comparsion_name.split('-vs-')[0]
-        group2 = comparsion_name.split('-vs-')[1]
-        comparsion_samples_df = samples_df[samples_df['group'].isin([group1, group2])]
-        comparsion_samples_list = comparsion_samples_df['sample'].values.tolist()
-        comparsion_dir = os.path.join(output_dir, comparsion_name)
-        os.makedirs(comparsion_dir, exist_ok=True)
+        group1 = comparison_name.split('-vs-')[0]
+        group2 = comparison_name.split('-vs-')[1]
+        comparison_samples_df = samples_df[samples_df['group'].isin([group1, group2])]
+        comparison_samples_list = comparison_samples_df['sample'].values.tolist()
+        comparison_dir = os.path.join(output_dir, comparison_name)
+        os.makedirs(comparison_dir, exist_ok=True)
         
-        logger.info(f'正在找相关基因添加定义 {comparsion_name}')
+        logger.info(f'正在找相关基因添加定义 {comparison_name}')
         deg_data_file = os.path.join(deg_data_dir, deg_data_file)
         deg_data_df = load_table(deg_data_file, dtype={'GeneID': str})
         
         # 目标基因和 DEG_data 合并，文件预处理
-        comparsion_target_gene_df = pd.merge(target_gene_def_df, right=deg_data_df, on=index_col, how='inner', suffixes=('_df1', '_df2'))
-        comparsion_target_gene_df.dropna(subset=index_col, inplace=True)  # 去掉 NA 行
-        cols_to_drop = [col for col in comparsion_target_gene_df.columns if col.endswith('_df1')]
-        comparsion_target_gene_df.drop(columns=cols_to_drop, inplace=True)
-        comparsion_target_gene_df.columns = [col.replace('_df2', '') for col in comparsion_target_gene_df.columns]
-        comparsion_target_gene_df.columns = [col[:-5] if col.endswith('_FPKM') else col for col in comparsion_target_gene_df.columns]
-        comparsion_target_gene_file = os.path.join(comparsion_dir, f'{comparsion_name}_target_gene_data.xlsx')
-        write_output_df(comparsion_target_gene_df, comparsion_target_gene_file, index=False)
-        result_target_gene_data_list.append(comparsion_target_gene_file)
+        comparison_target_gene_df = pd.merge(target_gene_def_df, right=deg_data_df, on=index_col, how='inner', suffixes=('_df1', '_df2'))
+        comparison_target_gene_df.dropna(subset=index_col, inplace=True)  # 去掉 NA 行
+        cols_to_drop = [col for col in comparison_target_gene_df.columns if col.endswith('_df1')]
+        comparison_target_gene_df.drop(columns=cols_to_drop, inplace=True)
+        comparison_target_gene_df.columns = [col.replace('_df2', '') for col in comparison_target_gene_df.columns]
+        comparison_target_gene_df.columns = [col[:-5] if col.endswith('_FPKM') else col for col in comparison_target_gene_df.columns]
+        comparison_target_gene_file = os.path.join(comparison_dir, f'{comparison_name}_target_gene_data.xlsx')
+        write_output_df(comparison_target_gene_df, comparison_target_gene_file, index=False)
+        result_target_gene_data_list.append(comparison_target_gene_file)
         
-        fpkm_df = comparsion_target_gene_df[[index_col] + comparsion_samples_list]
-        ontology_df = comparsion_target_gene_df[[index_col, 'SubOntology', 'Ontology']]
+        fpkm_df = comparison_target_gene_df[[index_col] + comparison_samples_list]
+        ontology_df = comparison_target_gene_df[[index_col, 'SubOntology', 'Ontology']]
         
-        group_vs_group_heatmap_fname = os.path.join(comparsion_dir, f'{comparsion_name}_target_gene_heatmap.xlsx')
-        group_vs_group_heatmap_pname = os.path.join(comparsion_dir, f'{comparsion_name}_target_gene_heatmap.jpg')
+        group_vs_group_heatmap_fname = os.path.join(comparison_dir, f'{comparison_name}_target_gene_heatmap.xlsx')
+        group_vs_group_heatmap_pname = os.path.join(comparison_dir, f'{comparison_name}_target_gene_heatmap.jpg')
 
         with pd.ExcelWriter(group_vs_group_heatmap_fname, engine='openpyxl') as writer:
             fpkm_df.to_excel(writer, sheet_name='Sheet1', index=False)
-            comparsion_samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
+            comparison_samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
             ontology_df.to_excel(writer, sheet_name='Sheet3', index=False)
         
         draw_multigroup_heatmap(group_vs_group_heatmap_fname, group_vs_group_heatmap_pname, other_args='--no-cluster-rows')
         
         # 每个组间的每个 Ontology 画一张图
-        for ontology, sub_df in comparsion_target_gene_df.groupby('Ontology'):
-            logger.info(f'正在画 {comparsion_name} {ontology} heatmap')
-            ontology_heatmap_data_df = sub_df[[index_col] + comparsion_samples_list].copy()
+        for ontology, sub_df in comparison_target_gene_df.groupby('Ontology'):
+            logger.info(f'正在画 {comparison_name} {ontology} heatmap')
+            ontology_heatmap_data_df = sub_df[[index_col] + comparison_samples_list].copy()
             ontology_def_df = sub_df[[index_col, 'SubOntology', 'Ontology']].copy()
 
-            ontology_excel_name = os.path.join(comparsion_dir, f'{comparsion_name}_{ontology}_heatmap.xlsx')
-            ontology_pic_name = os.path.join(comparsion_dir, f'{comparsion_name}_{ontology}_heatmap.jpg')
+            ontology_excel_name = os.path.join(comparison_dir, f'{comparison_name}_{ontology}_heatmap.xlsx')
+            ontology_pic_name = os.path.join(comparison_dir, f'{comparison_name}_{ontology}_heatmap.jpg')
             with pd.ExcelWriter(ontology_excel_name, engine='openpyxl') as writer:
                 ontology_heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
-                comparsion_samples_df.to_excel(writer, sheet_name="Sheet2", index=False)
+                comparison_samples_df.to_excel(writer, sheet_name="Sheet2", index=False)
                 ontology_def_df.to_excel(writer, sheet_name="Sheet3", index=False)
 
             draw_multigroup_heatmap(ontology_excel_name, ontology_pic_name, other_args='--no-cluster-rows')
