@@ -93,61 +93,48 @@ def deg_output_summary(df_list, samples_info_df):
     processed_df_list = []
     max_samples_number = samples_info_df.groupby('group').size().max()
     for df in df_list:
-        df_columns = df.columns.tolist()
         treat = df['sampleA'].values.tolist()[0]
         control = df['sampleB'].values.tolist()[0]
+        treat_samples = samples_info_df[samples_info_df['group'] == treat]['sample'].values.tolist()
+        control_samples = samples_info_df[samples_info_df['group'] == control]['sample'].values.tolist()
         
         # 获取原始的 FPKM 列和 reads 列
-        df_treat_fpkm_column = [x for x in df_columns if x.startswith(treat) and not x.endswith('_reads')]
-        df_control_fpkm_column = [x for x in df_columns if x.startswith(control) and not x.endswith('_reads')]
-        df_treat_reads_column = [x for x in df_columns if x.startswith(treat) and not x.endswith('_FPKM')]
-        df_control_reads_column = [x for x in df_columns if x.startswith(control) and not x.endswith('_FPKM')]
+        df_treat_fpkm_column = [f'{x}_raw_reads' for x in treat_samples]
+        df_control_fpkm_column = [f'{x}_raw_reads' for x in control_samples]
+        df_treat_reads_column = [f'{x}_FPKM' for x in treat_samples]
+        df_control_reads_column = [f'{x}_FPKM' for x in control_samples]
         
-        # 重命名 FPKM 列
-        # 处理 treat 样本的 FPKM 列
+        # Treat FPKM
         for i in range(1, max_samples_number + 1):
-            new_treat_fpkm = f"sampleA_{i}_FPKM"
+            new_treat_fpkm = f"Treat_{i}_FPKM"
             if i <= len(df_treat_fpkm_column):
-                # 重命名现有列
-                df.rename(columns={df_treat_fpkm_column[i-1]: new_treat_fpkm}, inplace=True)
+                df = df.rename(columns={df_treat_fpkm_column[i-1]: new_treat_fpkm})
             else:
-                # 在原始列之后插入新列
-                insert_pos = df.columns.get_loc(df_treat_fpkm_column[-1]) + 1 if df_treat_fpkm_column else 0
-                df.insert(insert_pos, new_treat_fpkm, 'N/A')
-        
-        # 处理 control 样本的 FPKM 列
+                df[new_treat_fpkm] = 'N/A'
+
+        # Control FPKM
         for i in range(1, max_samples_number + 1):
-            new_control_fpkm = f"sampleB_{i}_FPKM"
+            new_control_fpkm = f"Control_{i}_FPKM"
             if i <= len(df_control_fpkm_column):
-                # 重命名现有列
-                df.rename(columns={df_control_fpkm_column[i-1]: new_control_fpkm}, inplace=True)
+                df = df.rename(columns={df_control_fpkm_column[i-1]: new_control_fpkm})
             else:
-                # 在原始列之后插入新列
-                insert_pos = df.columns.get_loc(df_control_fpkm_column[-1]) + 1 if df_control_fpkm_column else 0
-                df.insert(insert_pos, new_control_fpkm, 'N/A')
-        
-        # 重命名 reads 列
-        # 处理 treat 样本的 reads 列
+                df[new_control_fpkm] = 'N/A'
+
+        # Treat reads
         for i in range(1, max_samples_number + 1):
-            new_treat_reads = f"sampleA_{i}_reads"
+            new_treat_reads = f"Treat_{i}_reads"
             if i <= len(df_treat_reads_column):
-                # 重命名现有列
-                df.rename(columns={df_treat_reads_column[i-1]: new_treat_reads}, inplace=True)
+                df = df.rename(columns={df_treat_reads_column[i-1]: new_treat_reads})
             else:
-                # 在原始列之后插入新列
-                insert_pos = df.columns.get_loc(df_treat_reads_column[-1]) + 1 if df_treat_reads_column else 0
-                df.insert(insert_pos, new_treat_reads, 'N/A')
-        
-        # 处理 control 样本的 reads 列
+                df[new_treat_reads] = 'N/A'
+
+        # Control reads
         for i in range(1, max_samples_number + 1):
-            new_control_reads = f"sampleB_{i}_reads"
+            new_control_reads = f"Control_{i}_reads"
             if i <= len(df_control_reads_column):
-                # 重命名现有列
-                df.rename(columns={df_control_reads_column[i-1]: new_control_reads}, inplace=True)
+                df = df.rename(columns={df_control_reads_column[i-1]: new_control_reads})
             else:
-                # 在原始列之后插入新列
-                insert_pos = df.columns.get_loc(df_control_reads_column[-1]) + 1 if df_control_reads_column else 0
-                df.insert(insert_pos, new_control_reads, 'N/A')
+                df[new_control_reads] = 'N/A'
         
         processed_df_list.append(df)
     
