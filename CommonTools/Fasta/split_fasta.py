@@ -7,13 +7,7 @@ import pysam
 from loguru import logger
 
 
-def split_fasta(fasta_file, split_parts: int):
-    split_cmd = f'seqkit split -p {split_parts} {fasta_file}'
-    logger.info(f'运行命令 {split_cmd}')
-    os.system(split_cmd)
-
-
-if __name__ == "__main__":
+def parse_input():
     parser = argparse.ArgumentParser(
         description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -22,11 +16,12 @@ if __name__ == "__main__":
         "--outputs", nargs="+", help="list of output files", required=True
     )
     args = parser.parse_args()
-    NIDS = len(args.outputs)
 
-    fasta = pysam.FastaFile(args.infile)
 
-    outs = [open(f, "w+") for f in args.outputs]
+def split_fasta(infile, outputs):
+    NIDS = len(outputs)
+    fasta = pysam.FastaFile(infile)
+    outs = [open(f, "w") for f in outputs]
     outidx = 0
     for name in fasta.references:
         seq = fasta.fetch(name)
@@ -34,6 +29,14 @@ if __name__ == "__main__":
         outidx += 1
         if outidx == NIDS:
             outidx = 0
-
     for out in outs:
         out.close()
+
+
+def main():
+    args = parse_input()
+    split_fasta(args.infile, args.outputs)
+
+
+if __name__ == "__main__":
+    main()

@@ -495,12 +495,6 @@ def parse_keg(ko_file, specie_type, all_id_file, fpkm, reads, output_prefix):
         write_output_df(ko03000_fpkm_reads_df, output_prefix + 'ko03000_expression_data_def.txt', index=False)
 
 
-def split_fasta(fasta_file, split_parts: int):
-    split_cmd = f'seqkit split -p {split_parts} {fasta_file}'
-    logger.info(f'运行命令 {split_cmd}')
-    os.system(split_cmd)
-
-
 def kegg_levelb_count_barplot(keggclean_file, output_file):
     data_kegg = pd.read_csv(keggclean_file, sep="\t", header=None)
 
@@ -537,7 +531,6 @@ def parse_input():
     parser.add_argument('-f', '--fasta', help='输入 fasta file')
     parser.add_argument('-k', '--ko-file', dest='ko_file', type=str, required=True, help='指定 ko-file 文件')
     parser.add_argument('-l', '--org_lst', help='指定物种列表，以 ", " 分隔')
-    parser.add_argument('-s', '--split', type=int, help='切割 fasta 文件，如果太大的话')
     parser.add_argument('-t', '--type', type=str, required=True, help='指定物种类型，植物=plant, 动物=animal')
     parser.add_argument('--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
     parser.add_argument('-o', '--output-prefix', dest='output_prefix', type=str, required=True, help='指定输出 prefix 例如 kegg/caomei')
@@ -580,23 +573,8 @@ def parse_input():
 def main():
     args = parse_input()
     ko_file = args.ko_file
-    # 分割 fasta 文件，合并写入 keg 文件
-    if args.split and args.fasta:
-        split_fasta(args.fasta, args.split)
-        split_dir = f'{args.fasta}.split'
-        fasta_file_list = [f'{os.path.join(split_dir, x)}' for x in os.listdir(split_dir)]
-        sp_file_lst = []
-        for i, fasta_file in enumerate(fasta_file_list):
-            ko_sp_file = f'{ko_file}.{i}'
-            sp_file_lst.append(ko_sp_file)
-            kegg_anno(args.mail_type, args.username, args.password, fasta_file, args.org_lst, ko_sp_file)
-        with open(ko_file, "w") as outfile:
-            for filepath in sp_file_lst:
-                with open(filepath, "r") as infile:
-                    outfile.write(infile.read())
-
     # 直接运行注释
-    elif args.org_lst and args.fasta:
+    if args.org_lst and args.fasta:
         kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, ko_file)
 
     # 解析 keg 文件

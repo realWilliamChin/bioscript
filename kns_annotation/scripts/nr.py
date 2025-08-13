@@ -72,7 +72,7 @@ def nr_annotation(fasta_file, blast_file, outfmt):
     return True
 
 
-def nr(nr_blast_file, gene_basicinfo_file, nr_columns, output_prefix):
+def nr(nr_blast_file, nr_columns, output_prefix):
     data_frame = load_table(nr_blast_file, names=nr_columns, dtype={'GeneID': str})
 
     data_frame = data_frame.sort_values(by=['qseqid', 'bitscore'], ascending=[True, False])
@@ -228,14 +228,12 @@ def main():
     
     if args.fasta:
         outfmt = args.outfmt.replace(',', ' ')
-        ret = nr_annotation(args.fasta, args.blast, outfmt)
+        ret = nr_annotation(args.fasta, f'{out_prefix}_nr.blast', outfmt)
         if not ret:
             sys.exit(1)
-    else:
-        if not args.blast:
-            args.blast = [x for x in os.listdir() if x.endswith('nr.blast')][0]
+
     nr_columns = args.outfmt.split(',')
-    nr(args.blast, args.basicinfo, nr_columns, out_prefix)
+    nr(args.blast, nr_columns, out_prefix)
     
     if args.not_annotationed:
         get_not_annotationed_fasta(args.fasta, args.blast, out_prefix)
