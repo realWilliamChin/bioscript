@@ -166,7 +166,7 @@ def deg_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list):
                 logger.warning(f'{each_dir} 文件夹已存在，输出文件将覆盖源文件')
                 
         enrich_data_abspath = os.path.join(args.enrich_data_dir, enrich_data)
-        enrich_go_df = pd.read_excel(enrich_data_abspath, engine='openpyxl')
+        enrich_go_df = load_table(enrich_data_abspath, engine='openpyxl')
         enrich_go_df = enrich_go_df.drop(columns=['Ontology'])
         
         
@@ -198,7 +198,7 @@ def deg_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list):
 
             ontology_df = ontology_df.sort_values(by=['ID'])
             output_excel_name = os.path.join(compare_output_dir, f'{compare_info}_{ontology_name}.xlsx')
-            ontology_df.to_excel(output_excel_name, index=False)
+            write_output_df(ontology_df, output_excel_name, index=False)
             
             add_summary_df = ontology_df.copy()
             add_summary_df.insert(0, 'Group', compare_info.rsplit('_', 1)[0])
@@ -232,7 +232,7 @@ def deg_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list):
             deg_data_name = os.path.join(args.deg_data_dir, f"{compare_name}_DEG_data.txt")
             go_id_deg_data_filename = os.path.join(go_deg_expression_data_dir, f'{compare_name}_{go_id}_DEG_data.txt').replace(':', '_')
 
-            deg_data_df = pd.read_csv(deg_data_name, sep='\t', dtype={"GeneID": str})
+            deg_data_df = load_table(deg_data_name, dtype={"GeneID": str})
             go_id_deg_data_df = deg_data_df[
                 deg_data_df['regulation'].str.contains(compare_regulation) &
                 deg_data_df['GeneID'].isin(gene_go_df[gene_go_df['GO_ID'].str.contains(go_id)]['GeneID'])
@@ -240,7 +240,7 @@ def deg_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list):
             if go_id_deg_data_df.shape[0] == 0:
                 logger.warning(f'{compare_info} 的 {go_id} 未找到相关基因')
                 continue
-            go_id_deg_data_df.to_csv(go_id_deg_data_filename, sep='\t', index=False)
+            write_output_df(go_id_deg_data_df, go_id_deg_data_filename, index=False)
             
             go_id_deg_data_df
             output_summary_df_list.append(go_id_deg_data_df)
