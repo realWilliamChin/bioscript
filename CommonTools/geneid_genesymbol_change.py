@@ -39,8 +39,8 @@ def handle_duplicates(df, group_col, agg_method):
 
 
 def map_id_symbol(input_file, ref_file, output_file, mode, action, dup, include_ref_cols):
-    input_df = load_table(input_file)
-    ref_df = load_table(ref_file)
+    input_df = load_table(input_file, dtype=str, keep_default_na=False, na_values=[])
+    ref_df = load_table(ref_file, dtype=str, keep_default_na=False, na_values=[])
     ref_df.columns = [col.strip() for col in ref_df.columns]
     if 'GeneID' not in ref_df.columns or 'GeneSymbol' not in ref_df.columns:
         raise ValueError('参考文件必须包含 GeneID 和 GeneSymbol 两列')
