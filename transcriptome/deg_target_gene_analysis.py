@@ -26,7 +26,7 @@ def parse_input():
     parser.add_argument('-i', '--target-gene-file', required=True,
                         help='输入文件，target gene 文件，至少包含三列，GeneID 和 Ontology, SubOntology')
     parser.add_argument('--fpkm', required=True, help='输入 fpkm_matrix.txt 文件')
-    parser.add_argument('-d', '--deg-data-dir', help='[必须]输入 DEG_data.txt 文件')
+    parser.add_argument('-d', '--deg-data-dir', required=True, help='[必须]输入 DEG_data.txt 文件')
     parser.add_argument('-s', '--samplesinfo', required=True, help='输入样品信息文件')
     # 运行参数
     parser.add_argument('--mean', default=False, type=bool, help='使用每组中的平均数画 heatmap')
@@ -42,8 +42,8 @@ def parse_input():
 def genesymbol_data_pre_process(df: pd.DataFrame) -> pd.DataFrame:
     # 如果 GeneSymbol 有 NA 则会去除一些
     df_source_lines_num = df.shape[0]
-    df.dropna(subset='GeneSymbol', inplace=True)
     df['GeneSymbol'] = df['GeneSymbol'].replace(['NA', 'N/A', '-', '---', 'na', 'n/a', ''], np.nan)
+    df.dropna(subset='GeneSymbol', inplace=True)
     df_dropedna_lines_num = df.shape[0]
     df.drop_duplicates(subset='GeneSymbol', inplace=True)
     df_droped_duplicates_lines_num = df.shape[0]
@@ -113,7 +113,7 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, g
         draw_multigroup_heatmap(ontology_excel, ontology_pic, other_args='--no-cluster-rows')
 
 
-def deg_target_gene_summary(target_gene_data_list):
+def deg_target_gene_summary(df_list, samples_info_df):
     """将每组目标基因相关的 DEG data 有表达的（Up 和 Down）合并
 
     Args:
@@ -122,21 +122,60 @@ def deg_target_gene_summary(target_gene_data_list):
     Returns:
         pd.DataFrame: 汇总文件
     """
-    filtered_df_list = []
-    for each_target_gene_data in target_gene_data_list:
-        target_gene_data_df = load_table(each_target_gene_data, dtype={'GeneID': str})
-        if 'regulation' not in target_gene_data_df.columns:
-            logger.warning(f"文件 {each_target_gene_data} 中缺少 regulation 列")
-            continue
-        target_gene_data_df = target_gene_data_df[target_gene_data_df['regulation'].str.lower() != 'nosignificant']
-        # 去掉列名包含 _FPKM 和 _reads 的列
-        columns_to_keep = [col for col in target_gene_data_df.columns if '_FPKM' not in col and '_reads' not in col]
-        target_gene_data_df = target_gene_data_df[columns_to_keep]
-        filtered_df_list.append(target_gene_data_df)
+
+    processed_df_list = []
+    max_samples_number = samples_info_df.groupby('group').size().max()
+    for df in df_list:
+        df = df[df['regulation'].str.lower() != 'nosignificant']  # 只保留有表达的
+        treat = df['sampleA'].values.tolist()[0]
+        control = df['sampleB'].values.tolist()[0]
+        treat_samples = samples_info_df[samples_info_df['group'] == treat]['sample'].values.tolist()
+        control_samples = samples_info_df[samples_info_df['group'] == control]['sample'].values.tolist()
+        
+        # 获取原始的 FPKM 列和 reads 列
+        df_treat_fpkm_column = [f'{x}_FPKM' for x in treat_samples]
+        df_control_fpkm_column = [f'{x}_FPKM' for x in control_samples]
+        df_treat_reads_column = [f'{x}_raw_reads' for x in treat_samples]
+        df_control_reads_column = [f'{x}_raw_reads' for x in control_samples]
+        
+        # Treat FPKM
+        for i in range(1, max_samples_number + 1):
+            new_treat_fpkm = f"Treat_{i}_FPKM"
+            if i <= len(df_treat_fpkm_column):
+                df = df.rename(columns={df_treat_fpkm_column[i-1]: new_treat_fpkm})
+            else:
+                df[new_treat_fpkm] = 'N/A'
+
+        # Control FPKM
+        for i in range(1, max_samples_number + 1):
+            new_control_fpkm = f"Control_{i}_FPKM"
+            if i <= len(df_control_fpkm_column):
+                df = df.rename(columns={df_control_fpkm_column[i-1]: new_control_fpkm})
+            else:
+                df[new_control_fpkm] = 'N/A'
+
+        # Treat reads
+        for i in range(1, max_samples_number + 1):
+            new_treat_reads = f"Treat_{i}_reads"
+            if i <= len(df_treat_reads_column):
+                df = df.rename(columns={df_treat_reads_column[i-1]: new_treat_reads})
+            else:
+                df[new_treat_reads] = 'N/A'
+
+        # Control reads
+        for i in range(1, max_samples_number + 1):
+            new_control_reads = f"Control_{i}_reads"
+            if i <= len(df_control_reads_column):
+                df = df.rename(columns={df_control_reads_column[i-1]: new_control_reads})
+            else:
+                df[new_control_reads] = 'N/A'
+        
+        processed_df_list.append(df)
     
-    summary_df = pd.concat(filtered_df_list)
+    output_summary_df = pd.concat(processed_df_list)
     
-    return summary_df
+    return output_summary_df
+
 
 
 def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_col, output_dir):
@@ -164,10 +203,12 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
         cols_to_drop = [col for col in comparison_target_gene_df.columns if col.endswith('_df1')]
         comparison_target_gene_df.drop(columns=cols_to_drop, inplace=True)
         comparison_target_gene_df.columns = [col.replace('_df2', '') for col in comparison_target_gene_df.columns]
+        # 添加到 list，输出汇总文件
+        result_target_gene_data_list.append(comparison_target_gene_df.copy())
+        
         comparison_target_gene_df.columns = [col[:-5] if col.endswith('_FPKM') else col for col in comparison_target_gene_df.columns]
         comparison_target_gene_file = os.path.join(comparison_dir, f'{comparison_name}_target_gene_data.xlsx')
         write_output_df(comparison_target_gene_df, comparison_target_gene_file, index=False)
-        result_target_gene_data_list.append(comparison_target_gene_file)
         
         fpkm_df = comparison_target_gene_df[[index_col] + comparison_samples_list]
         ontology_df = comparison_target_gene_df[[index_col, 'SubOntology', 'Ontology']]
@@ -197,11 +238,11 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
 
             draw_multigroup_heatmap(ontology_excel_name, ontology_pic_name, other_args='--no-cluster-rows')
             
-    # 超过两组比较汇总结果，单个没有意义
+    # 超过两组比较, 汇总结果
     if len(result_target_gene_data_list) >= 2:
         logger.info('正在对结果汇总')
-        target_gene_summary_df = deg_target_gene_summary(result_target_gene_data_list)
-        write_output_df(target_gene_summary_df, os.path.join(output_dir, 'Target_gene_summary_data.txt'), index=False)
+        target_gene_summary_df = deg_target_gene_summary(result_target_gene_data_list, samples_df)
+        write_output_df(target_gene_summary_df, os.path.join(output_dir, 'Target_gene_summary_data.xlsx'), index=False)
     else:
         logger.info('跳过结果汇总，比较组少于 2 个')
 
