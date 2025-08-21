@@ -95,7 +95,7 @@ draw_all_deg_summary <- function(samples_file, comp_file, reads_file, fpkm_file,
   deg_count_summary <- data.frame("group"=character(0), "deg1"=numeric(0), "deg1.1"=numeric(0), "deg1.2"=numeric(0), "deg1.3"=numeric(0),
                                   "deg1.4"=numeric(0), "deg1.5"=numeric(0), "deg2"=numeric(0), "deg3"=numeric(0), "deg4"=numeric(0))
   for(i in seq_along(1:nrow(comp_info))){
-    group_vs_group_name <- paste(comp_info[i,1],comp_info[i,2],sep="_vs_")
+    group_vs_group_name <- paste(comp_info[i,1],comp_info[i,2],sep="-vs-")
     
     # 分出每组比较的 reads 和 fpkm 表
     data.treat <- reads_data[,sample_info[sample_info$group == comp_info[i,1],]$sample]

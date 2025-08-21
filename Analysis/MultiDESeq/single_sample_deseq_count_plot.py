@@ -24,8 +24,8 @@ def parse_input():
     parser.add_argument('-i', '--fpkm', help='输入 FPKM 文件')
     parser.add_argument('-s', '--samples', help='输入样本信息文件')
     parser.add_argument('-c', '--compare', help='输入比较信息文件')
-    parser.add_argument('-o', '--output-prefix', dest='output_prefix', default='comparsions_all_deg_counts',
-                        help='输出文件, 默认是 comparsions_all_deg_counts.jpg 和 comparsions_all_deg_counts.txt')
+    parser.add_argument('-o', '--output-prefix', dest='output_prefix', default='comparisons_all_deg_counts',
+                        help='输出文件, 默认是 comparisons_all_deg_counts.jpg 和 comparisons_all_deg_counts.txt')
     args = parser.parse_args()
     return args
 

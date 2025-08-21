@@ -146,7 +146,7 @@ i <- ""
 total.deg <- ""
 stat.deg <- data.frame()
 for (i in seq_along(1:nrow(comp_info))) {
-  group_vs_group_name <- paste(comp_info[i, 1], comp_info[i, 2], sep = "_vs_")
+  group_vs_group_name <- paste(comp_info[i, 1], comp_info[i, 2], sep = "-vs-")
   # print(i)
   data.treat <- reads_data[, sample_info[sample_info$group == comp_info[i, 1], ]$sample]
   data.control <- reads_data[, sample_info[sample_info$group == comp_info[i, 2], ]$sample]
@@ -200,7 +200,7 @@ for (i in seq_along(1:nrow(comp_info))) {
   total_deg_num <- nrow(volcano[volcano$regulation == "Up" | volcano$regulation == "Down", ])
   up_deg_num <- nrow(volcano[volcano$regulation == "Up", ])
   down_deg_num <- nrow(volcano[volcano$regulation == "Down", ])
-  deg_stat_group <- paste(comp_info[i, 1], comp_info[i, 2], sep = "_vs_")
+  deg_stat_group <- paste(comp_info[i, 1], comp_info[i, 2], sep = "-vs-")
   stat.deg <- rbind(stat.deg, rbind(c(deg_stat_group, total_deg_num, up_deg_num, down_deg_num)))
   if (up_deg_num == 0 | down_deg_num == 0) {
     next
@@ -208,8 +208,8 @@ for (i in seq_along(1:nrow(comp_info))) {
   p.volcano <- ggplot(data = volcano, aes(x = log2FoldChange, y = -log10(padj), colour = regulation)) +
     geom_point() +
     scale_color_manual(values = c("green", "grey", "red")) +
-    geom_vline(xintercept = c(bs_neg, bs_pos), lty = 4, col = "black", lwd = 0.8) +
-    geom_hline(yintercept = -log10(0.05), lty = 4, col = "black", lwd = 0.8) +
+    geom_vline(xintercept = c(bs_neg, bs_pos), lty = 4, col = "black", linewidth = 0.8) +
+    geom_hline(yintercept = -log10(0.05), lty = 4, col = "black", linewidth = 0.8) +
     theme_base()
   outfile.volcano <- paste0(deg_exp_graph_dir, group_vs_group_name, "_volcano.jpeg")
   ggsave(outfile.volcano, p.volcano, dpi = 300, width = 10, height = 10)
@@ -249,7 +249,7 @@ p <- ggplot(data.m, aes(x = sample, y = log2(fpkm), fill = sample)) +
 ggsave(filename = "Expression_data_evaluation/fpkm_boxplot.jpeg", plot = p, height = 10, width = 16.8, dpi = 300)
 d <- ggplot(data.m, aes(x = log10(fpkm), col = sample)) +
   geom_density(aes(fill = sample), colour = NA, alpha = .2) +
-  geom_line(stat = "density", size = 1.5) +
+  geom_line(stat = "density", linewidth = 1.5) +
   xlab("log2(FPKM)") +
   theme_base() +
   theme(axis.title.x = element_text(size = 20), axis.title.y = element_text(size = 20), axis.text.x = element_text(size = rel(3)), axis.text.y = element_text(size = rel(3)))
@@ -296,17 +296,15 @@ dev.off()
 colnames(stat.deg) <- c("Comparisons", "Total DEGs", "Up regulated", "Down regulated")
 
 deg_first_line <- paste0("# 筛选条件：",filter_type, " < ",filter_value,"; FoldChange > ",deg_value,"\n")
-# write.lines(deg_first_line, paste0(deg_dir, "DEG_summary.txt"))
 cat(deg_first_line, file = paste0(deg_dir, "DEG_summary.txt"))
-
-write.table(stat.deg, file = paste0(deg_dir, "DEG_summary.txt"), sep = "\t", quote = F, row.names = F, append = TRUE)
+write.table(stat.deg, file = paste0(deg_dir, "DEG_summary.txt"), sep = "\t", quote = F, row.names = F, append = TRUE, col.names = TRUE)
 
 
 ##############################################################################################################
 # setwd("d:/pll/R_work/anova")
 # getwd()
 data <- read.table(fpkm_file, sep = "\t", row.names = 1, header = T, check.names = F)
-group <- read.table(samples_file, sep = "\t", header = T, check.names = F)
+group <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
 head(group)
 
 colnames(data)
@@ -368,8 +366,11 @@ pca_eig1 <- round(gene.pca$eig[1, 2], 2)
 pca_eig2 <- round(gene.pca$eig[2, 2], 2)
 
 # get the group information
-group <- read.delim(samples_file, row.names = 2, sep = "\t", check.names = FALSE, header = T)
-group <- group[rownames(pca_sample), ]
+group_info <- read.delim(samples_file, sep = "\t", check.names = FALSE, header = T)
+group_info <- group_info[match(rownames(pca_sample), group_info$sample), ]
+
+# 添加group列到pca_sample
+pca_sample$group <- group_info$group
 
 p <- ggplot(data = pca_sample, aes(x = Dim.1, y = Dim.2)) +
   geom_point(aes(color = group), size = 5) +
@@ -377,7 +378,7 @@ p <- ggplot(data = pca_sample, aes(x = Dim.1, y = Dim.2)) +
     panel.grid = element_blank(), panel.background = element_rect(color = "black", fill = "transparent"),
     legend.key = element_rect(fill = "transparent")
   ) +
-  labs(x = paste("PCA1:", pca_eig1, "%"), y = paste("PCA2:", pca_eig2, "%"), color = "")
+  labs(x = paste("PC1:", pca_eig1, "%"), y = paste("PC2:", pca_eig2, "%"), color = "")
 p <- p + geom_text_repel(data = pca_sample, aes(Dim.1, Dim.2, label = rownames(pca_sample)))
 cluster_border <- ddply(pca_sample, "group", function(df) df[chull(df[[1]], df[[2]]), ])
 p <- p + geom_polygon(data = cluster_border, aes(color = group), fill = NA, show.legend = FALSE)
