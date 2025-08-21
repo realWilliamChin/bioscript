@@ -17,7 +17,7 @@ from load_input import load_table, write_output_df
 
 def parse_input():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', type=str, help='输入文件 DEG_summary.txt')
+    parser.add_argument('-i', type=str, default='DEG_summary.txt', help='输入文件 DEG_summary.txt')
     parser.add_argument('-o', type=str, default='DEGs_comparison_count_barplot.jpeg',
                         help='输出文件')
     args = parser.parse_args()
@@ -29,44 +29,43 @@ def deg_summary_plot(deg_summary_df, output_file):
     numeric_cols = ['Total DEGs', 'Up regulated', 'Down regulated']
     for col in numeric_cols:
         deg_summary_df[col] = pd.to_numeric(deg_summary_df[col], errors='coerce').fillna(0).astype(int)
-    
-    comparisons = deg_summary_df['Comparisons']
-    deg_summary_df = deg_summary_df.set_index('Comparisons')
 
-    x = np.arange(len(comparisons))  # 生成组的位置
-    width = 0.2  # 柱子的宽度
+    # 转为长表
+    plot_df = pd.melt(
+        deg_summary_df,
+        id_vars=['Comparisons'],
+        value_vars=['Up regulated', 'Down regulated'],
+        var_name='Regulation',
+        value_name='Count'
+    )
 
-    # 创建图表
-    fig, ax = plt.subplots(figsize=(10, 6))
+    n_groups = deg_summary_df.shape[0]
+    fig_width = max(6, n_groups * 1.5)
+    fig_height = 6
 
-    # 绘制柱状图
-    rects1 = ax.bar(x - width/2, deg_summary_df["Up regulated"], width, 
-                label='Up regulated genes', color='#1f77b4')  # 蓝色
-    rects2 = ax.bar(x + width/2, deg_summary_df["Down regulated"], width, 
-                label='Down regulated genes', color='#d62728')  # 红色
-
-    # 添加标签和标题
-    ax.set_ylabel('Number of Genes', fontsize=12)
-    ax.set_title('Differentially Expressed Genes (DEGs)', fontsize=14)
-    ax.set_xticks(x)
-    ax.set_xticklabels(comparisons, rotation=45, ha='right', fontsize=10)
-    ax.legend()
-
-    # 自动调整y轴范围
-    max_value = max(max(deg_summary_df["Up regulated"]), max(deg_summary_df["Down regulated"]))
-    ax.set_ylim(0, max_value * 1.15)
+    plt.figure(figsize=(fig_width, fig_height))
+    ax = sns.barplot(
+        data=plot_df,
+        x='Comparisons',
+        y='Count',
+        hue='Regulation',
+        palette={'Up regulated': '#1f77b4', 'Down regulated': '#d62728'},
+    )
 
     # 添加数值标签
-    for rects in [rects1, rects2]:
-        for rect in rects:
-            height = rect.get_height()
+    for p in ax.patches:
+        height = int(p.get_height())
+        if height > 0:
             ax.annotate(f'{height}',
-                        xy=(rect.get_x() + rect.get_width()/2, height),
-                        xytext=(0, 3),  # 3 points vertical offset
-                        textcoords="offset points",
-                        ha='center', va='bottom')
+                        (p.get_x() + p.get_width() / 2, height),
+                        ha='center', va='bottom', fontsize=10, xytext=(0, 3), textcoords='offset points')
 
-    # 调整布局并保存
+    ax.set_ylabel('Number of Genes', fontsize=12)
+    ax.set_title('Differentially Expressed Genes (DEGs)', fontsize=14)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right', fontsize=10)
+    ax.legend(title=None)
+    ax.set_ylim(0, plot_df['Count'].max() * 1.3)
+
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
 
