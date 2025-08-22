@@ -43,7 +43,7 @@ def parse_input():
     return args
 
 
-def add_kns_def(file_df, for_merge_column='GeneID', kegg_file=None, nr_file=None, swiss_file=None, kns_file=None, merge_how='left'):
+def add_kns_def(file_df, index_column='GeneID', kegg_file=None, nr_file=None, swiss_file=None, kns_file=None, merge_how='left'):
     """对输入表添加基因定义"""
     result_df = file_df.copy()
     source_shape = file_df.shape[0]
@@ -82,11 +82,11 @@ def add_kns_def(file_df, for_merge_column='GeneID', kegg_file=None, nr_file=None
         result_df = pd.merge(left=result_df, right=kegg_df, on='GeneID', how='left')
 
     if kns_file:
-        kns_df = load_table(kns_file, dtype={for_merge_column: 'str'})
-        duplicate_cols = [col for col in kns_df.columns if col in result_df.columns and col != for_merge_column]
+        kns_df = load_table(kns_file, dtype={index_column: 'str'})
+        duplicate_cols = [col for col in kns_df.columns if col in result_df.columns and col != index_column]
         if duplicate_cols:
             kns_df = kns_df.drop(columns=duplicate_cols)
-        result_df = pd.merge(left=result_df, right=kns_df, on=for_merge_column, how=merge_how)
+        result_df = pd.merge(left=result_df, right=kns_df, on=index_column, how=merge_how)
 
     diff_col = list(set(result_df.columns) - set(file_df.columns))
     result_df[diff_col] = result_df[diff_col].fillna(value='N/A')
@@ -94,7 +94,7 @@ def add_kns_def(file_df, for_merge_column='GeneID', kegg_file=None, nr_file=None
     
     if source_shape != result_shape:
         logger.info(f"原表行数{source_shape}, 结果表行数{result_shape}, 可能输入文件指定合并列有重复，或注释文件有重复")
-        result_df.drop_duplicates(subset=for_merge_column, inplace=True)
+        result_df.drop_duplicates(subset=index_column, inplace=True)
         logger.info('已自动去重处理')
 
     return result_df
