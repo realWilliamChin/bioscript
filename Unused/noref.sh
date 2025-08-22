@@ -105,7 +105,6 @@ exec_pinjie() {
     if [[ -f ${work_dir}/${assemble_trinity_d}/samples_trinity.txt ]]; then
         log INFO "检测到 samples_trinity.txt 文件"
         read -p "是否使用已存在的 samples_trinity.txt 文件进行拼接？[y/n]" answer
-        
     fi
     
     if [[ -f ${work_dir}/samples_described.txt ]]; then
