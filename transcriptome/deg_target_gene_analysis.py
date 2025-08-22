@@ -26,7 +26,7 @@ def parse_input():
     parser.add_argument('-i', '--target-gene-file', required=True,
                         help='输入文件，target gene 文件，至少包含三列，GeneID 和 Ontology, SubOntology')
     parser.add_argument('--fpkm', required=True, help='输入 fpkm_matrix.txt 文件')
-    parser.add_argument('-d', '--deg-data-dir', required=True, help='[必须]输入 DEG_data.txt 文件')
+    parser.add_argument('-d', '--deg-data-dir', help='[必须]输入 DEG_data.txt 文件')
     parser.add_argument('-s', '--samplesinfo', required=True, help='输入样品信息文件')
     # 运行参数
     parser.add_argument('--mean', default=False, type=bool, help='使用每组中的平均数画 heatmap')
@@ -273,7 +273,8 @@ def main():
     
     all_gene_heatmap_pic = os.path.join(output_dir, target_gene_file.split(os.sep)[-1].replace('.txt', '_heatmap.jpg'))
     target_gene_heatmap(target_gene_def_df, fpkm_matrix_df, samples_df, index_col, args.mean, all_gene_heatmap_pic)
-    deg_target_gene_heatmap(target_gene_def_df, samples_df, args.deg_data_dir, index_col, args.output)
+    if args.deg_data_dir:
+        deg_target_gene_heatmap(target_gene_def_df, samples_df, args.deg_data_dir, index_col, args.output)
     
     logger.success("Done")
 
