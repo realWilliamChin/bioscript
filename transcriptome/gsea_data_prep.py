@@ -19,6 +19,8 @@ def parse_input():
     p.add_argument('-g', '--genesymbol', dest='genesymbol',
                    help='genesymbol.txt, 如果没有 genesymbol 文件，不输出 _genesymbol.txt 文件')
     
+    p.add_argument('-o', '--output', type=str, help='输出目录路径')
+  
     args = p.parse_args()
     return args
 
@@ -49,19 +51,19 @@ def get_expression_data(samples, compares, expression, genesymbol=None):
     # 加载所有输入数据
     genesymbol_df = process_genesymbol(genesymbol)
     samples_df = load_table(samples, dtype=str)
-    compare_df = load_table(compares, dtype=str)
+    comparisons_df = load_table(compares, dtype=str)
     expression_df = load_table(expression, dtype={'GeneID': str})
     
     # 处理每个比较组
-    compare_df['compare'] = compare_df['Treat'] + '_vs_' + compare_df['Control']
-    for compare in compare_df['compare']:
-        treat_group, control_group = compare.split('_vs_')
+    comparisons_df['compare'] = comparisons_df['Treat'] + '-vs-' + comparisons_df['Control']
+    for comparison_name in comparisons_df['compare']:
+        treat_group, control_group = comparison_name.split('-vs-')
         compares_sample_list = (
             samples_df[samples_df['group'] == treat_group]['sample'].tolist() +
             samples_df[samples_df['group'] == control_group]['sample'].tolist()
         )
-        compare_data = expression_df[['GeneID'] + compares_sample_list].copy()
-        write_expression_data(compare_data, compare, genesymbol_df)
+        comparison_expression_data = expression_df[['GeneID'] + compares_sample_list].copy()
+        write_expression_data(comparison_expression_data, comparison_name, genesymbol_df)
 
 
 def main():
