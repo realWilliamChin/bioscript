@@ -11,11 +11,12 @@ def parse_input():
     parser = argparse.ArgumentParser(
         description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.add_argument("infile", help="input fasta file")
+    parser.add_argument('-i', dest="infile", help="input fasta file")
     parser.add_argument(
         "--outputs", nargs="+", help="list of output files", required=True
     )
     args = parser.parse_args()
+    return args
 
 
 def split_fasta(infile, outputs):
