@@ -1,0 +1,21 @@
+paths:
+  log_dir: "logs"
+  input_data: "00_Cleandata"
+  mapping_output: "01_Hisat2_result"
+  expression_output: "02_Expression"
+
+  samples_file: "samples_described.txt"
+  kns_file: '/home/colddata/qinqiang/00_Database_new/Plant_reference/Fragaria_x_ananassa_genome/Annotations/Fragaria_x_ananassa_kns_gene_def_Genesymbol.txt'
+
+
+threads: 4  # 指定每个样本的运行线程线
+
+alignment:
+  alignment_type: 'hisat2'  # hisat2 bowtie2 bwa salmon 都可以选择
+  ref_specie: 'Fragaria_x_ananassa'
+  gff_file: '/home/colddata/qinqiang/00_Database_new/Plant_reference/Fragaria_x_ananassa_genome/Reference_genome_data/Fragaria_ananassa_ASM5004357v1_genomic.gff'
+  ref_index: '/home/colddata/qinqiang/00_Database_new/Plant_reference/Fragaria_x_ananassa_genome/Hisat2_index/Fragaria_x_ananassa'
+
+specie: 'Fragaria_x_ananassa'
+
+count_threshold: 50  # reads 过滤阈值

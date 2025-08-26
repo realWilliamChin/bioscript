@@ -1,0 +1,21 @@
+paths:
+  log_dir: "logs"
+  input_data: "00_Cleandata"
+  mapping_output: "01_Hisat2_result"
+  expression_output: "02_Expression"
+
+  samples_file: "samples_described.txt"
+  kns_file: '/home/colddata/qinqiang/00_Database_new/Animal_reference/Mus_musculus/Annotations/Mus_musculus_kns_gene_basicinfo_def.txt'
+
+
+threads: 4  # 指定每个样本的运行线程线
+
+alignment:
+  alignment_type: 'hisat2'  # hisat2 bowtie2 bwa salmon 都可以选择
+  ref_specie: 'Mus_musculus'
+  gff_file: '/home/colddata/qinqiang/00_Database_new/Animal_reference/Mus_musculus/Reference_genome_data/Mus_musculus.GRCm39.109.gff3'
+  ref_index: '/home/colddata/qinqiang/00_Database_new/Animal_reference/Mus_musculus/Hisat2_index/Mus_musculus'
+
+specie: 'Mus_musculus'
+
+count_threshold: 50  # reads 过滤阈值
