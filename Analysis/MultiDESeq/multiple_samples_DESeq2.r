@@ -1,18 +1,14 @@
-#######################################################
-# version: 8.0.0
-#######################################################
-suppressPackageStartupMessages(library(ggthemes))
-suppressPackageStartupMessages(library(ggplot2))
-suppressPackageStartupMessages(library(pheatmap))
-suppressPackageStartupMessages(library(reshape2))
-suppressPackageStartupMessages(library(ggcorrplot))
-suppressPackageStartupMessages(library(corrplot))
-suppressPackageStartupMessages(library(DESeq2))
-suppressPackageStartupMessages(library(edgeR))
-suppressPackageStartupMessages(library(FactoMineR))
-suppressPackageStartupMessages(library(ggrepel))
-suppressPackageStartupMessages(library(plyr))
-suppressPackageStartupMessages(library(optparse))
+pkgs <- (
+  'ggthemes', 'ggplot2', 'pheatmap', 'reshape2', 'ggcorrplot',
+  'corrplot', 'DESeq2', 'edgeR', 'FactoMineR', 'ggrepel',
+  'plyr', 'optparse'
+)
+suppressPackageStartupMessages(invisible(lapply(pkgs, require, character.only = TRUE)))
+
+source('/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r', echo = TRUE, encoding = 'UTF-8')
+source('/home/colddata/qinqiang/script/Plot/PCA/pca_1.r', echo = TRUE, encoding = 'UTF-8')
+source('/home/colddata/qinqiang/script/Plot/Corrplot/correlation_1.r', echo = TRUE, encoding = 'UTF-8')
+
 
 option_list <- list(
   make_option(c("--fpkm"),
@@ -125,103 +121,187 @@ if (nrow(all_fpkm) > 65535) {
   subset_data <- subset_data[order(sample_indices), ]
 
   # 创建热图
-  all.heatmap <- pheatmap(subset_data, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
+  # all.heatmap <- pheatmap(subset_data, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
+  smart_heatmap(
+    matrix_data = subset_data,
+    filename = file.path(exp_evaluation_dir, 'All_gene_heatmap.png'),
+    cluster_cols = FALSE,
+    show_rownames = FALSE
+  )
 } else {
   # 如果数据不超过 65535 行，直接创建热图
-  all.heatmap <- pheatmap(all_fpkm, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
+  smart_heatmap(
+    matrix_data = all_fpkm,
+    filename = file.path(exp_evaluation_dir, 'All_gene_heatmap.png'),
+    cluster_cols = FALSE,
+    show_rownames = FALSE
+  )
+  # all.heatmap <- pheatmap(all_fpkm, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
 }
-
-ggsave(paste0(exp_evaluation_dir, "all_gene_heatmap.jpeg"), all.heatmap, dpi = 300, width = 10, height = 10)
 
 sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
 # sample_info[sample_info$group=="CK",]
 reads_data <- read.table(reads_file, sep = "\t", row.names = 1, header = T, check.names = F, stringsAsFactors = F)
 reads_data <- na.omit(reads_data)
 comp_info <- read.table(compare_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
-# head(reads_data)
-# head(reads_data[,sample_info[sample_info$group %in% comp_info[1,],]$sample])
-# tmp.data<-reads_data[,sample_info[sample_info$group %in% comp_info[1,],]$sample]
-# rownames(comp_info)
+# 如果存在 Treat / Control 列，则强制按此顺序，避免顺序被交换
+if (all(c("Treat", "Control") %in% colnames(comp_info))) {
+  comp_info <- comp_info[, c("Treat", "Control")]
+}
+
 i <- ""
 total.deg <- ""
 stat.deg <- data.frame()
 for (i in seq_along(1:nrow(comp_info))) {
   group_vs_group_name <- paste(comp_info[i, 1], comp_info[i, 2], sep = "-vs-")
   # print(i)
+  
+  # 从reads_data中提取处理组和对照组的样本数据
   data.treat <- reads_data[, sample_info[sample_info$group == comp_info[i, 1], ]$sample]
   data.control <- reads_data[, sample_info[sample_info$group == comp_info[i, 2], ]$sample]
+  
+  # 合并处理组和对照组数据，构建RNA-seq矩阵
   rnaseqMatrix <- cbind(data.treat, data.control)
+  
+  # 从fpkm数据中提取对应的处理组和对照组样本数据（用于后续可视化）
   fpkm.treat <- fpkm[, sample_info[sample_info$group == comp_info[i, 1], ]$sample]
   fpkm.control <- fpkm[, sample_info[sample_info$group == comp_info[i, 2], ]$sample]
   fpkm.deg <- cbind(fpkm.treat, fpkm.control)
+  
+  # 将reads数据四舍五入为整数（DESeq2要求count数据为整数）
   rnaseqMatrix <- round(rnaseqMatrix)
+  
+  # 过滤低表达基因：保留在至少2个样本中CPM>1的基因
   rnaseqMatrix <- rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > 1) >= 2, ]
+  
+  # 构建样本分组信息，用于DESeq2分析
   conditions <- data.frame(conditions = factor(c(rep(comp_info[i, 1], ncol(data.treat)), rep(comp_info[i, 2], ncol(data.control)))))
   # conditions
   rownames(conditions) <- colnames(rnaseqMatrix)
+  
+  # 创建DESeq2数据集对象
   ddsFullCountTable <- DESeqDataSetFromMatrix(
-    countData = rnaseqMatrix,
-    colData = conditions,
-    design = ~conditions
+    countData = rnaseqMatrix,      # 输入reads count数据
+    colData = conditions,          # 样本分组信息
+    design = ~conditions           # 实验设计公式
   )
+  
+  # 运行DESeq2差异表达分析
   dds <- DESeq(ddsFullCountTable)
+  
+  # 设置比较对比：处理组 vs 对照组
   contrast <- c("conditions", comp_info[i, 1], comp_info[i, 2])
+  
+  # 获取差异表达分析结果
   res <- results(dds, contrast)
+  
+  # 计算处理组和对照组的标准化表达量均值
   baseMeanA <- rowMeans(counts(dds, normalized = TRUE)[, colData(dds)$conditions == comp_info[i, 1]])
   baseMeanB <- rowMeans(counts(dds, normalized = TRUE)[, colData(dds)$conditions == comp_info[i, 2]])
+  
+  # 将均值信息添加到结果中
   res <- cbind(baseMeanA, baseMeanB, as.data.frame(res))
+  
+  # 添加样本组别信息到结果中
   res <- cbind(sampleA = comp_info[i, 1], sampleB = comp_info[i, 2], as.data.frame(res))
+  
+  # 将NA的padj值设为1（避免后续分析出错）
   res$padj[is.na(res$padj)] <- 1
+  
+  # 按p值排序结果
   res <- as.data.frame(res[order(res$pvalue), ])
+  
+  # 设置输出文件名
   outfile <- paste0(group_vs_group_name, "_DE_results")
   outfile.ma <- paste0(group_vs_group_name, "_DE_results_readCounts.matrix")
+  
+  # 为reads count矩阵添加基因ID列，准备输出
   rnaseqMatrix <- cbind(as.data.frame(rownames(rnaseqMatrix)), rnaseqMatrix)
   colnames(rnaseqMatrix)[1] <- "GeneID"
+  
+  # 输出reads count矩阵到文件
   write.table(rnaseqMatrix, file = outfile.ma, sep = "	", quote = FALSE, row.names = F)
+  
+  # 准备火山图数据
   volcano <- res
+  
+  # 处理极小的padj值，避免火山图显示问题
   volcano$padj <- ifelse(volcano$padj < 0.000000000000001, 0.000000000000001, volcano$padj)
   volcano$pvalue <- ifelse(is.na(volcano$pvalue), 1, volcano$pvalue)
 
+  # 根据用户选择的过滤类型（padj或pvalue）进行过滤
   if (filter_type == "padj") {
     volcano_filter_col <- volcano$padj
   } else {
     volcano_filter_col <- volcano$pvalue
   }
 
+  # 根据过滤标准和log2FoldChange阈值，标记基因的调控状态
+  # Up: 上调基因，Down: 下调基因，NoSignificant: 无显著差异
   volcano$regulation <- as.factor(ifelse(volcano_filter_col < filter_value & abs(volcano$log2FoldChange) >= bs_pos, ifelse(volcano$log2FoldChange >= bs_pos, "Up", "Down"), "NoSignificant"))
+  
+  # 计算倍数变化（FC = 2^log2FoldChange）
   volcano$FC <- 2^volcano$log2FoldChange
+  
+  # 将FPKM表达量数据添加到结果中（用于结果展示）
   fpkm.tmp <- fpkm.deg[rownames(volcano), ]
   colnames(fpkm.tmp) <- paste(colnames(fpkm.tmp), "_FPKM", sep = "")
   volcano <- cbind(volcano, fpkm.tmp)
+  
+  # 添加基因ID列到结果中
   volcano <- cbind(as.data.frame(rownames(volcano)), volcano)
   colnames(volcano)[1] <- "GeneID"
+  
+  # 输出完整的差异表达分析结果到文件
   write.table(volcano, file = outfile, sep = "	", quote = FALSE, row.names = F)
+  
+  # 收集所有差异表达基因的ID
   total.deg <- c(total.deg, rownames(volcano)[volcano$regulation == "Up" | volcano$regulation == "Down"])
+  
+  # 统计差异基因数量
   total_deg_num <- nrow(volcano[volcano$regulation == "Up" | volcano$regulation == "Down", ])
   up_deg_num <- nrow(volcano[volcano$regulation == "Up", ])
   down_deg_num <- nrow(volcano[volcano$regulation == "Down", ])
+  
+  # 生成统计信息并添加到统计表中
   deg_stat_group <- paste(comp_info[i, 1], comp_info[i, 2], sep = "-vs-")
   stat.deg <- rbind(stat.deg, rbind(c(deg_stat_group, total_deg_num, up_deg_num, down_deg_num)))
+  
+  # 如果上调或下调基因数量为0，跳过后续的可视化步骤
   if (up_deg_num == 0 | down_deg_num == 0) {
     next
   }
+  
+  # 绘制火山图：展示差异表达基因的分布
   p.volcano <- ggplot(data = volcano, aes(x = log2FoldChange, y = -log10(padj), colour = regulation)) +
     geom_point() +
-    scale_color_manual(values = c("green", "grey", "red")) +
-    geom_vline(xintercept = c(bs_neg, bs_pos), lty = 4, col = "black", linewidth = 0.8) +
-    geom_hline(yintercept = -log10(0.05), lty = 4, col = "black", linewidth = 0.8) +
+    scale_color_manual(values = c("green", "grey", "red")) +  # 绿色=下调，红色=上调，灰色=无显著差异
+    geom_vline(xintercept = c(bs_neg, bs_pos), lty = 4, col = "black", linewidth = 0.8) +  # 添加log2FoldChange阈值线
+    geom_hline(yintercept = -log10(0.05), lty = 4, col = "black", linewidth = 0.8) +  # 添加显著性阈值线
     theme_base()
+  
+  # 保存火山图
   outfile.volcano <- paste0(deg_exp_graph_dir, group_vs_group_name, "_volcano.jpeg")
   ggsave(outfile.volcano, p.volcano, dpi = 300, width = 10, height = 10)
+  
+  # 提取差异表达基因的FPKM数据用于热图绘制
   tmp.deg <- as.character(rownames(volcano)[volcano$regulation == "Up" | volcano$regulation == "Down"])
   fpkm_tmp <- na.omit(fpkm.deg[tmp.deg, ])
-  fpkm_tmp <- log2(fpkm_tmp[rowSums(fpkm_tmp) > 0, ] + 1)
+  fpkm_tmp <- log2(fpkm_tmp[rowSums(fpkm_tmp) > 0, ] + 1)  # log2(FPKM+1)转换
+  
+  # 绘制差异基因表达热图
   p.tmpdeg.heatmap <- pheatmap(fpkm_tmp, scale = "row", cluster_cols = F, show_rownames = F)
+  
+  # 保存热图
   outfile.tmpdeg.heatmap <- paste0(deg_exp_graph_dir, group_vs_group_name, "_heatmap.jpeg")
   ggsave(outfile.tmpdeg.heatmap, p.tmpdeg.heatmap, dpi = 300, width = 10, height = 10)
+  
+  # 输出上调基因ID列表
   outfile.Up_ID <- paste0(deg_dir, group_vs_group_name, "_Up_ID.txt")
   UP_ID.dt <- data.frame(GeneID = as.character(rownames(volcano)[volcano$regulation == "Up"]))
   write.table(UP_ID.dt, file = outfile.Up_ID, sep = "	", quote = FALSE, row.names = F, col.names = FALSE)
+  
+  # 输出下调基因ID列表
   outfile.Down_ID <- paste0(deg_dir, group_vs_group_name, "_Down_ID.txt")
   Down_ID.dt <- data.frame(GeneID = as.character(rownames(volcano)[volcano$regulation == "Down"]))
   write.table(Down_ID.dt, file = outfile.Down_ID, sep = "	", quote = FALSE, row.names = F, col.names = FALSE)
