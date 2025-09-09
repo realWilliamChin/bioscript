@@ -9,7 +9,7 @@ from loguru import logger
 def parse_input():
     parser = argparse.ArgumentParser(description=' ')
 
-    parser.add_argument('-n', type=int, default=50)
+    parser.add_argument('-n', type=int, default=50, help='大于等于')
     parser.add_argument('-i', default='gene_count_matrix.txt')
     parser.add_argument('-o', default='reads_matrix_filtered.txt')
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
             else:
                 each_part = line.split('\t')
                 for each in each_part[1:]:
-                    if(float(each)>greater_than):
+                    if(float(each)>=greater_than):
                         line1=line.replace('\t','\t')
                         f2.write(line1)
                         f2.write('\n')
