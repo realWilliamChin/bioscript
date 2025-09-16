@@ -3,9 +3,7 @@ pkgs <- c(
   "FactoMineR", "plyr", "dplyr", "ropls", "ggrepel", "mixOmics",
   "openxlsx", "optparse", "magrittr"
 )
-suppressPackageStartupMessages(
-  invisible(lapply(pkgs, require, character.only = TRUE))
-)
+suppressPackageStartupMessages(invisible(lapply(pkgs, require, character.only = TRUE)))
 Sys.setenv(R_LIBS="/opt/biosoft/R-4.2.2/lib64/R/library")
 
 source('/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r', echo = TRUE, encoding = 'UTF-8')
@@ -176,21 +174,66 @@ check_and_convert_numeric <- function(data_frame) {
       } else {
         data_frame[[col_name]] <- col_data_numeric
       }
+    }
   }
+
+  # 如果有问题列，输出并退出程序
+  if (length(problematic_columns) > 0) {
+    print(paste("以下列无法转换为数值类型:"))
+    for (col in problematic_columns) {
+      print(paste("  -", col))
+    }
+    print("程序退出")
+    quit(status = 1)
+  }
+
+  print(paste("所有列类型检查完成，数据已转换为数值类型"))
+  return(data_frame)
 }
 
-# 如果有问题列，输出并退出程序
-if (length(problematic_columns) > 0) {
-  print(paste("以下列无法转换为数值类型:"))
-  for (col in problematic_columns) {
-    print(paste("  -", col))
+# 将数据框/矩阵中的 0 替换为一个很小的正数（默认 1e-6）
+# 仅对数值型列生效，非数值列不做改动
+replace_zeros_with_epsilon <- function(x, epsilon = 1e-6, tolerance = 0) {
+  if (is.matrix(x)) {
+    x[x == 0] <- epsilon
+    return(x)
   }
-  print("程序退出")
-  quit(status = 1)
-}
-
-print(paste("所有列类型检查完成，数据已转换为数值类型"))
-return(data_frame)
+  if (is.data.frame(x)) {
+    for (col_name in colnames(x)) {
+      col_data <- x[[col_name]]
+      if (is.numeric(col_data)) {
+        zero_idx <- !is.na(col_data) & if (tolerance > 0) abs(col_data) <= tolerance else col_data == 0
+        if (any(zero_idx)) {
+          col_data[zero_idx] <- epsilon
+          x[[col_name]] <- col_data
+        }
+      } else if (is.character(col_data)) {
+        trimmed <- trimws(col_data)
+        suppressWarnings(num_vals <- as.numeric(trimmed))
+        zero_idx <- !is.na(num_vals) & if (tolerance > 0) abs(num_vals) <= tolerance else num_vals == 0
+        if (any(zero_idx)) {
+          if (all(!is.na(num_vals) | is.na(trimmed))) {
+            num_vals[zero_idx] <- epsilon
+            x[[col_name]] <- num_vals
+          } else {
+            trimmed[zero_idx] <- as.character(epsilon)
+            x[[col_name]] <- trimmed
+          }
+        }
+      } else if (is.factor(col_data)) {
+        char_vals <- as.character(col_data)
+        trimmed <- trimws(char_vals)
+        suppressWarnings(num_vals <- as.numeric(trimmed))
+        zero_idx <- !is.na(num_vals) & if (tolerance > 0) abs(num_vals) <= tolerance else num_vals == 0
+        if (any(zero_idx)) {
+          trimmed[zero_idx] <- as.character(epsilon)
+          x[[col_name]] <- factor(trimmed)
+        }
+      }
+    }
+    return(x)
+  }
+  stop("输入必须是 data.frame 或 matrix")
 }
 
 # 根据 definition_df 生成注释行数据框
@@ -250,8 +293,8 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     file.path(output_dir, 'Compounds_heatmap.png'),
     cluster_cols = FALSE,
     cluster_rows = FALSE,
-    scale = 'row',
-    annotation_row = annotation_row_df
+    annotation_row = annotation_row_df,
+    scale = 'row'
   )
   smart_heatmap(
     matrix_data = select_data_frame,
@@ -273,26 +316,26 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     )
   }
 
-  # 根据样本数量设置 ncomp，而不是化合物数量
+  # 根据样本数量设置 ncomp
   num_samples <- nrow(metabolites)
   num_groups <- length(unique(groups))
   
-  # 一般规则：ncomp 不应超过样本数量的 1/10，且不应超过组数-1
+  # 一般规则：ncomp 不应超过样本数量的 1/10，且不应超过组数-1，但是 2 个不好看，目前至少画 4 个
   max_ncomp <- min(floor(num_samples / 10), num_groups - 1)
   
   # 设置合理的 ncomp 值
   if (num_samples < 10) {
-    ncomp <- min(2, max_ncomp)
-  } else if (num_samples < 20) {
     ncomp <- min(4, max_ncomp)
-  } else if (num_samples < 50) {
+  } else if (num_samples < 20) {
     ncomp <- min(6, max_ncomp)
+  } else if (num_samples < 50) {
+    ncomp <- min(8, max_ncomp)
   } else {
     ncomp <- min(10, max_ncomp)
   }
   
-  # 确保 ncomp 至少为 2（如果样本数允许）
-  ncomp <- max(2, ncomp)
+  # 确保 ncomp 至少为 4（如果样本数允许）
+  ncomp <- max(4, ncomp)
   
   # 打印调试信息
   print(paste("样本数量:", num_samples, "组数:", num_groups, "设置的ncomp:", ncomp))
@@ -318,7 +361,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
   ggsave(
     file.path(output_dir, "/Metabolite_quantitation_scree_plot.jpeg"), 
     scree_plot, 
-    width = ncomp * 0.7, 
+    width = ncomp * 0.7 + 1, 
     height = 4
   )
 
@@ -449,6 +492,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     }
     
     # 处理Class和SubClass分析
+    write.xlsx(greater_than_one_data_def, file=file.path(output_dir, 'temp.xlsx'), rowNames=TRUE, colNames=TRUE)    
     process_class_analysis(greater_than_one_data_def, "Class", "Significant_compound_count_by_class.xlsx")
     process_class_analysis(greater_than_one_data_def, "SubClass", "Significant_compound_count_by_subclass.xlsx")
   }
@@ -466,251 +510,11 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
   )
 }
 
-# 汇总 VIP 文件并进行富集与分类统计（提取自组间分析尾部逻辑）
-summarize_vip_and_enrich <- function(output_dir, definition_df = NA) {
-  # 列出 VIP 文件
-  all_files <- list.files(path = output_dir, recursive = TRUE)
-  vip_files <- all_files[grep("VIP", all_files)]
-
-  class_count_list <- list()
-  subclass_count_list <- list()
-
-  for (vip_file in vip_files) {
-    print(vip_file)
-    compare_group_name <- gsub("_VIP.xlsx", "", basename(vip_file))
-    
-    vip_df <- read.xlsx(
-      file.path(output_dir, vip_file), 
-      sheet = 1, 
-      rowNames = FALSE
-    )
-
-    # 标注上调/下调/不显著
-    vip_df$regulation <- as.factor(
-      ifelse(
-        vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8),
-        ifelse(vip_df$FoldChange >= 1.2, "Up", "Down"),
-        "NoSignificant"
-      )
-    )
-    
-    write.xlsx(
-      vip_df, 
-      file = file.path(output_dir, vip_file), 
-      sheetName = "Sheet1", 
-      rowNames = FALSE, 
-      colNames = TRUE
-    )
-    
-    # ======= enrich start ======== 有 KEGG 列才能做 enrich
-    if ("KEGG" %in% colnames(vip_df)) {
-      ko01000_enrich_dir <- '06_KEGG_ko01100_Enrich'
-      kegg_all_enrich_dir <- '05_KEGG_all_Enrich'
-      dir.create(ko01000_enrich_dir, recursive = TRUE, showWarnings = FALSE)
-      dir.create(kegg_all_enrich_dir, recursive = TRUE, showWarnings = FALSE)
-      
-      up_df <- vip_df$KEGG[vip_df$regulation == "Up"]
-      down_df <- vip_df$KEGG[vip_df$regulation == 'Down']
-      
-      dir.create(file.path(ko01000_enrich_dir, compare_group_name), recursive = TRUE, showWarnings = FALSE)
-      dir.create(file.path(kegg_all_enrich_dir, compare_group_name), recursive = TRUE, showWarnings = FALSE)
-      
-      enrich_output_prefix <- file.path(
-        ko01000_enrich_dir, 
-        compare_group_name, 
-        compare_group_name
-      )
-      
-      kegg_enrich_output_prefix <- file.path(
-        kegg_all_enrich_dir, 
-        compare_group_name, 
-        compare_group_name
-      )
-      
-      up_df_filename <- paste0(enrich_output_prefix, '_Up_Compound_ID.txt')
-      down_df_filename <- paste0(enrich_output_prefix, '_Down_Compound_ID.txt')
-      
-      write.table(
-        up_df, 
-        file = up_df_filename, 
-        sep = "\t", 
-        row.names = FALSE, 
-        col.names = FALSE, 
-        quote = FALSE
-      )
-      
-      write.table(
-        down_df, 
-        file = down_df_filename, 
-        sep = "\t", 
-        row.names = FALSE, 
-        col.names = FALSE, 
-        quote = FALSE
-      )
-      
-      enrich_script_path <- "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_enrich.r"
-      up_df_cmd <- paste0(
-        "/opt/biosoft/R-4.2.2/bin/Rscript ",
-        enrich_script_path, 
-        " --datatable ",
-        up_df_filename, 
-        " --outputprefix ",
-        enrich_output_prefix, 
-        "_Up"
-      )
-      
-      down_df_cmd <- paste0(
-        "/opt/biosoft/R-4.2.2/bin/Rscript ",
-        enrich_script_path, 
-        " --datatable ",
-        down_df_filename, 
-        " --outputprefix ",
-        enrich_output_prefix, 
-        "_Down"
-      )
-      
-      system(up_df_cmd)
-      system(down_df_cmd)
-
-      kegg_enrich_script_path <- "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_kegg_enrich.r"
-      up_df_cmd <- paste0(
-        "/opt/biosoft/R-4.2.2/bin/Rscript ",
-        kegg_enrich_script_path, 
-        " --datatable ",
-        up_df_filename, 
-        " --outputprefix ",
-        kegg_enrich_output_prefix, 
-        "_Up"
-      )
-      
-      down_df_cmd <- paste0(
-        "/opt/biosoft/R-4.2.2/bin/Rscript ",
-        kegg_enrich_script_path, 
-        " --datatable ",
-        down_df_filename, 
-        " --outputprefix ",
-        kegg_enrich_output_prefix, 
-        "_Down"
-      )
-      
-      system(up_df_cmd)
-      system(down_df_cmd)
-      
-      if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
-        # 保证 up_df/down_df 是数据框且有 KEGG 列
-        if (!is.data.frame(up_df)) {
-          up_df <- data.frame(KEGG = up_df)
-        } else if (!"KEGG" %in% colnames(up_df)) {
-          up_df <- data.frame(KEGG = up_df[[1]])
-        }
-        if (!is.data.frame(down_df)) {
-          down_df <- data.frame(KEGG = down_df)
-        } else if (!"KEGG" %in% colnames(down_df)) {
-          down_df <- data.frame(KEGG = down_df[[1]])
-        }
-        # 检查 definition_df 是否有 KEGG 列
-        if (!"KEGG" %in% colnames(definition_df)) {
-          stop("definition_df 没有 KEGG 列，无法 merge")
-        }
-        up_df <- merge(up_df, definition_df, by = "KEGG", all.x = TRUE)
-        down_df <- merge(down_df, definition_df, by = "KEGG", all.x = TRUE)
-        write.table(
-          up_df, 
-          file = up_df_filename, 
-          sep = "\t", 
-          row.names = FALSE, 
-          col.names = TRUE, 
-          quote = FALSE
-        )
-        write.table(
-          down_df, 
-          file = down_df_filename, 
-          sep = "\t", 
-          row.names = FALSE, 
-          col.names = TRUE, 
-          quote = FALSE
-        )
-      }
-    }
-    # ======= enrich end =======
-
-    vip_df_vipgt1 <- vip_df[
-      vip_df$VIP > 1 & (vip_df$FoldChange > 1.2 | vip_df$FoldChange < 0.8), 
-    ]
-    
-    if (nrow(vip_df_vipgt1) >= 1) {
-      if ("Class" %in% colnames(vip_df_vipgt1)) {
-        class_count <- aggregate(
-          Metabolite ~ Class, 
-          data = vip_df_vipgt1, 
-          FUN = length
-        )
-        class_count <- class_count[class_count$Class != "", ]
-        names(class_count)[2] <- strsplit(vip_file, "/")[[1]][1]
-        class_count_list <- append(class_count_list, list(class_count))
-      }
-      
-      if ("SubClass" %in% colnames(vip_df_vipgt1)) {
-        subclass_count <- aggregate(
-          Metabolite ~ SubClass, 
-          data = vip_df_vipgt1, 
-          FUN = length
-        )
-        subclass_count <- subclass_count[subclass_count$SubClass != "", ]
-        names(subclass_count)[2] <- strsplit(vip_file, "/")[[1]][1]
-        subclass_count_list <- append(subclass_count_list, list(subclass_count))
-      }
-    } else {
-      warning(paste0(
-        "vip_df_vipgt1 ", 
-        strsplit(vip_file, "/")[[1]][1], 
-        " 没有显著表达的"
-      ))
-    }
-  }
-
-  # 合并统计结果并导出
-  print('正在输出 significant_compound_count')
-  print(length(class_count_list))
-  if (length(class_count_list) != 0) {
-    class_count_result <- Reduce(
-      function(x, y) merge(x, y, by = "Class", all = TRUE), 
-      class_count_list
-    )
-    class_count_result[is.na(class_count_result)] <- 0
-    
-    write.xlsx(
-      class_count_result,
-      file = file.path(output_dir, "Significant_compound_count_by_class.xlsx"),
-      sheetName = "Sheet1", 
-      rowNames = FALSE, 
-      colNames = TRUE
-    )
-  }
-
-  if (length(subclass_count_list) != 0) {
-    subclass_count_result <- Reduce(
-      function(x, y) merge(x, y, by = "SubClass", all = TRUE), 
-      subclass_count_list
-    )
-    subclass_count_result[is.na(subclass_count_result)] <- 0
-    
-    write.xlsx(
-      subclass_count_result,
-      file = file.path(output_dir, "Significant_compound_count_by_subclass.xlsx"),
-      sheetName = "Sheet1", 
-      rowNames = FALSE, 
-      colNames = TRUE
-    )
-  }
-
-  invisible(TRUE)
-}
-
 # 组间分析函数
-zujianfenxi <- function(compare_file, samples_file, reads_df, fpkm_df = NA, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE) {
+comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = NA, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE) {
   sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
   comp_info <- read.table(compare_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
+  
   
   comparisons <- list()
   for (i in seq_along(1:nrow(comp_info))) {
@@ -725,9 +529,12 @@ zujianfenxi <- function(compare_file, samples_file, reads_df, fpkm_df = NA, defi
 
   deg_data <- data.frame(
     group = character(0), 
-    All = numeric(0), 
+    Total = numeric(0),
+    All_Diff_compound = numeric(0), 
     Up = numeric(0), 
     Down = numeric(0),
+    Up_ration = character(0),
+    Down_ratio = character(0),
     Up_list = character(0), 
     Down_list = character(0)
   )
@@ -743,7 +550,7 @@ zujianfenxi <- function(compare_file, samples_file, reads_df, fpkm_df = NA, defi
     groupB_cols <- sample_info$sample[sample_info$group == groups[2]]
 
     # 获取当前两组的样本的表达量数据
-    current_samples <- sample_info$sample[sample_info$group %in% groups]
+    current_samples <- c(groupA_cols, groupB_cols)
 
     if (is.data.frame(fpkm_df)) {
       current_expression_fpkm_data <- fpkm_df[
@@ -772,7 +579,10 @@ zujianfenxi <- function(compare_file, samples_file, reads_df, fpkm_df = NA, defi
     
     # p_value_current_expression_data <- reads_data[, current_samples, drop = FALSE]
     # 检查因变量的水平数量
-    y_factor <- factor(sample_info$group[sample_info$sample %in% current_samples])
+    y_factor <- factor(
+      sample_info$group[sample_info$sample %in% current_samples],
+      levels = groups
+    )
     if (length(unique(y_factor)) < 2) {
       print(paste(
         "y_factor 小于 2 个", 
@@ -815,15 +625,10 @@ zujianfenxi <- function(compare_file, samples_file, reads_df, fpkm_df = NA, defi
 
     # 获取VIP值，如果模型失败则赋予 0
     vip_values <- tryCatch(
-      {
-        opls_model@vipVn
-      },
-      error = function(e) {
-        rep(0, ncol(current_expression_data))
-      }
+      {opls_model@vipVn},
+      error = function(e) {rep(0, ncol(current_expression_data))}
     )
 
-    
     # 组间 heatmap 图
     if (is.data.frame(fpkm_df)) {
       smart_heatmap(
@@ -957,9 +762,12 @@ zujianfenxi <- function(compare_file, samples_file, reads_df, fpkm_df = NA, defi
     
     new_row <- data.frame(
       group = compare_name,
-      All = deg_up + deg_down,
+      Total = nrow(current_expression_data_def),
+      All_Diff_compound = deg_up + deg_down,
       Up = deg_up,
       Down = deg_down,
+      Up_ration = paste0(round(deg_up / nrow(current_expression_data_def) * 100, 2), '%'),
+      Down_ratio = paste0(round(deg_down / nrow(current_expression_data_def) * 100, 2), '%'),
       Up_list = paste0(deg_up_idlist, collapse = ","),
       Down_list = paste0(deg_down_idlist, collapse = ",")
     )
@@ -982,51 +790,40 @@ zujianfenxi <- function(compare_file, samples_file, reads_df, fpkm_df = NA, defi
   
   write.xlsx(
     deg_data, 
-    file = file.path(output_dir, "Differential_metabolite_count_summary.xlsx"), 
+    file = file.path(output_dir, "Significant_differential_metabolite_count_summary.xlsx"), 
     sheetName = "Sheet1", 
     rowNames = FALSE, 
     colNames = TRUE
   )
-
-  summarize_vip_and_enrich(output_dir = output_dir, definition_df = definition_df)
 }
 
 # ================================= 文件预处理 =========================================
 zhengtifenxi_dir <- "03_代谢物整体分析"
 chayifenxi_dir <- "04_代谢物差异分析"
-zujianfenxi_dir <- file.path(chayifenxi_dir, "组间分析")
+comparison_analysis_dir <- file.path(chayifenxi_dir, "组间分析")
 
 dir.create("00_Background_materials")
 dir.create("01_原始质谱数据")
 dir.create("02_代谢物定量图数据")
 dir.create(zhengtifenxi_dir)
 dir.create(chayifenxi_dir)
-dir.create(zujianfenxi_dir)
+dir.create(comparison_analysis_dir)
 
 samples_file <- opt$samples
+sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
 
 # 读取数据
 reads_data <- read.xlsx(opt$input, sheet = 1, rowNames = TRUE)
 # 检查并转换数据框列类型
 reads_data <- check_and_convert_numeric(reads_data)
-
-sample_info <- read.table(
-  samples_file, 
-  sep = "\t", 
-  header = T, 
-  check.names = F, 
-  stringsAsFactors = F
-)
-
+# 替换 0 为 1e-6
+reads_data <- replace_zeros_with_epsilon(reads_data)
 # 按照 sample 样本列进行排序
 reads_data <- reads_data[sample_info$sample]
+# 去掉一行全是 0 的
 reads_data <- reads_data[rowSums(reads_data != 0) > 0, ]
-# 清理每个元素头尾的空格
-# reads_data <- apply(reads_data, 2, function(x) trimws(x, which = c("both")))
-if (any(is.na(reads_data))) {
-  print("检查数据，有 NA")
-  quit()
-}
+
+
 
 Compound_def_file <- opt$definition
 # 如果需要合并定义则读取单独定义文件，没有则跳过
@@ -1050,11 +847,10 @@ if (opt$runtype == "zscore") {
   data_used <- as.data.frame(t(apply(reads_data, 1, function(x) {
     (x - mean(x)) / (sd(x)**0.5)
   })))
-  cluster_rows_main <- FALSE
   fpkm_for_pair <- data_used
+  fpkm_for_pair <- replace_zeros_with_epsilon(fpkm_for_pair)
 } else {
   data_used <- reads_data
-  cluster_rows_main <- TRUE
   fpkm_for_pair <- FALSE
 }
 
@@ -1063,13 +859,21 @@ current_definition_df <- definition_df[rownames(reads_data), , drop = FALSE]
 annotation_row_df <- gen_annotation_row_df(current_definition_df)
 
 # 3) 整体热图
-ztfx_heatmap_pic_name <- file.path(zhengtifenxi_dir, "All_metabolites_heatmap.png")
-print(paste0('生成 ', ztfx_heatmap_pic_name))
 smart_heatmap(
   matrix_data = data_used,
-  filename = ztfx_heatmap_pic_name,
+  filename = file.path(zhengtifenxi_dir, "All_metabolites_heatmap.png"),
   cluster_cols = FALSE,
-  cluster_rows = cluster_rows_main,
+  cluster_rows = FALSE,
+  annotation_row = annotation_row_df,
+  scale = 'row',
+  main = 'All metabolites heatmap'
+)
+smart_heatmap(
+  matrix_data = data_used,
+  filename = file.path(zhengtifenxi_dir, "All_metabolites_heatmap_cluster_row.png"),
+  cluster_cols = FALSE,
+  cluster_rows = TRUE,
+  annotation_row = annotation_row_df,
   scale = 'row',
   main = 'All metabolites heatmap'
 )
@@ -1127,6 +931,7 @@ if (opt$log2data) {
       filename = zhengtifenxi_log2heatmap_pic_name,
       cluster_cols = FALSE,
       cluster_rows = TRUE,
+      annotation_row = annotation_row_df,
       scale = 'row',
       main = 'All metabolites log2 heatmap'
     )
@@ -1173,13 +978,13 @@ metabolite_analysis(
 )
 
 # 9) 组间分析（zscore 时传递 fpkm；normal 传 FALSE，保持原逻辑）
-zujianfenxi(
+comparison_analysis(
   compare_file = opt$compare,
   samples_file = samples_file,
   reads_df = reads_data,
   fpkm_df = fpkm_for_pair,
   definition_df = current_definition_df,
-  output_dir = zujianfenxi_dir,
+  output_dir = comparison_analysis_dir,
   log2data = opt$log2data,
   each_class_heatmap = opt$each_class_heatmap
 )
