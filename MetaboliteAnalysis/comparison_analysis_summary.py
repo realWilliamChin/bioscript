@@ -230,18 +230,24 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
     
     # 合并Class统计结果并导出
     if class_count_list:
-        class_count_result = reduce(lambda x, y: pd.merge(x, y, on='Class', how='outer'), class_count_list)
+        # 使用简单的合并函数，让pandas自动处理重复列名
+        def simple_merge(left, right):
+            return pd.merge(left, right, on='Class', how='outer', suffixes=('', '_dup'))
+        
+        # 使用简单合并函数
+        class_count_result = reduce(simple_merge, class_count_list)
         class_count_result = class_count_result.fillna(0)
         
         # 处理重复的Total列，保留第一个Total列
-        total_cols = [col for col in class_count_result.columns if col == 'Total']
+        total_cols = [col for col in class_count_result.columns if col.startswith('Total')]
         if len(total_cols) > 1:
-            # 保留第一个Total列，删除其他的Total列
             cols_to_keep = ['Class']
+            total_kept = False
             for col in class_count_result.columns:
-                if col == 'Total' and col not in cols_to_keep:
-                    continue
-                elif col != 'Class':
+                if col.startswith('Total') and not total_kept:
+                    cols_to_keep.append(col)
+                    total_kept = True
+                elif not col.startswith('Total'):
                     cols_to_keep.append(col)
             class_count_result = class_count_result[cols_to_keep]
         
@@ -288,18 +294,25 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
     
     # 合并SubClass统计结果并导出
     if subclass_count_list:
-        subclass_count_result = reduce(lambda x, y: pd.merge(x, y, on='SubClass', how='outer'), subclass_count_list)
+        # 使用简单的合并函数，让pandas自动处理重复列名
+        def simple_merge_subclass(left, right):
+            return pd.merge(left, right, on='SubClass', how='outer', suffixes=('', '_dup'))
+        
+        # 使用简单合并函数
+        subclass_count_result = reduce(simple_merge_subclass, subclass_count_list)
         subclass_count_result = subclass_count_result.fillna(0)
         
         # 处理重复的Total列，保留第一个Total列
-        total_cols = [col for col in subclass_count_result.columns if col == 'Total']
+        total_cols = [col for col in subclass_count_result.columns if col.startswith('Total')]
         if len(total_cols) > 1:
             # 保留第一个Total列，删除其他的Total列
             cols_to_keep = ['SubClass']
+            total_kept = False
             for col in subclass_count_result.columns:
-                if col == 'Total' and col not in cols_to_keep:
-                    continue
-                elif col != 'SubClass':
+                if col.startswith('Total') and not total_kept:
+                    cols_to_keep.append(col)
+                    total_kept = True
+                elif not col.startswith('Total'):
                     cols_to_keep.append(col)
             subclass_count_result = subclass_count_result[cols_to_keep]
         
