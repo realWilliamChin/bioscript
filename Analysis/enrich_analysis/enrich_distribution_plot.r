@@ -22,71 +22,37 @@ if (!dir.exists(raw_data)) {
   dir.create(raw_data, recursive = TRUE)
 }
 
+plot_go_bubble <- function(dt, ontology, out.name, bubble_dir) {
+  suffix <- switch(ontology, BP = "GOBP", CC = "GOCC", MF = "GOMF")
+  dt.sub <- dt[dt$Ontology == ontology, ]
+  dt.sub <- dt.sub[order(dt.sub$pvalue), ]
+  dt.sub <- dt.sub[dt.sub$Count >= 3 & dt.sub$pvalue < 0.05, ]
+  dt.sub <- head(dt.sub[order(dt.sub$pvalue), ], n = 15)
+  dt.sub <- dt.sub[order(-dt.sub$pvalue), ]
+  if (nrow(dt.sub) > 0) {
+    p <- ggplot(dt.sub, aes(y = factor(GOID, levels = GOID), x = RichFactor, size = Count, colour = pvalue)) +
+      geom_point() +
+      scale_size_continuous(range = c(2, 8))+
+      scale_y_discrete(limits = dt.sub$GOID) +
+      scale_colour_gradient(low = "red", high = "green") +
+      ggtitle(paste0(out.name, "_", suffix, sep = "")) +
+      ylab("GO Term") +
+      theme_base()
+    ggsave(paste0(bubble_dir, "/", out.name, "_enrich_", suffix, "_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
+  } else {
+    message(paste0(out.name, "没有显著富集的", suffix, "通路。"))
+  }
+  return(dt.sub)
+}
+
 for (i in infiles) {
   out.name <- gsub("_EnrichmentGO.xlsx", "", i)
   out.name
   dt <- read.xlsx(i, sheet = 1)
   dt$GOID <- paste(dt$ID, dt$Description, sep='_')
-
-  dt.bp <- dt[dt$Ontology == "BP", ]
-  dt.bp <- dt.bp[order(dt.bp$pvalue), ]
-  dt.bp <- dt.bp[dt.bp$Count >= 3 & dt.bp$pvalue < 0.05, ]
-  dt.bp <- head(dt.bp[order(dt.bp$pvalue), ], n = 15)
-  dt.bp <- dt.bp[order(-dt.bp$pvalue), ]
-  dt.bp[, c('ID', 'Count', 'pvalue')]
-  if (nrow(dt.bp) > 0) {
-    p <- ggplot(dt.bp, aes(y = factor(GOID, levels = GOID), x = RichFactor, size = Count, colour = pvalue)) +
-      geom_point() +
-      scale_size_continuous(range = c(2, 8))+
-      scale_y_discrete(limits = dt.bp$GOID) +
-      scale_colour_gradient(low = "red", high = "green") +
-      ggtitle(paste0(out.name, "_GOBP", sep = "")) +
-      ylab(colnames(data)[1]) +
-      theme_base()
-    ggsave(paste0(bubble_dir, "/", out.name, "_enrich_GOBP_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
-  } else {
-    message(paste0(out.name, "没有显著富集的GOBP通路。"))
-  }
-
-  dt.cc <- dt[dt$Ontology == "CC", ]
-  dt.cc <- dt.cc[order(dt.cc$pvalue), ]
-  dt.cc <- dt.cc[dt.cc$Count >= 3 & dt.cc$pvalue < 0.05, ]
-  dt.cc <- head(dt.cc[order(dt.cc$pvalue), ], n = 15)
-  dt.cc <- dt.cc[order(-dt.cc$pvalue), ]
-  dt.cc[, c('ID', 'Count', 'pvalue')]
-  if (nrow(dt.cc) > 0) {
-    p <- ggplot(dt.cc, aes(y = factor(GOID, levels = GOID), x = RichFactor, size = Count, colour = pvalue)) +
-      geom_point() +
-      scale_size_continuous(range = c(2, 8))+
-      scale_y_discrete(limits = dt.cc$GOID) +
-      scale_colour_gradient(low = "red", high = "green") +
-      ggtitle(paste0(out.name, "_GOCC", sep = "")) +
-      ylab(colnames(data)[1]) +
-      theme_base()
-    ggsave(paste0(bubble_dir, "/", out.name, "_enrich_GOCC_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
-  } else {
-    message(paste0(out.name, "没有显著富集的GOCC通路。"))
-  }
-
-  dt.mf <- dt[dt$Ontology == "MF", ]
-  dt.mf <- dt.mf[order(dt.mf$pvalue), ]
-  dt.mf <- dt.mf[dt.mf$Count >= 3 & dt.mf$pvalue < 0.05, ]
-  dt.mf <- head(dt.mf[order(dt.mf$pvalue), ], n = 15)
-  dt.mf <- dt.mf[order(-dt.mf$pvalue), ]
-  dt.mf[, c('ID', 'Count', 'pvalue')]
-  if (nrow(dt.mf) > 0) {
-    p <- ggplot(dt.mf, aes(y = factor(GOID, levels = GOID), x = RichFactor, size = Count, colour = pvalue)) +
-      geom_point() +
-      scale_size_continuous(range = c(2, 8))+
-      scale_y_discrete(limits = dt.mf$GOID) +
-      scale_colour_gradient(low = "red", high = "green") +
-      ggtitle(paste0(out.name, "_GOMF", sep = "")) +
-      ylab(colnames(data)[1]) +
-      theme_base()
-    ggsave(paste0(bubble_dir, "/", out.name, "_enrich_GOMF_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
-  } else {
-    message(paste0(out.name, "没有显著富集的GOMF通路"))
-  }
+  dt.bp <- plot_go_bubble(dt, "BP", out.name, bubble_dir)
+  dt.cc <- plot_go_bubble(dt, "CC", out.name, bubble_dir)
+  dt.mf <- plot_go_bubble(dt, "MF", out.name, bubble_dir)
 
   kegg_file <- gsub("_EnrichmentGO.xlsx", "_EnrichmentKEGG.xlsx", i)
   dt.kegg <- read.xlsx(kegg_file, check.names = F, sheet = 1)
@@ -103,7 +69,7 @@ for (i in infiles) {
       scale_y_discrete(limits = dt.kegg$KEGGID) +
       scale_colour_gradient(low = "red", high = "green") +
       ggtitle(paste0(out.name, "_KEGG", sep = "")) +
-      ylab(colnames(data)[1]) +
+      ylab("KEGG Pathway") +
       theme_base()
     ggsave(paste0(bubble_dir, "/", out.name, "_enrich_KEGG_Bubble.png", sep = ""), p, dpi = 320, width = 20, height = 10)
   } else {
