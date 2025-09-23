@@ -54,7 +54,7 @@ my_set_colors <- c(
 #' @param output_dir 输出目录路径
 #' @param show_all 是否绘制综合热图（默认TRUE）
 #' @param show_each 是否绘制每个类别的热图（默认TRUE）
-row_class_heatmap <- function(data_frame, compound_def, output_dir) {
+row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir) {
   
   # 检查输入有效性
   if (nrow(compound_def) == 0) {
@@ -71,6 +71,7 @@ row_class_heatmap <- function(data_frame, compound_def, output_dir) {
   
   # 准备注释数据
   annotation_row_df <- gen_annotation_row_df(compound_def)
+  annotation_col_df <- gen_annotation_col_df(samples_df)
   unique_classes <- unique(compound_def$Class)
 
   for (class_name in unique_classes) {
@@ -93,6 +94,7 @@ row_class_heatmap <- function(data_frame, compound_def, output_dir) {
       cluster_rows = FALSE,
       cluster_cols = FALSE,
       annotation_row = annotation_row_df,
+      annotation_col = annotation_col_df,
       scale = 'row',
       main = paste("Class: ", class_name)
     )
@@ -102,6 +104,7 @@ row_class_heatmap <- function(data_frame, compound_def, output_dir) {
       cluster_rows = TRUE,
       cluster_cols = FALSE,
       annotation_row = annotation_row_df,
+      annotation_col = annotation_col_df,
       scale = 'row',
       main = paste("Class: ", class_name)
     )
@@ -126,6 +129,7 @@ row_class_heatmap <- function(data_frame, compound_def, output_dir) {
           cluster_rows = FALSE,
           cluster_cols = FALSE,
           annotation_row = annotation_row_df,
+          annotation_col = annotation_col_df,
           scale = 'row',
           main = paste("Class/SubClass: ", class_name, "/", sub_name)
         )
@@ -135,6 +139,7 @@ row_class_heatmap <- function(data_frame, compound_def, output_dir) {
           cluster_rows = TRUE,
           cluster_cols = FALSE,
           annotation_row = annotation_row_df,
+          annotation_col = annotation_col_df,
           scale = 'row',
           main = paste("Class/SubClass: ", class_name, "/", sub_name)
         )
@@ -261,6 +266,33 @@ gen_annotation_row_df <- function(definition_df) {
   return(annotation_row_df)
 }
 
+# 根据 samples_df 生成列注释数据框（用于热图列注释）
+gen_annotation_col_df <- function(samples_df) {
+  # 若为 NA 或非数据框或为空，直接返回 NA
+  if (!is.data.frame(samples_df) || nrow(samples_df) == 0) {
+    return(NA)
+  }
+  # 需要存在 group 和 sample 两列
+  required_cols <- c("group", "sample")
+  if (!all(required_cols %in% colnames(samples_df))) {
+    return(NA)
+  }
+  # 去除缺失或空样本名
+  valid_rows <- !is.na(samples_df$sample) & trimws(samples_df$sample) != ""
+  if (!any(valid_rows)) {
+    return(NA)
+  }
+  samples_df <- samples_df[valid_rows, required_cols, drop = FALSE]
+  # 构造列注释：行名为样本名，列为 group
+  annotation_col_df <- data.frame(
+    group = samples_df$group,
+    row.names = samples_df$sample,
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+  return(annotation_col_df)
+}
+
 # 代谢物分析主函数
 metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE) {
   select_sample_info <- read.table(
@@ -276,9 +308,9 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
   # 按照样本排列顺序
   select_data_frame <- data_matrix[, select_sample_info$sample, drop = FALSE]
   # mutligroup samples 的时候会出现每行都为 0 跑不了的情况
-  select_data_frame <- select_data_frame[rowSums(select_data_frame != 0) > 0, ]
+  select_data_frame <- select_data_frame[rowSums(select_data_frame != 1e-6) > 0, ]
   metabolites <- as.matrix(t(select_data_frame))
-  metabolites <- metabolites[rowSums(metabolites != 0) > 0, ]
+  metabolites <- metabolites[rowSums(metabolites != 1e-6) > 0, ]
   
   # 创建 annotation_row_df，函数内自处理 NA 情况
   if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
@@ -287,6 +319,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     current_definition_df <- NA
   }
   annotation_row_df <- gen_annotation_row_df(current_definition_df)
+  annotation_col_df <- gen_annotation_col_df(select_sample_info)
 
   smart_heatmap(
     matrix_data = select_data_frame,
@@ -294,6 +327,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     cluster_cols = FALSE,
     cluster_rows = FALSE,
     annotation_row = annotation_row_df,
+    annotation_col = annotation_col_df,
     scale = 'row'
   )
   smart_heatmap(
@@ -302,6 +336,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     cluster_cols = FALSE,
     cluster_rows = TRUE,
     annotation_row = annotation_row_df,
+    annotation_col = annotation_col_df,
     scale = 'row'
   )
   
@@ -560,13 +595,13 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
       rows_to_remove <- apply(
         current_expression_fpkm_data, 
         1, 
-        function(row) all(row == 0)
+        function(row) all(row == 1e-6)
       )
       current_expression_fpkm_data <- current_expression_fpkm_data[!rows_to_remove, ]
     }
     
     current_expression_data <- reads_df[, current_samples, drop = FALSE]
-    keep_rows <- rowSums(current_expression_data != 0, na.rm = TRUE) > 0
+    keep_rows <- rowSums(current_expression_data != 1e-6, na.rm = TRUE) > 0
     current_expression_data <- current_expression_data[keep_rows, , drop = FALSE]
 
     # 创建 annotation_row_df，函数内自处理 NA 情况
@@ -576,6 +611,7 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
       current_definition_df <- NA
     }
     current_annotation_row_df <- gen_annotation_row_df(current_definition_df)
+    current_annotation_col_df <- gen_annotation_col_df(sample_info[sample_info$sample %in% current_samples, , drop = FALSE])
     
     # p_value_current_expression_data <- reads_data[, current_samples, drop = FALSE]
     # 检查因变量的水平数量
@@ -637,6 +673,7 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
         cluster_cols = FALSE,
         cluster_rows = FALSE,
         annotation_row = current_annotation_row_df,
+        annotation_col = current_annotation_col_df,
         scale = 'row'
       )
       smart_heatmap(
@@ -645,6 +682,7 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
         cluster_cols = FALSE,
         cluster_rows = TRUE,
         annotation_row = current_annotation_row_df,
+        annotation_col = current_annotation_col_df,
         scale = 'row'
       )
     } else {
@@ -654,6 +692,7 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
         cluster_cols = FALSE,
         cluster_rows = FALSE,
         annotation_row = current_annotation_row_df,
+        annotation_col = current_annotation_col_df,
         scale = 'row'
       )
       smart_heatmap(
@@ -662,6 +701,7 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
         cluster_cols = FALSE,
         cluster_rows = TRUE,
         annotation_row = current_annotation_row_df,
+        annotation_col = current_annotation_col_df,
         scale = 'row'
       )
     }
@@ -820,8 +860,8 @@ reads_data <- check_and_convert_numeric(reads_data)
 reads_data <- replace_zeros_with_epsilon(reads_data)
 # 按照 sample 样本列进行排序
 reads_data <- reads_data[sample_info$sample]
-# 去掉一行全是 0 的
-reads_data <- reads_data[rowSums(reads_data != 0) > 0, ]
+# 去掉一行全是 1e-6 的
+reads_data <- reads_data[rowSums(reads_data != 1e-6) > 0, ]
 
 
 
@@ -857,6 +897,8 @@ if (opt$runtype == "zscore") {
 # 2) 注释数据（与输入行一致，以 reads_data 的行名为准）
 current_definition_df <- definition_df[rownames(reads_data), , drop = FALSE]
 annotation_row_df <- gen_annotation_row_df(current_definition_df)
+annotation_col_df <- gen_annotation_col_df(sample_info)
+
 
 # 3) 整体热图
 smart_heatmap(
@@ -865,6 +907,7 @@ smart_heatmap(
   cluster_cols = FALSE,
   cluster_rows = FALSE,
   annotation_row = annotation_row_df,
+  annotation_col = annotation_col_df,
   scale = 'row',
   main = 'All metabolites heatmap'
 )
@@ -874,6 +917,7 @@ smart_heatmap(
   cluster_cols = FALSE,
   cluster_rows = TRUE,
   annotation_row = annotation_row_df,
+  annotation_col = annotation_col_df,
   scale = 'row',
   main = 'All metabolites heatmap'
 )
@@ -899,6 +943,7 @@ smart_heatmap(
   cluster_cols = FALSE,
   cluster_rows = FALSE,
   annotation_row = annotation_row_df,
+  annotation_col = NA,
   scale = 'row'
 )
 smart_heatmap(
@@ -907,6 +952,7 @@ smart_heatmap(
   cluster_cols = FALSE,
   cluster_rows = TRUE,
   annotation_row = annotation_row_df,
+  annotation_col = NA,
   scale = 'row'
 )
 
@@ -932,6 +978,7 @@ if (opt$log2data) {
       cluster_cols = FALSE,
       cluster_rows = TRUE,
       annotation_row = annotation_row_df,
+      annotation_col = annotation_col_df,
       scale = 'row',
       main = 'All metabolites log2 heatmap'
     )
