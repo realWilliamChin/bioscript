@@ -2,10 +2,6 @@
 # -*- coding: utf-8 -*-
 # Created Time  : 2023/06/14 17:05
 # Author        : William GoGo
-"""
-nr 注释程序
-生成 nr.blast 文件，nr_gene_def.txt 文件 和 nr_TF_def.txt 文件
-"""
 import argparse
 import os, sys
 import random
@@ -15,6 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import Counter
+
 from loguru import logger
 sys.path.append('/home/colddata/qinqiang/script/CommonTools/Fasta/')
 from get_sequence_from_list import get_seq_from_idlist
@@ -228,7 +225,7 @@ def main():
     
     if args.fasta:
         outfmt = args.outfmt.replace(',', ' ')
-        ret = nr_annotation(args.fasta, f'{out_prefix}_nr.blast', outfmt)
+        ret = nr_annotation(args.fasta, f'{out_prefix}nr.blast', outfmt)
         if not ret:
             sys.exit(1)
 
