@@ -122,7 +122,7 @@ def main():
         pass
 
     if isinstance(args.input_header, str):
-        df = load_table(args.input)
+        df = load_table(args.input, dtype={for_merge_column: str})
     elif isinstance(args.input_header, int):
         df = load_table(args.input, header=None)
     else:
@@ -132,7 +132,7 @@ def main():
     if args.input_header != for_merge_column:
         df.rename(columns={args.input_header: for_merge_column}, inplace=True)
     logger.debug(f'{df.columns}')
-    df[for_merge_column] = df[for_merge_column].astype(str)
+    logger.debug(f'{df.dtypes}')
     
     if args.expression:
         result_df = add_expression_data(df, args.expression, args.merge_how)
