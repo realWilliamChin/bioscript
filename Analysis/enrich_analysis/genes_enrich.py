@@ -15,8 +15,8 @@ from load_input import load_table, write_output_df
 
 def parse_input():
     p = argparse.ArgumentParser()
-    p.add_argument('-i', '--ids-dir', dest='ids_dir', required=True,
-                   help='包含单 GeneID 列所有文件的文件夹')
+    p.add_argument('-i', '--id-files', required=True, nargs='+',
+                   help='包含单 GeneID 列所有文件，可接受多个文件')
     p.add_argument('--ids-header', dest='ids_header', action='store_true',
                         help='所有 id 文件是否有 header(GeneID)')
     p.add_argument('-k', '--kegg-clean', dest="kegg_clean", required=True,
@@ -32,26 +32,26 @@ def parse_input():
         args.ids_header = 0
     else:
         args.ids_header = None
+    
+    if isinstance(args.id_files, str):
+        args.id_files = [args.id_files]
 
     return args
 
 
 def main():
     args = parse_input()
-    ids_dir, ids_header = args.ids_dir, args.ids_header
-    for module_file in os.listdir(ids_dir):
-        if not os.path.isfile(os.path.join(ids_dir, module_file)):
-            continue
+    id_files, ids_header = args.id_files, args.ids_header
+    for module_file in id_files:
         logger.info(f'正在处理 {module_file}')
         module_df = load_table(
-            os.path.join(ids_dir, module_file),
+            module_file,
             header=ids_header,
             usecols=[0],
             names=['GeneID'],
             dtype={"GeneID": str}
         )
-        
-        module_name = module_file.split('.')[0]
+        module_name = os.path.basename(module_file).split('.')[0]
         tmp_file = os.path.join(args.output_dir, f'{module_name}_ID.txt')
         write_output_df(module_df, tmp_file, index=False, header=False)
         enrich_analysis(tmp_file, args.gene_go, args.kegg_clean, args.output_dir)
