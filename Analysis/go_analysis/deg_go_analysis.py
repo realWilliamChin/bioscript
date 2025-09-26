@@ -99,10 +99,10 @@ def deg_output_summary(df_list, samples_info_df):
         control_samples = samples_info_df[samples_info_df['group'] == control]['sample'].values.tolist()
         
         # 获取原始的 FPKM 列和 reads 列
-        df_treat_fpkm_column = [f'{x}_raw_reads' for x in treat_samples]
-        df_control_fpkm_column = [f'{x}_raw_reads' for x in control_samples]
-        df_treat_reads_column = [f'{x}_FPKM' for x in treat_samples]
-        df_control_reads_column = [f'{x}_FPKM' for x in control_samples]
+        df_treat_fpkm_column = [f'{x}_FPKM' for x in treat_samples]
+        df_control_fpkm_column = [f'{x}_FPKM' for x in control_samples]
+        df_treat_reads_column = [f'{x}_raw_reads' for x in treat_samples]
+        df_control_reads_column = [f'{x}_raw_reads' for x in control_samples]
         
         # Treat FPKM
         for i in range(1, max_samples_number + 1):
@@ -166,7 +166,7 @@ def deg_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list):
                 logger.warning(f'{each_dir} 文件夹已存在，输出文件将覆盖源文件')
                 
         enrich_data_abspath = os.path.join(args.enrich_data_dir, enrich_data)
-        enrich_go_df = load_table(enrich_data_abspath, engine='openpyxl')
+        enrich_go_df = load_table(enrich_data_abspath)
         enrich_go_df = enrich_go_df.drop(columns=['Ontology'])
         
         
