@@ -531,9 +531,9 @@ def parse_input():
     parser.add_argument('-f', '--fasta', help='输入 fasta file')
     parser.add_argument('-k', '--ko-file', dest='ko_file', type=str, required=True, help='指定 ko-file 文件')
     parser.add_argument('-l', '--org_lst', help='指定物种列表，以 ", " 分隔')
-    parser.add_argument('-t', '--type', type=str, required=True, help='指定物种类型，植物=plant, 动物=animal')
+    parser.add_argument('-t', '--type', type=str, help='指定物种类型，植物=plant, 动物=animal')
     parser.add_argument('--allid', type=str, help='指定 all_id 文件，用来生成 shortname.txt')
-    parser.add_argument('-o', '--output-prefix', dest='output_prefix', type=str, required=True, help='指定输出 prefix 例如 kegg/caomei')
+    parser.add_argument('-o', '--output-prefix', dest='output_prefix', type=str, help='指定输出 prefix 例如 kegg/caomei')
     
     # 这两个参数用于生成 ko03000_expression_data.txt 文件
     parser.add_argument('--fpkm', type=str,
@@ -576,6 +576,12 @@ def main():
     # 直接运行注释
     if args.org_lst and args.fasta:
         kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, ko_file)
+
+    # 未指定输出前缀时，仅保留 KO 文件，跳过后续解析与绘图
+    if not args.output_prefix:
+        logger.info('未指定 --output-prefix，只保留 KO 文件，跳过解析与绘图')
+        logger.success('Done!')
+        return
 
     # 解析 keg 文件
     parse_keg(ko_file, args.type, args.allid, args.fpkm, args.reads, args.output_prefix)
