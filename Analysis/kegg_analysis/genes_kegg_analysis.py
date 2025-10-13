@@ -22,44 +22,46 @@ if sys.version_info < (3, 10):
 
 
 def parse_input():
-    argparser = argparse.ArgumentParser()
+    p = argparse.ArgumentParser()
     # 其他参数
-    argparser.add_argument('-i', '--ko-list', dest="ko_list", type=str, required=True,
+    p.add_argument('-i', '--ko-list', dest="ko_list", type=str, required=True,
             help='[必须]ko_list file, 必须要有列名，KEGG_Pathway_ID')
-    argparser.add_argument('-s', '--samples-info', dest='samples_info', type=str, required=True,
+    p.add_argument('-s', '--samples-info', dest='samples_info', type=str, required=True,
             help='[必须]输入样品信息文件，如果有则添加到输出文件中')
-    argparser.add_argument('--fpkm-reads-merged', dest='fpkm_reads_merged', type=str,
+    p.add_argument('--fpkm-reads-merged', dest='fpkm_reads_merged', type=str,
                            help='GO 输入 fpkm_reads_merged.txt 文件')
-    argparser.add_argument('--kegg-clean', dest="kegg_clean", required=True, type=str,
+    p.add_argument('--kegg-clean', dest="kegg_clean", required=True, type=str,
             help='[必须]输入 kegg 注释出来的 KEGG_clean 文件')
-    argparser.add_argument('--enrich-dir', dest='enrich_dir', type=str,
+    p.add_argument('--enrich-dir', dest='enrich_dir', type=str,
             help='[必须]输入富集分析的文件夹')
-    argparser.add_argument('--ids-dir', dest='ids_dir', type=str,
-                        help='[必须]输入 module ids 文件夹')
-    argparser.add_argument('--ids-header', dest='ids_header', action='store_true',
+    p.add_argument('--id-files', type=str, nargs='+',
+        help='[必须]输入 module ids 文件（可多个，空格分隔）')
+    p.add_argument('--ids-header', dest='ids_header', action='store_true',
                         help='所有 id 文件是否有 header(GeneID)')
-    argparser.add_argument('--output-dir', dest='output_dir', type=str, default='./',
+    p.add_argument('--output-dir', dest='output_dir', type=str, default='./',
             help='输出目录, 默认当前目录')
 
-    args = argparser.parse_args()
+    args = p.parse_args()
     
     if args.ids_header:
         args.ids_header = 0
     else:
         args.ids_header = None
+    
+    if isinstance(args.id_files, str):
+        args.id_files = [args.id_files]
 
     return args
 
 
-def genes_kegg_analysis(ids_header, target_ko_df, kegg_clean_df,
-                            enrich_dir, ids_dir, output_dir):
+def genes_kegg_analysis(ids_header, target_ko_df, kegg_clean_df, enrich_dir, id_files, output_dir):
     kegg_clean_df['KEGG_Pathway_ID'] = kegg_clean_df['KEGG_Pathway_ID'].str.split(':').str[0]
     geneid_kid_df = kegg_clean_df[['GeneID', 'KEGG_ID']].copy()
     kegg_output_summary_df_list = []
-    for module_id_file in os.listdir(ids_dir):
-        module_name = module_id_file.split('_')[0]
+    for module_id_file in id_files:
+        module_name = os.path.basename(module_id_file).split('_')[0]
         module_df = load_table(
-            os.path.join(ids_dir, module_id_file),
+            module_id_file,
             dtype=str,
             usecols=[0],
             header=ids_header,
@@ -147,12 +149,12 @@ def genes_kegg_analysis(ids_header, target_ko_df, kegg_clean_df,
 
 
 # 提取每个 ko 的表达量
-def each_groups_ko_expression_def(ids_header, ko_list, kegg_clean_df, fpkm_reads_merged_df, ids_dir, output_dir):
+def each_groups_ko_expression_def(ids_header, ko_list, kegg_clean_df, fpkm_reads_merged_df, id_files, output_dir):
     kegg_pathway_df = kegg_clean_df[['GeneID', 'KEGG_Pathway_ID']]
-    for module_id_file in os.listdir(ids_dir):
-        module_name = module_id_file.split('_')[0]
+    for module_id_file in id_files:
+        module_name = os.path.basename(module_id_file).split('_')[0]
         module_df = load_table(
-            os.path.join(ids_dir, module_id_file),
+            module_id_file,
             dtype=str,
             usecols=[0],
             header=ids_header,
@@ -185,10 +187,10 @@ def main():
     fpkm_reads_merged_df = load_table(args.fpkm_reads_merged)
     
     genes_kegg_analysis(args.ids_header, target_ko_df, kegg_clean_df,
-                            args.enrich_dir, args.ids_dir, args.output_dir)
+                            args.enrich_dir, args.id_files, args.output_dir)
     
     each_groups_ko_expression_def(args.ids_header, ko_list, kegg_clean_df,
-                                  fpkm_reads_merged_df, args.ids_dir, args.output_dir)
+                                  fpkm_reads_merged_df, args.id_files, args.output_dir)
     
     logger.success('Done!')
     
