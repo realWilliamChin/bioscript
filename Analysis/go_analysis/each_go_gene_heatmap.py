@@ -10,8 +10,10 @@ import subprocess
 import openpyxl
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
+sys.path.append('/home/colddata/qinqiang/script/Rscript/')
 from Rscript import draw_multigroup_heatmap
+sys.path.append('/home/colddata/qinqiang/script/CommonTools')
+from load_input import load_table, write_output_df
 
 
 def parse_input():
@@ -24,6 +26,8 @@ def parse_input():
                    help='samples_described.txt 样本描述文件')
     p.add_argument('-o', '--outputdir', default='./', help='所有 heatmap 输出文件夹')
     
+    p.add_argument('-e', '--expression-data', help='reads_fpkm_matrix_def.txt')
+    
     args = p.parse_args()
     
     if not os.path.exists(args.outputdir):
@@ -32,10 +36,19 @@ def parse_input():
     return args
 
 
+def each_go_gene_expression(go_id_list, gene_go_df, expression_data, output_dir='./'):
+    for go_id in go_id_list:
+        each_go_id_df = gene_go_df[gene_go_df['GO_ID'] == go_id]
+        if each_go_id_df.shape[0] < 1:
+            logger.warning(f'没有 {go_id} 相关基因')
+        each_go_id_gene_expression_df = pd.merge(each_go_id_df, expression_data, on='GeneID', how='left')
+        each_go_id_gene_expression_df.drop(columns=['GO_ID'], inplace=True)
+        go_replace_name = go_id.replace(':', '_')
+        go_id_gene_expression_fn = os.path.join(output_dir, f'{go_replace_name}_gene_expression.xlsx')
+        write_output_df(each_go_id_gene_expression_df, go_id_gene_expression_fn, index=False)
+
+
 def each_go_gene_heatmap(go_id_list, gene_go_df, fpkm_matrix_df, samples_df, output_dir='./'):
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-        
     samples_df = samples_df[['sample', 'group']]
     samples_list = ['GeneID'] + samples_df['sample'].values.tolist()
 
@@ -77,13 +90,17 @@ def each_go_gene_heatmap(go_id_list, gene_go_df, fpkm_matrix_df, samples_df, out
 
 def main():
     args = parse_input()
-    go_df = pd.read_csv(args.input, sep='\t')
+    go_df = load_table(args.input)
     goid_list = go_df['GO_ID'].str.split('_').str[0].tolist()
-    genego_df = pd.read_csv(args.genego, sep='\t', header=None, names=['GeneID', 'GO_ID'])
-    fpkm_df = pd.read_csv(args.fpkmmatrix, sep='\t')
-    samples_df = pd.read_csv(args.samples, sep='\t')
+    genego_df = load_table(args.genego, header=None, names=['GeneID', 'GO_ID'])
+    fpkm_df = load_table(args.fpkmmatrix)
+    samples_df = load_table(args.samples)
     
     each_go_gene_heatmap(goid_list, genego_df, fpkm_df, samples_df, args.outputdir)
+    
+    if args.expression_data:
+        expression_df = load_table(args.expression_data)
+        each_go_gene_expression(goid_list, genego_df, expression_df, args.outputdir)
     
     logger.success('Done')
 
