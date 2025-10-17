@@ -14,7 +14,7 @@ def parse_input():
     parser.add_argument(dest='input_file', help='输入文件，通常是 fpkm_matrix 或者是 reads_matrix 文件')
     parser.add_argument(dest='output_dir', help='输出目录，输出文件按照组名称命名')
     parser.add_argument('-s', '--samples', help='samples_described.txt')
-    parser.add_argument('--filter-valule', dest='filter_value', default=50, help='过滤值，默认大于等于 50')
+    parser.add_argument('--filter-value', dest='filter_value', type=float, default=50, help='过滤值，默认大于等于 50')
     parser.add_argument('--venn', action='store_true', help='加上这个参数，出 Venn 图')
     
     args = parser.parse_args()
