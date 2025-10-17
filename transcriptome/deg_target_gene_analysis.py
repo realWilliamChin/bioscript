@@ -102,13 +102,15 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, g
         
         # if group mean 根据 samplesinfo 每组中的平均数画 heatmap
         if group_mean:
-            heatmap_data_df, sub_samples_df = apply_group_mean(heatmap_data_df, sub_samples_df)
+            heatmap_data_df, sub_samples_df = apply_group_mean(heatmap_data_df, samples_df)
+        else:
+            sub_samples_df = samples_df
         
         ontology_excel = all_gene_heatmap_filename.replace('.xlsx', f'_{ontology}.xlsx')
         ontology_pic = output_pic.replace('.jpg', f'_{ontology}.jpg')
         with pd.ExcelWriter(ontology_excel, engine='openpyxl') as writer:
             heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
-            samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
+            sub_samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
             heatmap_sheet3_df.to_excel(writer, sheet_name='Sheet3', index=False)
         draw_multigroup_heatmap(ontology_excel, ontology_pic, other_args='--no-cluster-rows')
 
@@ -127,8 +129,15 @@ def deg_target_gene_summary(df_list, samples_info_df):
     max_samples_number = samples_info_df.groupby('group').size().max()
     for df in df_list:
         df = df[df['regulation'].str.lower() != 'nosignificant']  # 只保留有表达的
-        treat = df['sampleA'].values.tolist()[0]
-        control = df['sampleB'].values.tolist()[0]
+        # 若过滤后无显著差异，跳过该比较组
+        if df.empty:
+            logger.warning('本比较组无显著差异目标基因，跳过汇总')
+            continue
+        if 'sampleA' not in df.columns or 'sampleB' not in df.columns:
+            logger.warning('缺少 sampleA 或 sampleB 列，跳过该比较组汇总')
+            continue
+        treat = str(df['sampleA'].iloc[0])
+        control = str(df['sampleB'].iloc[0])
         treat_samples = samples_info_df[samples_info_df['group'] == treat]['sample'].values.tolist()
         control_samples = samples_info_df[samples_info_df['group'] == control]['sample'].values.tolist()
         
@@ -172,6 +181,8 @@ def deg_target_gene_summary(df_list, samples_info_df):
         
         processed_df_list.append(df)
     
+    if len(processed_df_list) == 0:
+        return pd.DataFrame()
     output_summary_df = pd.concat(processed_df_list)
     
     return output_summary_df
@@ -238,13 +249,9 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
 
             draw_multigroup_heatmap(ontology_excel_name, ontology_pic_name, other_args='--no-cluster-rows')
             
-    # 超过两组比较, 汇总结果
-    if len(result_target_gene_data_list) >= 2:
-        logger.info('正在对结果汇总')
-        target_gene_summary_df = deg_target_gene_summary(result_target_gene_data_list, samples_df)
-        write_output_df(target_gene_summary_df, os.path.join(output_dir, 'Target_gene_summary_data.xlsx'), index=False)
-    else:
-        logger.info('跳过结果汇总，比较组少于 2 个')
+    logger.info('正在对结果汇总')
+    target_gene_summary_df = deg_target_gene_summary(result_target_gene_data_list, samples_df)
+    write_output_df(target_gene_summary_df, os.path.join(output_dir, 'Target_gene_summary_data.xlsx'), index=False)
 
 
 def main():
