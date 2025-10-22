@@ -28,7 +28,7 @@ def changeid_gff3(gff3_file, output_file, prefix):
     if prefix is None or str(prefix) == "":
         raise ValueError("prefix 不能为空，请使用 -p 指定非空前缀，例如 -p Avena_sativa_")
 
-    perl_script = '/opt/biosoft/geta-2.4.3/bin/gff3_clear.pl'
+    perl_script = '/home/data/opt/biosoft/geta-2.4.3/bin/gff3_clear.pl'
     cmd = [perl_script, '--prefix', str(prefix), str(gff3_file)]
 
     # 直接将标准输出写入目标文件，避免使用 shell 重定向
