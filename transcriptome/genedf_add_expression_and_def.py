@@ -6,13 +6,14 @@ import os, sys
 import argparse
 import pandas as pd
 from loguru import logger
+from typing import Optional
 
 
 sys.path.append('/home/colddata/qinqiang/script/CommonTools')
 from load_input import load_table, write_output_df
 
 
-def parse_input():
+def parse_input() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='对各种表添加基因定义文件')
     parser.add_argument('-i', '--input', help='输入文件，可根据文件后缀格式类型读取，txt是tab分隔')
     parser.add_argument('--input-header', help="默认 GeneID 添加定义，如有其他列名，写列名，如没列名，输入列位置，从 0 开始数，列名不可以是数字")
@@ -23,6 +24,7 @@ def parse_input():
     parser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
     parser.add_argument('-o', '--output', default='output.txt', help='输出文件')
     parser.add_argument('--merge-how', default='left', help='合并方式，默认 left')
+    parser.add_argument('--no-remove-duplicates', action='store_true', help='不删除重复数据（默认会删除重复数据）')
     
     add_expression = parser.add_argument_group(title="指定添加 expression 的参数")
     add_expression.add_argument('-e', '--expression', type=str, help='表达量文件，通常是 fpkm_reads_matrix_data_def.txt')
@@ -36,10 +38,22 @@ def parse_input():
     elif not args.specify_column:
         args.specify_column = 'GeneID'
     
+    # 处理去重参数：默认删除重复，使用 --no-remove-duplicates 来关闭
+    args.remove_duplicates = not args.no_remove_duplicates
+    
     return args
 
 
-def add_def(file_df, index_column='GeneID', kegg_file=None, nr_file=None, swiss_file=None, def_file=None, merge_how='left'):
+def add_def(
+    file_df: pd.DataFrame,
+    index_column: str = 'GeneID',
+    kegg_file: Optional[str] = None,
+    nr_file: Optional[str] = None,
+    swiss_file: Optional[str] = None,
+    def_file: Optional[str] = None,
+    merge_how: str = 'left',
+    remove_duplicates: bool = True
+    ) -> pd.DataFrame:
     """对输入表添加基因定义"""
     result_df = file_df.copy()
     source_shape = file_df.shape[0]
@@ -90,13 +104,14 @@ def add_def(file_df, index_column='GeneID', kegg_file=None, nr_file=None, swiss_
     
     if source_shape != result_shape:
         logger.info(f"原表行数{source_shape}, 结果表行数{result_shape}, 可能输入文件指定合并列有重复，或注释文件有重复")
-        # result_df.drop_duplicates(subset=index_column, inplace=True)
-        # logger.info('已自动去重处理')
+        if remove_duplicates:
+            result_df.drop_duplicates(subset=index_column, inplace=True)
+            logger.info('已自动去重处理')
 
     return result_df
 
 
-def add_expression_data(input_file_df, expression_data, merge_how):
+def add_expression_data(input_file_df: pd.DataFrame, expression_data: str, merge_how: str) -> pd.DataFrame:
     expression_df = load_table(expression_data, dtype={'GeneID':str})
     expression_df_numeric_cols = expression_df.select_dtypes(include=['number']).columns
     expression_df_string_cols = expression_df.select_dtypes(include=['object']).columns
@@ -108,7 +123,7 @@ def add_expression_data(input_file_df, expression_data, merge_how):
     return result_df
 
 
-def main():
+def main() -> None:
     args = parse_input()
     for_merge_column = args.specify_column
     
@@ -133,7 +148,7 @@ def main():
     if args.expression:
         result_df = add_expression_data(df, args.expression, args.merge_how)
     else:
-        result_df = add_def(df, for_merge_column, args.kegg, args.nr, args.swiss, args.defi, args.merge_how)
+        result_df = add_def(df, for_merge_column, args.kegg, args.nr, args.swiss, args.defi, args.merge_how, args.remove_duplicates)
     
     if args.output.endswith('.xlsx'):
         result_df = result_df.rename(columns={for_merge_column: args.input_header})
