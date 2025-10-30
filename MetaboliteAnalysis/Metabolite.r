@@ -4,7 +4,7 @@ pkgs <- c(
   "openxlsx", "optparse", "magrittr"
 )
 suppressPackageStartupMessages(invisible(lapply(pkgs, require, character.only = TRUE)))
-Sys.setenv(R_LIBS="/opt/biosoft/R-4.2.2/lib64/R/library")
+Sys.setenv(R_LIBS="/home/data/opt/biosoft/R-422/lib64/R/library")
 
 source('/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r', echo = TRUE, encoding = 'UTF-8')
 source('/home/colddata/qinqiang/script/Plot/PCA/pca_1.r', echo = TRUE, encoding = 'UTF-8')
@@ -345,9 +345,10 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     each_class_heatmap_dir = file.path(output_dir, 'Each_class_heatmap')
     dir.create(each_class_heatmap_dir)
     row_class_heatmap(
-      select_data_frame, 
-      current_definition_df,
-      each_class_heatmap_dir
+      data_frame = select_data_frame,
+      samples_df = sample_info,
+      compound_def = current_definition_df,
+      output_dir = each_class_heatmap_dir
     )
   }
 
@@ -813,6 +814,33 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
     )
     deg_data <- rbind(deg_data, new_row)
 
+    # 每个 Class 一张图
+    if (each_class_heatmap && is.data.frame(current_definition_df) && nrow(current_definition_df) > 0) {
+      each_class_heatmap_dir <- file.path(compare_path, 'Each_class_heatmap')
+      dir.create(each_class_heatmap_dir, showWarnings = FALSE)
+      
+      # 根据是否有 fpkm 数据选择使用的数据
+      if (is.data.frame(fpkm_df)) {
+        data_for_class_heatmap <- current_expression_fpkm_data
+      } else {
+        data_for_class_heatmap <- current_expression_data
+      }
+      
+      # 使注释行名与热图数据完全一致
+      if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
+        current_definition_df <- definition_df[rownames(data_for_class_heatmap), , drop = FALSE]
+      } else {
+        current_definition_df <- NA
+      }
+      
+      row_class_heatmap(
+        data_frame = data_for_class_heatmap,
+        samples_df = sample_info[sample_info$sample %in% current_samples, , drop = FALSE],
+        compound_def = current_definition_df,
+        output_dir = each_class_heatmap_dir
+      )
+    }
+
     for (plot_type in plot_types) {
       file_name <- file.path(
         compare_path, 
@@ -994,6 +1022,7 @@ if (opt$each_class_heatmap) {
   dir.create(each_class_heatmap_dir)
   row_class_heatmap(
     data_frame = data_used,
+    samples_df = sample_info,
     compound_def = current_definition_df,
     output_dir = each_class_heatmap_dir
   )
@@ -1025,16 +1054,18 @@ metabolite_analysis(
 )
 
 # 9) 组间分析（zscore 时传递 fpkm；normal 传 FALSE，保持原逻辑）
-comparison_analysis(
-  compare_file = opt$compare,
-  samples_file = samples_file,
-  reads_df = reads_data,
-  fpkm_df = fpkm_for_pair,
-  definition_df = current_definition_df,
-  output_dir = comparison_analysis_dir,
-  log2data = opt$log2data,
-  each_class_heatmap = opt$each_class_heatmap
-)
+if (!is.null(opt$compare)) {
+  comparison_analysis(
+    compare_file = opt$compare,
+    samples_file = samples_file,
+    reads_df = reads_data,
+    fpkm_df = fpkm_for_pair,
+    definition_df = current_definition_df,
+    output_dir = comparison_analysis_dir,
+    log2data = opt$log2data,
+    each_class_heatmap = opt$each_class_heatmap
+  )
+}
 
 
 
