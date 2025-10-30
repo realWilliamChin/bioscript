@@ -22,6 +22,25 @@ def parse_input():
     return args
     
     
+def convert_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    遍历所有列：若某列中所有非空值均可成功转为数值，则将该列转换为数值类型。
+    空字符串会被视为缺失值允许保留为 NaN。
+    """
+    df_converted = df.copy()
+    for col in df_converted.columns:
+        # 先将值标准化为字符串，去除首尾空白，并将空字符串视为缺失
+        ser = df_converted[col].astype(str).str.strip()
+        ser = ser.replace({"": None})
+        # 尝试数值转换（不可转的变为 NaN）
+        converted = pd.to_numeric(ser, errors='coerce')
+        non_empty_mask = ser.notna()
+        # 所有非空项均可成功转为数值则接受转换
+        if converted[non_empty_mask].notna().all():
+            df_converted[col] = converted
+    return df_converted
+
+
 def reindex(lst, input_file, output_file):
     df = load_table(input_file, dtype=str)
     df_columns = df.columns.values[1:]
@@ -44,6 +63,8 @@ def reindex(lst, input_file, output_file):
         print('输入的 title list 和输出的表 title 数量不匹配，请检查')
         exit(1)
 
+    # 在输出前将可转换为数值的列转换为数值类型
+    df = convert_numeric_columns(df)
     write_output_df(df, output_file, index=False)
 
 
