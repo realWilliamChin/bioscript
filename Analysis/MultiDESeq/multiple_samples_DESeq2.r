@@ -1,4 +1,4 @@
-pkgs <- (
+pkgs <- c(
   'ggthemes', 'ggplot2', 'pheatmap', 'reshape2', 'ggcorrplot',
   'corrplot', 'DESeq2', 'edgeR', 'FactoMineR', 'ggrepel',
   'plyr', 'optparse'
@@ -21,13 +21,13 @@ option_list <- list(
   ),
   make_option(c("--samples"),
     type = "character", default = "samples_described.txt",
-    help = "提供 samples_described.txt 文件", metavar = "integer"
+    help = "提供 samples_described.txt 文件", metavar = "character"
   ),
   make_option(c("--compare"),
     type = "character", default = "compare_info.txt",
     help = "提供 compare_info.txt 文件", metavar = "character"
   ),
-  make_option(c("--filtertype"),
+  make_option(c("--filtercol"),
     type = "character", default = "padj",
     help = "过滤类型，选择 padj 或者 pvalue，默认是 padj，如果差异太少，则可以尝试重新选择 padj", metavar = "character"
   ),
@@ -78,7 +78,7 @@ if (substr(opt$outputdir, nchar(opt$outputdir), nchar(opt$outputdir)) != "/") {
 # reads_file <- 'reads_matrix_filtered.txt'
 # samples_file <- 'samples_described.txt'
 # compare_file <- 'compare_info.txt'
-# filter_type <- 'padj'
+# filter_col <- 'padj'
 # filter_value <- '0.05'
 # deg_value <- 1.5
 # bs_pos <- log2(deg_value)
@@ -90,7 +90,7 @@ fpkm_file <- opt$fpkm
 reads_file <- opt$reads
 samples_file <- opt$samples
 compare_file <- opt$compare
-filter_type <- opt$filtertype
+filter_col <- opt$filtercol
 filter_value <- opt$filtervalue
 deg_value <- opt$degvalue
 bs_pos <- log2(deg_value)
@@ -121,41 +121,27 @@ if (nrow(all_fpkm) > 65535) {
   subset_data <- subset_data[order(sample_indices), ]
 
   # 创建热图
-  # all.heatmap <- pheatmap(subset_data, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
-  smart_heatmap(
-    matrix_data = subset_data,
-    filename = file.path(exp_evaluation_dir, 'All_gene_heatmap.png'),
-    cluster_cols = FALSE,
-    show_rownames = FALSE
-  )
+  png(file.path(exp_evaluation_dir, 'All_gene_heatmap.png'), width = 10, height = 10, units = "in", res = 300)
+  all.heatmap <- pheatmap(subset_data, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
+  dev.off()
 } else {
   # 如果数据不超过 65535 行，直接创建热图
-  smart_heatmap(
-    matrix_data = all_fpkm,
-    filename = file.path(exp_evaluation_dir, 'All_gene_heatmap.png'),
-    cluster_cols = FALSE,
-    show_rownames = FALSE
-  )
-  # all.heatmap <- pheatmap(all_fpkm, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
+  png(file.path(exp_evaluation_dir, 'All_gene_heatmap.png'), width = 10, height = 10, units = "in", res = 300)
+  all.heatmap <- pheatmap(all_fpkm, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
+  dev.off()
 }
 
 sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
 # sample_info[sample_info$group=="CK",]
 reads_data <- read.table(reads_file, sep = "\t", row.names = 1, header = T, check.names = F, stringsAsFactors = F)
 reads_data <- na.omit(reads_data)
-comp_info <- read.table(compare_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
-# 如果存在 Treat / Control 列，则强制按此顺序，避免顺序被交换
-if (all(c("Treat", "Control") %in% colnames(comp_info))) {
-  comp_info <- comp_info[, c("Treat", "Control")]
-}
+comp_info <- read.table(compare_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F) 
 
-i <- ""
+
 total.deg <- ""
 stat.deg <- data.frame()
 for (i in seq_along(1:nrow(comp_info))) {
-  group_vs_group_name <- paste(comp_info[i, 1], comp_info[i, 2], sep = "-vs-")
-  # print(i)
-  
+  group_vs_group_name <- paste(comp_info[i, 1], comp_info[i, 2], sep = "-vs-")  
   # 从reads_data中提取处理组和对照组的样本数据
   data.treat <- reads_data[, sample_info[sample_info$group == comp_info[i, 1], ]$sample]
   data.control <- reads_data[, sample_info[sample_info$group == comp_info[i, 2], ]$sample]
@@ -229,16 +215,14 @@ for (i in seq_along(1:nrow(comp_info))) {
   volcano$padj <- ifelse(volcano$padj < 0.000000000000001, 0.000000000000001, volcano$padj)
   volcano$pvalue <- ifelse(is.na(volcano$pvalue), 1, volcano$pvalue)
 
-  # 根据用户选择的过滤类型（padj或pvalue）进行过滤
-  if (filter_type == "padj") {
-    volcano_filter_col <- volcano$padj
-  } else {
-    volcano_filter_col <- volcano$pvalue
-  }
+  # 为火山图选择统一的显著性列，并处理NA/非正值，设置阈值alpha
+  volcano[[filter_col]][is.na(volcano[[filter_col]])] <- 1
+  volcano[[filter_col]][volcano[[filter_col]] <= 0] <- .Machine$double.xmin
+  alpha <- filter_value
 
   # 根据过滤标准和log2FoldChange阈值，标记基因的调控状态
   # Up: 上调基因，Down: 下调基因，NoSignificant: 无显著差异
-  volcano$regulation <- as.factor(ifelse(volcano_filter_col < filter_value & abs(volcano$log2FoldChange) >= bs_pos, ifelse(volcano$log2FoldChange >= bs_pos, "Up", "Down"), "NoSignificant"))
+  volcano$regulation <- as.factor(ifelse(volcano[[filter_col]] < filter_value & abs(volcano$log2FoldChange) >= bs_pos, ifelse(volcano$log2FoldChange >= bs_pos, "Up", "Down"), "NoSignificant"))
   
   # 计算倍数变化（FC = 2^log2FoldChange）
   volcano$FC <- 2^volcano$log2FoldChange
@@ -273,11 +257,11 @@ for (i in seq_along(1:nrow(comp_info))) {
   }
   
   # 绘制火山图：展示差异表达基因的分布
-  p.volcano <- ggplot(data = volcano, aes(x = log2FoldChange, y = -log10(padj), colour = regulation)) +
+  p.volcano <- ggplot(data = volcano, aes(x = log2FoldChange, y = -log10(.data[[filter_col]]), colour = regulation)) +
     geom_point() +
     scale_color_manual(values = c("green", "grey", "red")) +  # 绿色=下调，红色=上调，灰色=无显著差异
     geom_vline(xintercept = c(bs_neg, bs_pos), lty = 4, col = "black", linewidth = 0.8) +  # 添加log2FoldChange阈值线
-    geom_hline(yintercept = -log10(0.05), lty = 4, col = "black", linewidth = 0.8) +  # 添加显著性阈值线
+    geom_hline(yintercept = -log10(alpha), lty = 4, col = "black", linewidth = 0.8) +  # 添加显著性阈值线
     theme_base()
   
   # 保存火山图
@@ -375,7 +359,7 @@ dev.off()
 # stat.deg
 colnames(stat.deg) <- c("Comparisons", "Total DEGs", "Up regulated", "Down regulated")
 
-deg_first_line <- paste0("# 筛选条件：",filter_type, " < ",filter_value,"; FoldChange > ",deg_value,"\n")
+deg_first_line <- paste0("# 筛选条件：",filter_col, " < ",filter_value,"; FoldChange > ",deg_value,"\n")
 cat(deg_first_line, file = paste0(deg_dir, "DEG_summary.txt"))
 write.table(stat.deg, file = paste0(deg_dir, "DEG_summary.txt"), sep = "\t", quote = F, row.names = F, append = TRUE, col.names = TRUE)
 
