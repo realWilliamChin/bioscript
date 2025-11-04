@@ -47,6 +47,8 @@ pathway.names<-gsub("ko",'',pathway.names)
 #   kegg.dir='/home/colddata/qinqiang/script/Rscript/pathview/ceshi'
 # )
 
+node.font <- list(fontname = "Calibri")
+edge.font <- list(fontname = "Calibri")
 for (pw_id in pathway.names) {
   # 使用 tryCatch 来捕获错误
   tryCatch({
@@ -60,6 +62,8 @@ for (pw_id in pathway.names) {
       species = "ko",
       out.suffix = "ko.data",
       kegg.native = TRUE,
+      node.attrs = node.font,
+      edge.attrs = edge.font,
       kegg.dir = '/home/colddata/qinqiang/script/Analysis/pathview/kegg_files'
     )
     
