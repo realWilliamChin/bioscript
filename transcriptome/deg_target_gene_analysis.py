@@ -222,6 +222,7 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
         write_output_df(comparison_target_gene_df, comparison_target_gene_file, index=False)
         
         fpkm_df = comparison_target_gene_df[[index_col] + comparison_samples_list]
+        fpkm_df = df_drop_row_sum_eq_zero(fpkm_df)
         ontology_df = comparison_target_gene_df[[index_col, 'SubOntology', 'Ontology']]
         
         group_vs_group_heatmap_fname = os.path.join(comparison_dir, f'{comparison_name}_target_gene_heatmap.xlsx')
@@ -238,7 +239,9 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
         for ontology, sub_df in comparison_target_gene_df.groupby('Ontology'):
             logger.info(f'正在画 {comparison_name} {ontology} heatmap')
             ontology_heatmap_data_df = sub_df[[index_col] + comparison_samples_list].copy()
+            ontology_heatmap_data_df = df_drop_row_sum_eq_zero(ontology_heatmap_data_df)
             ontology_def_df = sub_df[[index_col, 'SubOntology', 'Ontology']].copy()
+            ontology_def_df = ontology_def_df[ontology_def_df[index_col].isin(ontology_heatmap_data_df[index_col])]
 
             ontology_excel_name = os.path.join(comparison_dir, f'{comparison_name}_{ontology}_heatmap.xlsx')
             ontology_pic_name = os.path.join(comparison_dir, f'{comparison_name}_{ontology}_heatmap.jpg')
