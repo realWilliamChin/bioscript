@@ -24,10 +24,10 @@ def parse_input() -> argparse.Namespace:
     parser.add_argument('-s', '--swiss', help='Swiss_gene_def 文件')
     parser.add_argument('-o', '--output', default='output.txt', help='输出文件')
     parser.add_argument('--merge-how', default='left', help='合并方式，默认 left')
+    parser.add_argument('--dup-col', default='left', choices=['left', 'right', 'drop_all', 'keep_both'],
+                        help='合并之后如果有重复的列，选择保留方式，left 保留输入文件的，right 保留 defi 文件的，drop_all 不保留任何一个，keep_both 保留所有')
     parser.add_argument('--no-remove-duplicates', action='store_true', help='不删除重复数据（默认会删除重复数据）')
-    
-    add_expression = parser.add_argument_group(title="指定添加 expression 的参数")
-    add_expression.add_argument('-e', '--expression', type=str, help='表达量文件，通常是 fpkm_reads_matrix_data_def.txt')
+    parser.add_argument('--na-fill', default='N/A', help='缺失值填充值（字符串列），默认 N/A')
     
     args = parser.parse_args()
 
@@ -52,7 +52,9 @@ def add_def(
     swiss_file: Optional[str] = None,
     def_file: Optional[str] = None,
     merge_how: str = 'left',
-    remove_duplicates: bool = True
+    remove_duplicates: bool = True,
+    dup_col: str = 'left',
+    na_fill: str = 'N/A'
     ) -> pd.DataFrame:
     """对输入表添加基因定义"""
     result_df = file_df.copy()
@@ -61,9 +63,9 @@ def add_def(
     if nr_file:
         nr_df = load_table(nr_file, header=0, names=['GeneID', 'NR_ID', 'NR_Def1'], dtype={'GeneID': str})
         # 没有 NCBI ID 直接加会丢失。先 fillna，再去掉 NA::
-        nr_df.fillna(value='N/A', inplace=True)
+        nr_df.fillna(value=na_fill, inplace=True)
         nr_df['NR_ID_Des'] = nr_df['NR_ID'] + '::' + nr_df['NR_Def1']
-        nr_df['NR_ID_Des'] = nr_df['NR_ID_Des'].str.replace('NA::', '', regex=False)
+        nr_df['NR_ID_Des'] = nr_df['NR_ID_Des'].str.replace(f'{na_fill}::', '', regex=False)
         # ID 列
         nr_id_df = nr_df[nr_df['NR_ID_Des'].str.contains('::')].copy()
         nr_id_df.drop(columns=['NR_Def1', 'NR_ID_Des'], inplace=True)
@@ -74,9 +76,9 @@ def add_def(
 
     if swiss_file:
         swiss_df = load_table(swiss_file, header=0, names=['GeneID', 'Swiss_ID', 'Swiss_Def'], dtype={'GeneID': str})
-        swiss_df.fillna(value='N/A', inplace=True)
+        swiss_df.fillna(value=na_fill, inplace=True)
         swiss_df['Swiss_ID_Des'] = swiss_df['Swiss_ID'] + '::' + swiss_df['Swiss_Def']
-        swiss_df['Swiss_ID_Des'] = swiss_df['Swiss_ID_Des'].str.replace('NA::', '', regex=False)
+        swiss_df['Swiss_ID_Des'] = swiss_df['Swiss_ID_Des'].str.replace(f'{na_fill}::', '', regex=False)
         # ID 列
         swiss_id_df = swiss_df[swiss_df['Swiss_ID_Des'].str.contains('::')].copy()
         swiss_id_df.drop(columns=['Swiss_Def', 'Swiss_ID_Des'], inplace=True)
@@ -88,18 +90,28 @@ def add_def(
     if kegg_file:
         kegg_df = load_table(kegg_file, header=0, dtype={'GeneID': str},
                              names=['GeneID', 'KEGG_ID', 'KEGG_Shortname', 'EC_Number', 'KEGG_Description'])
-        kegg_df.fillna(value='N/A', inplace=True)
+        kegg_df.fillna(value=na_fill, inplace=True)
         result_df = pd.merge(left=result_df, right=kegg_df, on='GeneID', how='left')
 
     if def_file:
         def_df = load_table(def_file, dtype={index_column: 'str'})
         duplicate_cols = [col for col in def_df.columns if col in result_df.columns and col != index_column]
         if duplicate_cols:
-            def_df = def_df.drop(columns=duplicate_cols)
-        result_df = pd.merge(left=result_df, right=def_df, on=index_column, how=merge_how)
+            if dup_col == 'left':
+                # 保留左侧（result_df）的列，删除右侧（def_df）的重复列
+                def_df = def_df.drop(columns=duplicate_cols)
+            elif dup_col == 'right':
+                # 保留右侧（def_df）的列，删除左侧（result_df）的重复列
+                result_df = result_df.drop(columns=duplicate_cols)
+            elif dup_col == 'drop_all':
+                # 都不保留，删除所有重复列
+                def_df = def_df.drop(columns=duplicate_cols)
+                result_df = result_df.drop(columns=duplicate_cols)
+            # dup_col == 'keep_both' 时不需要做任何处理，pandas会自动添加后缀
+        result_df = pd.merge(left=result_df, right=def_df, on=index_column, how=merge_how, suffixes=('_input', '_def') if dup_col == 'keep_both' else ('', ''))
 
     diff_col = list(set(result_df.columns) - set(file_df.columns))
-    result_df[diff_col] = result_df[diff_col].fillna(value='N/A')
+    result_df[diff_col] = result_df[diff_col].fillna(value=na_fill)
     result_shape = result_df.shape[0]
     
     if source_shape != result_shape:
@@ -108,18 +120,6 @@ def add_def(
             result_df.drop_duplicates(subset=index_column, inplace=True)
             logger.info('已自动去重处理')
 
-    return result_df
-
-
-def add_expression_data(input_file_df: pd.DataFrame, expression_data: str, merge_how: str) -> pd.DataFrame:
-    expression_df = load_table(expression_data, dtype={'GeneID':str})
-    expression_df_numeric_cols = expression_df.select_dtypes(include=['number']).columns
-    expression_df_string_cols = expression_df.select_dtypes(include=['object']).columns
-    expression_df[expression_df_numeric_cols] = expression_df[expression_df_numeric_cols].fillna(0)
-    expression_df[expression_df_string_cols] = expression_df[expression_df_string_cols].fillna('N/A')
-
-    result_df = pd.merge(input_file_df, expression_df, on="GeneID", how=merge_how)
-    
     return result_df
 
 
@@ -145,10 +145,7 @@ def main() -> None:
     logger.debug(f'{df.columns}')
     logger.debug(f'{df.dtypes}')
     
-    if args.expression:
-        result_df = add_expression_data(df, args.expression, args.merge_how)
-    else:
-        result_df = add_def(df, for_merge_column, args.kegg, args.nr, args.swiss, args.defi, args.merge_how, args.remove_duplicates)
+    result_df = add_def(df, for_merge_column, args.kegg, args.nr, args.swiss, args.defi, args.merge_how, args.remove_duplicates, args.dup_col, args.na_fill)
     
     if args.output.endswith('.xlsx'):
         result_df = result_df.rename(columns={for_merge_column: args.input_header})
