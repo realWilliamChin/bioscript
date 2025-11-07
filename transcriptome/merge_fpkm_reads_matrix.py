@@ -54,7 +54,7 @@ def merge_fpkm_reads(fpkm_file, reads_file):
 def main():
     args = parse_input()
     merged_df = merge_fpkm_reads(args.fpkm, args.reads)
-    result_df = add_def(merged_df, kegg_file=args.kegg, nr_file=args.nr, swiss_file=args.swiss, kns_file=args.kns)
+    result_df = add_def(merged_df, kegg_file=args.kegg, nr_file=args.nr, swiss_file=args.swiss, def_file=args.kns)
     write_output_df(result_df, args.output, index=False)
         
     logger.success('\nDone!\n')
