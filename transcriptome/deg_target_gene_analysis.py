@@ -184,7 +184,8 @@ def deg_target_gene_summary(df_list, samples_info_df):
     if len(processed_df_list) == 0:
         return pd.DataFrame()
     output_summary_df = pd.concat(processed_df_list)
-    
+    # 删掉一列全部是 'N/A' 的（只有两组且数量不一样会有这种情况）
+    output_summary_df = output_summary_df.loc[:, ~(output_summary_df == 'N/A').all()]    
     return output_summary_df
 
 
