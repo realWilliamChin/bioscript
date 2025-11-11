@@ -12,7 +12,6 @@ rule kegg_anno:
     conda: "python310"
     params:
         kegg_org_list = config.get('kegg_anno_org_list', ''),
-        split_anno = config.get('split_anno', 1),
         fasta_type = SPECIE_TYPE
     shell:
         """
@@ -21,12 +20,10 @@ rule kegg_anno:
             -k {output.ko_file} \
             -t {params.fasta_type} \
             -l {params.kegg_org_list} \
-            -s {params.split_anno} \
             -o {KEGG_DIR}/{SPECIE_NAME}
         """
     
 
-# nr annotation
 rule swiss_anno:
     input:
         f'{ANNO_FASTA}'
@@ -83,8 +80,8 @@ rule cog_anno:
             -i {input} \
             -o {COG_DIR}/{SPECIE_NAME} \
             --cpu {threads} \
-            --data_dir /opt/biosoft/eggnog5.0.0 \
-            --dmnd_db /opt/biosoft/eggnog5.0.0/eggnog_proteins.dmnd \
+            --data_dir /home/data/opt/biosoft/eggnog5.0.0 \
+            --dmnd_db /home/data/opt/biosoft/eggnog5.0.0/eggnog_proteins.dmnd \
             -m diamond \
             --translate \
             --itype genome \
