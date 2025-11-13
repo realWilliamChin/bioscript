@@ -73,6 +73,8 @@ def apply_group_mean(df: pd.DataFrame, samples_df: pd.DataFrame):
 
 def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, group_mean, output_pic):
     sample_columns = samples_df['sample'].tolist()
+    # 保存原始的 samples_df，因为 apply_group_mean 会修改它
+    original_samples_df = samples_df.copy()
     
     # 目标基因添加 fpkm 值，准备画图文件
     gene_fpkm_df = pd.merge(target_gene_df, fpkm_matrix_df, on='GeneID', how='inner')
@@ -101,10 +103,11 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, g
         heatmap_sheet3_df = sub_df[[index_col, 'SubOntology', 'Ontology']].copy()
         
         # if group mean 根据 samplesinfo 每组中的平均数画 heatmap
+        # 使用原始的 samples_df，因为 heatmap_data_df 包含的是原始样本列名
         if group_mean:
-            heatmap_data_df, sub_samples_df = apply_group_mean(heatmap_data_df, samples_df)
+            heatmap_data_df, sub_samples_df = apply_group_mean(heatmap_data_df, original_samples_df.copy())
         else:
-            sub_samples_df = samples_df
+            sub_samples_df = original_samples_df
         
         ontology_excel = all_gene_heatmap_filename.replace('.xlsx', f'_{ontology}.xlsx')
         ontology_pic = output_pic.replace('.jpg', f'_{ontology}.jpg')
