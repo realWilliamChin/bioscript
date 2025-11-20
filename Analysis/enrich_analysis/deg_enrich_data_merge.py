@@ -17,11 +17,15 @@ def parse_input():
     p.add_argument('-c', '--compare-file',  help='input compare_info.txt file')
     p.add_argument('-o', '--output-file', default='DEG_enrichment_significant_pathway_summary.xlsx',
                    help='output file endswith .xlsx, GO in sheet1, KEGG in sheet2')
+    p.add_argument('--filter-col', choices=['p.adjust', 'pvalue'], default='pvalue',
+                   help='选择用于显著性筛选的列，GO分析默认p.adjust, KEGG分析默认pvalue')
+    p.add_argument('--filter-value', type=float, default=0.05, help='显著性筛选的阈值，默认 0.05')
+    p.add_argument('--count-threshold', type=int, default=2, help='Count筛选的最小值，默认 2')
     
     return p.parse_args()
 
 
-def deg_enrich_data_merge(input_dir, comp_file, output_file):
+def deg_enrich_data_merge(input_dir, comp_file, output_file, filter_col='pvalue', filter_value=0.05, count_threshold=2):
     go_enrich_df_down_list = []
     go_enrich_df_up_list = []
     kegg_enrich_df_down_list = []
@@ -54,28 +58,30 @@ def deg_enrich_data_merge(input_dir, comp_file, output_file):
                 kegg_enrich_df_up_list.append(kegg_enrich_df_up)
                 
                 
+        # go筛选
         go_down_summary = pd.concat(go_enrich_df_down_list)
-        go_down_summary['p.adjust'] = go_down_summary['p.adjust'].astype(float)
-        go_down_summary = go_down_summary[go_down_summary['Count'] >= 2]
-        go_down_summary = go_down_summary[go_down_summary['p.adjust'] < 0.05]
+        go_down_summary["p.adjust"] = go_down_summary["p.adjust"].astype(float)
+        go_down_summary = go_down_summary[go_down_summary['Count'] >= count_threshold]
+        go_down_summary = go_down_summary[go_down_summary[filter_col] < filter_value] if filter_col in go_down_summary.columns else go_down_summary
         go_down_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
         
         go_up_summary = pd.concat(go_enrich_df_up_list)
-        go_up_summary['p.adjust'] = go_up_summary['p.adjust'].astype(float)
-        go_up_summary = go_up_summary[go_up_summary['Count'] >= 2]
-        go_up_summary = go_up_summary[go_up_summary['p.adjust'] < 0.05]
+        go_up_summary["p.adjust"] = go_up_summary["p.adjust"].astype(float)
+        go_up_summary = go_up_summary[go_up_summary['Count'] >= count_threshold]
+        go_up_summary = go_up_summary[go_up_summary[filter_col] < filter_value] if filter_col in go_up_summary.columns else go_up_summary
         go_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
         
+        # kegg筛选
         kegg_down_summary = pd.concat(kegg_enrich_df_down_list)
-        kegg_down_summary['pvalue'] = kegg_down_summary['pvalue'].astype(float)
-        kegg_down_summary = kegg_down_summary[kegg_down_summary['Count'] >= 2]
-        kegg_down_summary = kegg_down_summary[kegg_down_summary['pvalue'] < 0.05]
+        kegg_down_summary["pvalue"] = kegg_down_summary["pvalue"].astype(float)
+        kegg_down_summary = kegg_down_summary[kegg_down_summary['Count'] >= count_threshold]
+        kegg_down_summary = kegg_down_summary[kegg_down_summary[filter_col] < filter_value] if filter_col in kegg_down_summary.columns else kegg_down_summary
         kegg_down_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
         
         kegg_up_summary = pd.concat(kegg_enrich_df_up_list)
-        kegg_up_summary['pvalue'] = kegg_up_summary['pvalue'].astype(float)
-        kegg_up_summary = kegg_up_summary[kegg_up_summary['Count'] >= 2]
-        kegg_up_summary = kegg_up_summary[kegg_up_summary['pvalue'] < 0.05]
+        kegg_up_summary["pvalue"] = kegg_up_summary["pvalue"].astype(float)
+        kegg_up_summary = kegg_up_summary[kegg_up_summary['Count'] >= count_threshold]
+        kegg_up_summary = kegg_up_summary[kegg_up_summary[filter_col] < filter_value] if filter_col in kegg_up_summary.columns else kegg_up_summary
         kegg_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
         
         go_summary = pd.concat([go_down_summary, go_up_summary])
@@ -89,7 +95,8 @@ def deg_enrich_data_merge(input_dir, comp_file, output_file):
 
 def main():
     args = parse_input()
-    deg_enrich_data_merge(args.input_dir, args.compare_file, args.output_file)
+    deg_enrich_data_merge(args.input_dir, args.compare_file, args.output_file, 
+                          args.filter_col, args.filter_value, args.count_threshold)
 
 
 if __name__ == '__main__':
