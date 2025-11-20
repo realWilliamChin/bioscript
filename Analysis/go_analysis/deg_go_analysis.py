@@ -52,7 +52,7 @@ def parse_input():
 
 
 def goid_enrich_summary(target_go_df: pd.DataFrame, comparisons_df: pd.DataFrame, enrich_data_dir: str, output: str) -> None:
-    target_go_df = target_go_df.rename(columns={'GO_ID': 'GO_Def', 'ID': 'GO_ID'})
+    # target_go_df = target_go_df.rename(columns={'GO_ID': 'GO_Def', 'ID': 'GO_ID'})
     target_go_list = target_go_df['GO_ID'].values.tolist()
     target_go_enrich_df_list = []
     comparisons_df['comparisons'] = comparisons_df['Treat'] + '-vs-' + comparisons_df['Control']
@@ -174,8 +174,8 @@ def deg_go_analysis(args, target_go_df, gene_go_df, go_id_list, ontology_list):
             logger.info(f"正在处理 {compare_info}_{ontology_name}")
             # gene_id_goid = {}
             ontology_df = target_go_df[target_go_df['Ontology'] == ontology_name].copy()
-            ontology_df = pd.merge(left=ontology_df, right=enrich_go_df, how='inner', on='ID')
-            ontology_df.drop(columns=['ID', 'GO_type'], inplace=True)
+            ontology_df = pd.merge(left=ontology_df, right=enrich_go_df, how='inner', left_on='GO_ID', right_on='ID')
+            ontology_df.drop(columns=['ID'], inplace=True)
             ontology_df.rename(columns={"GO_ID": "ID"}, inplace=True)
             
             if ontology_df.shape[0] == 0:
@@ -261,9 +261,9 @@ def main():
     logger.info(f'正在对输入数据进行预处理，去除两边空格，替换 Ontology 非法字符')
     target_go_df = df_drop_element_side_space(target_go_df)
     target_go_df = df_replace_illegal_folder_chars(target_go_df, ['Ontology', 'SubOntology'])
-    target_go_df['ID'] = target_go_df['GO_ID'].str.split("_").str[0]  # 为了和 enrich.r 出来的文件的 ID 对应上，添加一列只包含 ID 的列， GO:0010111
+    target_go_df['GO_ID'] = target_go_df['GO_ID'].str.split("_").str[0]  # 为了和 enrich.r 出来的文件的 ID 对应上，添加一列只包含 ID 的列， GO:0010111
     ontology_list = list(set(target_go_df['Ontology'].tolist()))
-    go_id_list = list(set(target_go_df['ID'].tolist()))
+    go_id_list = list(set(target_go_df['GO_ID'].tolist()))
     gene_go_df = load_table(args.genego, header=None, names=['GeneID', 'GO_ID'], dtype={"GeneID": str})
     
     logger.info(f'执行 go 分析')
