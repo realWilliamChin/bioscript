@@ -1,5 +1,3 @@
-# configfile: "/home/colddata/qinqiang/work/2024_06_25_denovegenome_test/Test2/denovo_genome_config.yaml"
-
 ############################################
 # 参数预定义（可通过 configfile 或 --config 覆盖）
 ############################################
@@ -9,9 +7,8 @@ INPUTFASTA           = config['inputfasta']        # 例如：01.Assemble/assemb
 READ1              = config['f1']                # 例如：sample_1.fq.gz
 READ2              = config['f2']                # 例如：sample_2.fq.gz
 
-# 物种及线程数
+# 物种
 SPECIE             = config['specie']
-THREADS            = config['threads']
 
 # 路径参数
 BWA_INDEX_DIR              = "bwa_index"
@@ -52,7 +49,6 @@ rule bwa_index:
         'bwa index -p {params.prefix} {input}'
 
 # 比对（reads 文件由运行时 --config 提供，如：--config f1=xxx.fq.gz f2=yyy.fq.gz）
-# 这里显式声明依赖 BWA 索引文件，从而保证先执行 rule bwa_index 再执行比对
 rule bwa_alignment:
     input:
         f1 = READ1,
@@ -62,7 +58,7 @@ rule bwa_alignment:
         BWA_SORTED_BAM
     params:
         prefix = BWA_INDEX_PREFIX
-    threads: THREADS
+    threads: workflow.cores
     conda: 'base'
     message:
         "执行 bwa mem 命令中\n"
@@ -77,7 +73,7 @@ rule sambamba_markdup:
         BWA_SORTED_BAM
     output:
         BWA_MARKDUP_BAM
-    threads: THREADS
+    threads: workflow.cores
     conda: "base"
     message:
         "执行 sambamba markdup 命令中\n"
@@ -92,7 +88,7 @@ rule samtools_filter:
         BWA_MARKDUP_BAM
     output:
         BWA_FILTER_BAM
-    threads: THREADS
+    threads: workflow.cores
     conda: "base"
     message:
         "执行 samtools view 过滤出高质量比对的 reads\n"
@@ -108,7 +104,7 @@ rule samtools_sort_and_index:
     output:
         BWA_FILTER_SORTED_BAM,
         BWA_FILTER_SORTED_BAM_BAI
-    threads: THREADS
+    threads: workflow.cores
     conda: "base"
     message:
         "执行 samtools sort 命令中\n"
@@ -136,7 +132,7 @@ rule pilon_polish:
         java_memory=PILON_JAVA_MEMORY,
         pilon_jar=PILON_JAR,
         fix_options=PILON_FIX_OPTIONS
-    threads: THREADS
+    threads: workflow.cores
     shell:
         'java {params.java_memory} -jar {params.pilon_jar} '
         '--genome {input[0]} '

@@ -1,0 +1,23 @@
+# Pilon polish 默认配置，可通过 --configfile 覆盖
+
+# 参考序列与原始 reads（需替换为实际文件路径）
+inputfasta: "01.Assemble/assembly.fasta"
+f1: "02.CleanReads/sample_R1.fq.gz"
+f2: "02.CleanReads/sample_R2.fq.gz"
+
+# 物种标签
+specie: "sample_species"
+
+# BWA 索引与中间文件命名（通常保持默认即可）
+bwa_index_dir: "bwa_index"
+bwa_sorted_bam: "bwa_alignment_sorted.bam"
+bwa_markdup_bam: "bwa_alignment_sorted_markdup.bam"
+bwa_filter_bam: "bwa_alignment_filter.bam"
+bwa_filter_sorted_bam: "bwa_alignment_filter_sorted.bam"
+
+# Pilon 输出前缀及相关参数
+pilon_output_prefix: "pilon_polished"
+pilon_java_memory: "-Xmx128G"
+pilon_jar: "/home/data/opt/biosoft/pilon/pilon-1.23.jar"
+pilon_fix_options: "--fix snps,indels"
+
