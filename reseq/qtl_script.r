@@ -3,13 +3,12 @@ library(ggplot2)
 rm(list=ls())
 
 prefix = 'yumi'
-
 HighBulk <- "Mut"
 LowBulk <- "WT"
-file <- "BSA_merged_snp.table" ##set sample and file name
+file <- "BSA_merged_snp.table"
 
-Chroms <- paste0(rep("", 10), 1:10) ##choose which chromosomes will be included in the analysis 
-
+# 染色体信息列表
+Chroms <- paste0(rep("", 10), 1:10)
 Chroms <- read.table('chroms_list.txt', header=FALSE)[[1]]
 
 df <-
@@ -17,8 +16,7 @@ df <-
     file = file,
     highBulk = HighBulk,
     lowBulk = LowBulk,
-    chromList = Chroms) ##Import SNP data from file
-
+    chromList = Chroms)
 
 # SNP 质检，决定后面 df filt 的参数
 dp_plot <- ggplot(data = df) +
@@ -47,42 +45,49 @@ ggsave(paste0(prefix, "_SNPindex_HIGH.jpeg"), snp_index_plot, width = 10, height
 df_filt <-
   filterSNPs(
     SNPset = df,
-    refAlleleFreq = 0.001,
-    minTotalDepth = 5,
-    maxTotalDepth = 100,
-    depthDifference = 24,
-    minSampleDepth = 10,
-    minGQ = 10) ##Filter SNPs based on some criteria
+    refAlleleFreq = 0.001,  # 认为可变位点的比例
+    minTotalDepth = 5,      # 看图
+    maxTotalDepth = 100,    # 看图
+    depthDifference = 24,   # 关注 HighBulk 的测序深度
+    minSampleDepth = 10,    # vcf 文件读出来的
+    minGQ = 10)             # SNP 位点的质量数
 
 
 df_filt_G <- runGprimeAnalysis(
   SNPset = df_filt,
-  windowSize = 4e6,   ##如果程序报错，就增大窗口大小
-  outlierFilter = "deltaSNP") ##Run G' analysis
+  windowSize = 4e6,             # 如果程序报错，就增大窗口大小
+  outlierFilter = "deltaSNP")   # Run G' analysis
 
 #write.csv(df_filt_G, file="ZZW-MAX-MIN_G.csv", row.names = FALSE)
 
 df_filt_Q <- runQTLseqAnalysis(
   SNPset = df_filt_G,
-  windowSize = 4e6,   ##如果程序报错，就增大窗口大小
+  windowSize = 4e6,         # 如果程序报错，就增大窗口大小
   popStruc = "F2",
-  bulkSize = c(24, 1),
+  bulkSize = c(24, 1),      # 依据混池样本数量重新填写
   replications = 10000,
-  intervals = c(95, 99)) ##Run QTLseq analysis
+  intervals = c(95, 99))    # Run QTLseq analysis
 
-write.csv(df_filt_Q, file=paste0(prefix,"_QTL.csv"), row.names = FALSE)
+# 画图使用的所有 SNP 位点
+write.csv(df_filt_Q, file=paste0(prefix,"_QTL_snp_all.csv"), row.names = FALSE)
 
-
+# Gprime Plot
 # plotGprimeDist(SNPset = df_filt_G, outlierFilter = "Hampel")
-
-gprime_plot <- plotQTLStats(SNPset = df_filt_G, var = "Gprime", plotThreshold = TRUE, q = 0.55)  ##如果没有阈值线出现，就调节q的数值
+q_value <- 0.55  # 根据丰图调整 q，达到预期的 Gprime 值
+gprime_plot <- plotQTLStats(
+  SNPset = df_filt_G,
+  var = "Gprime",
+  plotThreshold = TRUE,
+  q = q_value
+)
 gprime_plot
-ggsave(paste0(prefix, "_Gprime_q0.55.jpeg"), gprime_plot, width = 10, height = 8, units = "in", dpi = 300)
-# results <- getQTLTable(SNPset = df_filt_G, method = "Gprime",alpha = 0.05, export = FALSE)
+ggsave(paste0(prefix, "_Gprime_q", q_value, ".jpeg"), gprime_plot, width = 10, height = 8, units = "in", dpi = 300)
 
-
-deltasnp_plot <- plotQTLStats(SNPset = df_filt_Q, var = "deltaSNP", plotIntervals = TRUE) ##Plot
+# deltaSNP Plot
+deltasnp_plot <- plotQTLStats(SNPset = df_filt_Q, var = "deltaSNP", plotIntervals = TRUE)
+deltasnp_plot
 ggsave(paste0(prefix, "_deltaSNP.jpeg"), deltasnp_plot, width = 10, height = 8, units = "in", dpi = 300)
 
-getQTLTable(SNPset = df_filt_Q, method="Gprime", alpha = 0.55, export = TRUE, fileName = paste0(prefix,"_G_sig_chr_region.csv")) ##export summary CSV   ##如果没有显著QTL生成，就调节alpha的数值
+# 显著 qtl 区域表单
+getQTLTable(SNPset = df_filt_Q, method="Gprime", alpha = q_value, export = TRUE, fileName = paste0(prefix,"_G_sig_qtl_region.csv"))
 
