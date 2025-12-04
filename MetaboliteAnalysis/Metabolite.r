@@ -1,7 +1,7 @@
 pkgs <- c(
   "ggthemes", "ggplot2", "pheatmap", "reshape2", "ggcorrplot", "corrplot",
   "FactoMineR", "plyr", "dplyr", "ropls", "ggrepel", "mixOmics",
-  "openxlsx", "optparse", "magrittr"
+  "openxlsx", "optparse", "magrittr", "data.table"
 )
 suppressPackageStartupMessages(invisible(lapply(pkgs, require, character.only = TRUE)))
 Sys.setenv(R_LIBS="/home/data/opt/biosoft/R-422/lib64/R/library")
@@ -28,7 +28,9 @@ option_list <- list(
   make_option(c("-l", "--log2data"), type="logical", default=FALSE,
               help="是否进行log2转换", metavar="logical"),
   make_option("--each_class_heatmap", type='logical', default=FALSE, metavar="logical",
-              help="是否进行每个 Class 画一个 heatmap 图，常用于 Class 很多的情况")
+              help="是否进行每个 Class 画一个 heatmap 图，常用于 Class 很多的情况"),
+  make_option("--ncomp", type="integer", default=NULL, metavar="integer",
+              help="设置 PLS-DA 的主成分数量 (ncomp)，如果不指定则根据样本数量自动计算")
 )
 
 opt_parser <- OptionParser(option_list=option_list)
@@ -57,8 +59,8 @@ my_set_colors <- c(
 row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir) {
   
   # 检查输入有效性
-  if (nrow(compound_def) == 0) {
-    warning("compound_def 为空，跳过类别热图绘制")
+  if (!is.data.frame(compound_def) || nrow(compound_def) == 0) {
+    warning("compound_def 为空或无效，跳过类别热图绘制")
     return(invisible(TRUE))
   }
   
@@ -294,7 +296,7 @@ gen_annotation_col_df <- function(samples_df) {
 }
 
 # 代谢物分析主函数
-metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE) {
+metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE, ncomp = NULL) {
   select_sample_info <- read.table(
     samples_file, 
     sep = "\t", 
@@ -346,35 +348,59 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     dir.create(each_class_heatmap_dir)
     row_class_heatmap(
       data_frame = select_data_frame,
-      samples_df = sample_info,
+      samples_df = select_sample_info,
       compound_def = current_definition_df,
       output_dir = each_class_heatmap_dir
     )
   }
 
-  # 根据样本数量设置 ncomp
+  # 根据样本数量设置 ncomp（如果用户未指定）
   num_samples <- nrow(metabolites)
+  num_metabolites <- ncol(metabolites)
   num_groups <- length(unique(groups))
   
-  # 一般规则：ncomp 不应超过样本数量的 1/10，且不应超过组数-1，但是 2 个不好看，目前至少画 4 个
-  max_ncomp <- min(floor(num_samples / 10), num_groups - 1)
-  
-  # 设置合理的 ncomp 值
-  if (num_samples < 10) {
-    ncomp <- min(4, max_ncomp)
-  } else if (num_samples < 20) {
-    ncomp <- min(6, max_ncomp)
-  } else if (num_samples < 50) {
-    ncomp <- min(8, max_ncomp)
-  } else {
-    ncomp <- min(10, max_ncomp)
+  # 检查数据维度是否满足 plsda 的要求（至少需要3行3列）
+  if (num_samples < 3 || num_metabolites < 3) {
+    warning(paste("数据维度不足（样本数:", num_samples, "代谢物数:", num_metabolites, 
+                  "），无法进行 PLS-DA 分析。PLS-DA 需要至少3个样本和3个代谢物。"))
+    return(invisible(NULL))
   }
   
-  # 确保 ncomp 至少为 4（如果样本数允许）
-  ncomp <- max(4, ncomp)
+  if (is.null(ncomp)) {
+    # 一般规则：ncomp 不应超过样本数量的 1/10，且不应超过组数-1，但是 2 个不好看，目前至少画 4 个
+    max_ncomp <- min(floor(num_samples / 10), num_groups - 1, num_metabolites - 1)
+    
+    # 设置合理的 ncomp 值
+    if (num_samples < 10) {
+      ncomp <- min(4, max_ncomp)
+    } else if (num_samples < 20) {
+      ncomp <- min(6, max_ncomp)
+    } else if (num_samples < 50) {
+      ncomp <- min(8, max_ncomp)
+    } else {
+      ncomp <- min(10, max_ncomp)
+    }
+    
+    # 确保 ncomp 至少为 4（如果样本数允许），但不超过实际限制
+    ncomp <- max(4, min(4, ncomp, max_ncomp))
+  } else {
+    # 用户指定的 ncomp 需要满足限制条件
+    max_ncomp <- min(floor(num_samples / 10), num_groups - 1, num_metabolites - 1)
+    if (ncomp > max_ncomp) {
+      warning(paste("指定的 ncomp (", ncomp, ") 超过最大允许值 (", max_ncomp, 
+                    ")，已自动调整为", max_ncomp))
+      ncomp <- max_ncomp
+    }
+    # 确保 ncomp 至少为 2
+    if (ncomp < 2) {
+      warning(paste("ncomp 必须至少为 2，已自动调整为 2"))
+      ncomp <- 2
+    }
+  }
   
   # 打印调试信息
-  print(paste("样本数量:", num_samples, "组数:", num_groups, "设置的ncomp:", ncomp))
+  print(paste("样本数量:", num_samples, "代谢物数量:", num_metabolites, 
+              "组数:", num_groups, "设置的ncomp:", ncomp))
   
   df_plsda <- plsda(metabolites, groups, ncomp = ncomp)
 
@@ -882,6 +908,10 @@ sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F,
 
 # 读取数据
 reads_data <- read.xlsx(opt$input, sheet = 1, rowNames = TRUE)
+# reads_data <- fread(opt$input, fileEncoding = "UTF-8", check.names = TRUE)
+# rownames(reads_data) <- make.names(reads_data[[1]], unique = TRUE)
+# reads_data <- reads_data[, -1, with = FALSE]
+
 # 检查并转换数据框列类型
 reads_data <- check_and_convert_numeric(reads_data)
 # 替换 0 为 1e-6
@@ -895,8 +925,11 @@ reads_data <- reads_data[rowSums(reads_data != 1e-6) > 0, ]
 
 Compound_def_file <- opt$definition
 # 如果需要合并定义则读取单独定义文件，没有则跳过
-if (file.exists(Compound_def_file)) {
+if (!is.null(opt$definition)) {
   definition_df <- read.xlsx(Compound_def_file, sheet = 1, rowNames = TRUE)
+  # definition_df <- fread(Compound_def_file, fileEncoding = "UTF-8", check.names = TRUE)
+  # rownames(definition_df) <- make.names(definition_df[[1]], unique = TRUE)
+  # definition_df <- definition_df[, -1, with = FALSE]
   definition_df$Metabolite <- rownames(definition_df)
 
   if (opt$sort_by_class) {
@@ -905,11 +938,15 @@ if (file.exists(Compound_def_file)) {
     sorted_ids <- rownames(definition_df)
     reads_data <- reads_data[sorted_ids, ]
   }
+  current_definition_df <- definition_df[rownames(reads_data), , drop = FALSE]
+  annotation_row_df <- gen_annotation_row_df(current_definition_df)
 } else {
   definition_df <- NA
+  current_definition_df <- NA
+  annotation_row_df <- NA
 }
 
-# ====================== 主程序流程（精简合并） =================================
+# ====================== 主程序流程 =================================
 # 1) 根据 runtype 生成处理后的数据和主图参数
 if (opt$runtype == "zscore") {
   data_used <- as.data.frame(t(apply(reads_data, 1, function(x) {
@@ -922,11 +959,7 @@ if (opt$runtype == "zscore") {
   fpkm_for_pair <- FALSE
 }
 
-# 2) 注释数据（与输入行一致，以 reads_data 的行名为准）
-current_definition_df <- definition_df[rownames(reads_data), , drop = FALSE]
-annotation_row_df <- gen_annotation_row_df(current_definition_df)
 annotation_col_df <- gen_annotation_col_df(sample_info)
-
 
 # 3) 整体热图
 smart_heatmap(
@@ -1050,7 +1083,8 @@ metabolite_analysis(
   definition_df = current_definition_df,
   output_dir = multigroup_dir,
   log2data = opt$log2data,
-  each_class_heatmap = opt$each_class_heatmap
+  each_class_heatmap = opt$each_class_heatmap,
+  ncomp = opt$ncomp
 )
 
 # 9) 组间分析（zscore 时传递 fpkm；normal 传 FALSE，保持原逻辑）
