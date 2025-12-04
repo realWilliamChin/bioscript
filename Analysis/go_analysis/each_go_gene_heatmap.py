@@ -41,7 +41,7 @@ def each_go_gene_expression(go_id_list, gene_go_df, expression_data, output_dir=
         each_go_id_df = gene_go_df[gene_go_df['GO_ID'] == go_id]
         if each_go_id_df.shape[0] < 1:
             logger.warning(f'没有 {go_id} 相关基因')
-        each_go_id_gene_expression_df = pd.merge(each_go_id_df, expression_data, on='GeneID', how='left')
+        each_go_id_gene_expression_df = pd.merge(each_go_id_df, expression_data, on='GeneID', how='inner')
         each_go_id_gene_expression_df.drop(columns=['GO_ID'], inplace=True)
         go_replace_name = go_id.replace(':', '_')
         go_id_gene_expression_fn = os.path.join(output_dir, f'{go_replace_name}_gene_expression.xlsx')
@@ -63,7 +63,7 @@ def each_go_gene_heatmap(go_id_list, gene_go_df, fpkm_matrix_df, samples_df, out
         logger.info(f'尝试对 {go_id} 的相关基因画 Heatmap 图，数量为 {each_go_id_df.shape[0]}')
 
         # 添加 fpkm
-        each_go_id_gene_fpkm_df = pd.merge(each_go_id_df, fpkm_matrix_df, on='GeneID', how='left')
+        each_go_id_gene_fpkm_df = pd.merge(each_go_id_df, fpkm_matrix_df, on='GeneID', how='inner')
         each_go_id_gene_fpkm_df.dropna(how='any', axis=0, inplace=True)
         if each_go_id_gene_fpkm_df.shape[0] <= 2:
             logger.error(f'{go_id} 相关基因表达量小于 2，跳过')
@@ -91,7 +91,7 @@ def each_go_gene_heatmap(go_id_list, gene_go_df, fpkm_matrix_df, samples_df, out
 def main():
     args = parse_input()
     go_df = load_table(args.input)
-    goid_list = go_df['GO_ID'].str.split('_').str[0].tolist()
+    goid_list = go_df['GO_ID'].tolist()
     genego_df = load_table(args.genego, header=None, names=['GeneID', 'GO_ID'])
     fpkm_df = load_table(args.fpkmmatrix)
     samples_df = load_table(args.samples)
