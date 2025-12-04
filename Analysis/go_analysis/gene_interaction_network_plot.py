@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib import axes
-from matplotlib.colors import ListedColormap
 
 from tabulate import tabulate
 from IPython.display import Markdown
@@ -122,8 +121,9 @@ def VennNetworkPlot(
 
     # get edge style
     edge_color = [
-        d["color"] for u, v, d in G.edges(data=True)
-    ]  # G.edges(data=True)返回NodeDataView对象(一个嵌套列表例如:[('A', 'a', {"color":"red"}), ('B', 'b',{"color":"blue"})],获取边的颜色属性
+        d.get("color", "gray") if pd.notna(d.get("color")) else "gray"
+        for u, v, d in G.edges(data=True)
+    ]  # G.edges(data=True)返回NodeDataView对象(一个嵌套列表例如:[('A', 'a', {"color":"red"}), ('B', 'b',{"color":"blue"})],获取边的颜色属性，如果颜色为nan则使用默认灰色
 
     edge_style_line = {
         "edge_color": edge_color,
@@ -156,13 +156,25 @@ def VennNetworkPlot(
     # plot network
     if show_node_color:
         node_color = {}
-        node_color.update(dict(zip(edge_data["source"], edge_data["color"])))
+        # 为 source 节点分配颜色（过滤掉 nan 值）
+        source_color_dict = dict(zip(edge_data["source"], edge_data["color"]))
+        source_color_dict = {k: v for k, v in source_color_dict.items() if pd.notna(v)}
+        node_color.update(source_color_dict)
+        
         edge_data_test = edge_data.copy()
-        edge_data_test.loc[edge_data_test["target"].duplicated(), "color"] = (
-            "red"  # 交集的点单独设置颜色
-        )
-        node_color.update(dict(zip(edge_data_test["target"], edge_data_test["color"])))
-        node_options["node_color"] = [node_color[node] for node in G.nodes]
+        # 为重复的 target 节点设置红色（交集节点）
+        edge_data_test.loc[edge_data_test["target"].duplicated(), "color"] = "red"
+        # 为 target 节点分配颜色（过滤掉 nan 值，未分配的节点使用默认颜色）
+        target_color_dict = dict(zip(edge_data_test["target"], edge_data_test["color"]))
+        target_color_dict = {k: v for k, v in target_color_dict.items() if pd.notna(v)}
+        node_color.update(target_color_dict)
+        
+        # 为没有颜色的节点设置默认颜色（灰色）
+        default_color = "lightgrey"
+        node_options["node_color"] = [
+            node_color.get(node, default_color) if pd.notna(node_color.get(node, default_color)) else default_color
+            for node in G.nodes
+        ]
     nx.draw_networkx_nodes(G, pos, **node_options)
     nx.draw_networkx_edges(G, pos, **edge_options[edge_style])
 
@@ -261,12 +273,13 @@ def draw_enrichnetplot(df, output_pic_name):
         "#ffeb3b", "#ffc107", "#795548", "#607d8b",
     ]
 
-    my_set_cmap = ListedColormap(my_set_colors)
-
     groups = list(set(df["source"].values.tolist()))
-    groups_colors = plt.get_cmap(my_set_cmap).colors[: len(groups)]
-
-    df = df.assign(color=lambda x: x["source"].map(dict(zip(groups, groups_colors))))
+    # 为每个 group 分配颜色，如果 group 数量超过颜色数量，则循环使用
+    groups_colors = [my_set_colors[i % len(my_set_colors)] for i in range(len(groups))]
+    groups_color_dict = dict(zip(groups, groups_colors))
+    
+    # 分配颜色，确保所有行都有有效的颜色（使用 fillna 处理可能的缺失值）
+    df = df.assign(color=lambda x: x["source"].map(groups_color_dict).fillna("#808080"))
 
     if df.shape[0] < 50:
         plotsize = (8, 8)
