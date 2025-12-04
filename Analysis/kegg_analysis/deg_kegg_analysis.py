@@ -15,6 +15,7 @@ from Rscript import draw_twogroup_heatmap
 from Rscript import draw_pathview
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from load_input import load_table, write_output_df
+from data_check import df_drop_row_sum_eq_zero
 sys.path.append('/home/colddata/qinqiang/script/Analysis/kegg_analysis')
 from each_ko_gene_heatmap import each_ko_gene_heatmap
 from get_passed_path import passed_path
@@ -251,7 +252,7 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
                 continue
             # 去除掉除 GeneID 列之外全为空的行
             ko_num_fpkm_expr_df.dropna(subset=crt_group_samples, how='all', inplace=True)
-            ko_num_fpkm_expr_df = ko_num_fpkm_expr_df.loc[~(ko_num_fpkm_expr_df[crt_group_samples] == 0).all(axis=1)]
+            ko_num_fpkm_expr_df = df_drop_row_sum_eq_zero(ko_num_fpkm_expr_df)
             
             ko_num_fpkm_expr_df_file = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_fpkm_expression.xlsx")
             ko_num_fpkm_expr_pic_name = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_heatmap.jpeg")
@@ -259,11 +260,11 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
             with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
                 ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
                 heatmap_sheet2_samplegroupcolor_df.to_excel(writer, index=False, sheet_name='Sheet2')
-            if 100 >= ko_num_fpkm_expr_df.shape[0] > 1:
+            if ko_num_fpkm_expr_df.shape[0] > 1:
                 logger.info(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
                 draw_twogroup_heatmap(ko_num_fpkm_expr_df_file, ko_num_fpkm_expr_pic_name)
             else:
-                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行或超过 100 行，不执行画热图")
+                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行, 不执行画热图")
         
             # 输出每个 ko 的 deg_data 文件
             ko_num_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{ko_number}_DEG_data.xlsx")
