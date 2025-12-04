@@ -5,6 +5,8 @@ import numpy as np
 import glob
 import subprocess
 from functools import reduce
+from loguru import logger
+
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from load_input import load_table, write_output_df
@@ -56,17 +58,18 @@ def prepare_kegg_data(vip_df, compare_group_name):
 def run_kegg_enrich_analysis(up_df, down_df, up_df_filename, down_df_filename, enrich_output_prefix, kegg_enrich_output_prefix, definition_df=None):
     """运行KEGG富集分析并处理结果"""
     # 运行富集分析脚本
+    Rscript_path = '/home/data/opt/biosoft/R-422/bin/Rscript'
     enrich_script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_enrich.r"
-    up_df_cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript {enrich_script_path} --datatable {up_df_filename} --outputprefix {enrich_output_prefix}_Up"
-    down_df_cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript {enrich_script_path} --datatable {down_df_filename} --outputprefix {enrich_output_prefix}_Down"
+    up_df_cmd = f"{Rscript_path} {enrich_script_path} --datatable {up_df_filename} --outputprefix {enrich_output_prefix}_Up"
+    down_df_cmd = f"{Rscript_path} {enrich_script_path} --datatable {down_df_filename} --outputprefix {enrich_output_prefix}_Down"
     
     subprocess.run(up_df_cmd, shell=True)
     subprocess.run(down_df_cmd, shell=True)
     
     # 运行KEGG富集分析脚本
     kegg_enrich_script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_kegg_enrich.r"
-    up_df_cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript {kegg_enrich_script_path} --datatable {up_df_filename} --outputprefix {kegg_enrich_output_prefix}_Up"
-    down_df_cmd = f"/opt/biosoft/R-4.2.2/bin/Rscript {kegg_enrich_script_path} --datatable {down_df_filename} --outputprefix {kegg_enrich_output_prefix}_Down"
+    up_df_cmd = f"{Rscript_path} {kegg_enrich_script_path} --datatable {up_df_filename} --outputprefix {kegg_enrich_output_prefix}_Up"
+    down_df_cmd = f"{Rscript_path} {kegg_enrich_script_path} --datatable {down_df_filename} --outputprefix {kegg_enrich_output_prefix}_Down"
     
     subprocess.run(up_df_cmd, shell=True)
     subprocess.run(down_df_cmd, shell=True)
@@ -113,6 +116,7 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
         
         # ======= enrich start ======== 有 KEGG 列才能做 enrich
         if "KEGG" in vip_df.columns:
+            logger.info('正在尝试进行 enrich 分析')
             result = prepare_kegg_data(vip_df, compare_group_name)
             if result[0] is not None:  # 检查是否有KEGG数据
                 up_df, down_df, up_df_filename, down_df_filename, enrich_output_prefix, kegg_enrich_output_prefix = result
@@ -230,7 +234,6 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
     
     # 合并Class统计结果并导出
     if class_count_list:
-        # 使用简单的合并函数，让pandas自动处理重复列名
         def simple_merge(left, right):
             return pd.merge(left, right, on='Class', how='outer', suffixes=('', '_dup'))
         
@@ -241,7 +244,7 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
         # 处理重复的Total列，保留第一个Total列
         total_cols = [col for col in class_count_result.columns if col.startswith('Total')]
         if len(total_cols) > 1:
-            cols_to_keep = ['Class']
+            cols_to_keep = []
             total_kept = False
             for col in class_count_result.columns:
                 if col.startswith('Total') and not total_kept:
@@ -282,9 +285,6 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
         # 重新排列DataFrame
         class_count_result = class_count_result[reordered_cols]
         
-        print("Class统计结果:")
-        print(class_count_result.head())
-        
         class_count_result.to_excel(
             os.path.join(input_dir, "Significant_compound_count_by_class.xlsx"),
             index=False
@@ -306,7 +306,7 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
         total_cols = [col for col in subclass_count_result.columns if col.startswith('Total')]
         if len(total_cols) > 1:
             # 保留第一个Total列，删除其他的Total列
-            cols_to_keep = ['SubClass']
+            cols_to_keep = []
             total_kept = False
             for col in subclass_count_result.columns:
                 if col.startswith('Total') and not total_kept:
@@ -347,8 +347,16 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
         # 重新排列DataFrame
         subclass_count_result = subclass_count_result[reordered_cols]
         
-        print("SubClass统计结果:")
-        print(subclass_count_result.head())
+        # 获取 SubClass 到 Class 的对应关系
+        subclass_to_class = definition_df[['SubClass', 'Class']].drop_duplicates()
+        subclass_count_result = pd.merge(subclass_to_class, subclass_count_result, on='SubClass', how='right')
+        # 按照 Class 排序
+        subclass_count_result = subclass_count_result.sort_values(by=['Class', 'SubClass'])
+        # 将 Class 列放到第一列
+        cols = subclass_count_result.columns.tolist()
+        if 'Class' in cols:
+            cols = ['Class'] + [col for col in cols if col != 'Class']
+            subclass_count_result = subclass_count_result[cols]
         
         subclass_count_result.to_excel(
             os.path.join(input_dir, "Significant_compound_count_by_subclass.xlsx"),
