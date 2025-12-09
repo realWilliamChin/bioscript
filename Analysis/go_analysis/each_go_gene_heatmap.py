@@ -3,6 +3,7 @@
 # Created Time  : 2023/08/29 17:19
 # Author        : William GoGo
 import os
+import re
 import sys
 import pandas as pd
 import argparse
@@ -43,7 +44,8 @@ def each_go_gene_expression(go_id_list, gene_go_df, expression_data, output_dir=
             logger.warning(f'没有 {go_id} 相关基因')
         each_go_id_gene_expression_df = pd.merge(each_go_id_df, expression_data, on='GeneID', how='inner')
         each_go_id_gene_expression_df.drop(columns=['GO_ID'], inplace=True)
-        go_replace_name = go_id.replace(':', '_')
+        # 将任何不适合创建文件的字符（包括空格）变成 _
+        go_replace_name = re.sub(r'[\\/:*?"<>|\s]', '_', go_id)
         go_id_gene_expression_fn = os.path.join(output_dir, f'{go_replace_name}_gene_expression.xlsx')
         write_output_df(each_go_id_gene_expression_df, go_id_gene_expression_fn, index=False)
 
@@ -93,10 +95,12 @@ def main():
     go_df = load_table(args.input)
     goid_list = go_df['GO_ID'].tolist()
     genego_df = load_table(args.genego, header=None, names=['GeneID', 'GO_ID'])
-    fpkm_df = load_table(args.fpkmmatrix)
+    
     samples_df = load_table(args.samples)
     
-    each_go_gene_heatmap(goid_list, genego_df, fpkm_df, samples_df, args.outputdir)
+    # if args.fpkmmatrix:
+    #     fpkm_df = load_table(args.fpkmmatrix)
+    #     each_go_gene_heatmap(goid_list, genego_df, fpkm_df, samples_df, args.outputdir)
     
     if args.expression_data:
         expression_df = load_table(args.expression_data)
