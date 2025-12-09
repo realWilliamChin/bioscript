@@ -15,7 +15,7 @@ sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from data_check import df_drop_row_sum_eq_zero
 from data_check import df_drop_element_side_space
 from data_check import df_replace_illegal_folder_chars
-from Rscript import draw_multigroup_heatmap
+from Rscript import smart_heatmap
 from load_input import load_table, write_output_df
 
 
@@ -94,7 +94,7 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, g
         multigroup_heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
         samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
         multigroup_heatmap_sheet3_df.to_excel(writer, sheet_name='Sheet3', index=False)
-    draw_multigroup_heatmap(all_gene_heatmap_filename, output_pic, other_args='--no-cluster-rows')
+    smart_heatmap(all_gene_heatmap_filename, output_pic, other_args='--no-cluster-rows')
 
     # 每个 Ontology 单独画图
     for ontology, sub_df in gene_fpkm_df.groupby('Ontology'):
@@ -115,7 +115,7 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, index_col, g
             heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
             sub_samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
             heatmap_sheet3_df.to_excel(writer, sheet_name='Sheet3', index=False)
-        draw_multigroup_heatmap(ontology_excel, ontology_pic, other_args='--no-cluster-rows')
+        smart_heatmap(ontology_excel, ontology_pic, other_args='--no-cluster-rows')
 
 
 def deg_target_gene_summary(df_list, samples_info_df):
@@ -213,11 +213,10 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
         deg_data_df = load_table(deg_data_file, dtype={'GeneID': str})
         
         # 目标基因和 DEG_data 合并，文件预处理
-        comparison_target_gene_df = pd.merge(target_gene_def_df, right=deg_data_df, on=index_col, how='inner', suffixes=('_df1', '_df2'))
+        comparison_target_gene_df = pd.merge(target_gene_def_df, right=deg_data_df, on=index_col, how='inner', suffixes=('_df1', ''))
         comparison_target_gene_df.dropna(subset=index_col, inplace=True)  # 去掉 NA 行
         cols_to_drop = [col for col in comparison_target_gene_df.columns if col.endswith('_df1')]
         comparison_target_gene_df.drop(columns=cols_to_drop, inplace=True)
-        comparison_target_gene_df.columns = [col.replace('_df2', '') for col in comparison_target_gene_df.columns]
         # 添加到 list，输出汇总文件
         result_target_gene_data_list.append(comparison_target_gene_df.copy())
         
@@ -237,7 +236,7 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
             comparison_samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
             ontology_df.to_excel(writer, sheet_name='Sheet3', index=False)
         
-        draw_multigroup_heatmap(group_vs_group_heatmap_fname, group_vs_group_heatmap_pname, other_args='--no-cluster-rows')
+        smart_heatmap(group_vs_group_heatmap_fname, group_vs_group_heatmap_pname, other_args='--no-cluster-rows')
         
         # 每个组间的每个 Ontology 画一张图
         for ontology, sub_df in comparison_target_gene_df.groupby('Ontology'):
@@ -254,7 +253,7 @@ def deg_target_gene_heatmap(target_gene_def_df, samples_df, deg_data_dir, index_
                 comparison_samples_df.to_excel(writer, sheet_name="Sheet2", index=False)
                 ontology_def_df.to_excel(writer, sheet_name="Sheet3", index=False)
 
-            draw_multigroup_heatmap(ontology_excel_name, ontology_pic_name, other_args='--no-cluster-rows')
+            smart_heatmap(ontology_excel_name, ontology_pic_name, other_args='--no-cluster-rows')
             
     logger.info('正在对结果汇总')
     target_gene_summary_df = deg_target_gene_summary(result_target_gene_data_list, samples_df)
