@@ -17,3 +17,16 @@ practice/git
 script_work/*
 !script_work/*.*
 example_*
+
+# 大文件和数据库文件
+*.hmm
+*.h3p
+*.h3m
+*.h3f
+*.h3i
+*.cm
+*.cm.i1m
+*.cm.i1p
+*.cm.i1f
+DenovoGenome/libs/
+
