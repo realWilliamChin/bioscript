@@ -14,7 +14,6 @@ def parse_input():
     args = argparse.ArgumentParser()
     args.add_argument('-t', '--type', dest='alignment_type', choices=['hisat2', 'bowtie2', 'bwa', 'salmon'], help=("选择使用哪种方式比对，并确保提供必要的参数"))
     args.add_argument('-s', '--samples', required=True, help='samples_described.txt (默认: samples_described.txt)', default='samples_described.txt')
-    args.add_argument('-g', '--gff', help='[有参流程] stringtie 所需的 gff 文件', default=None)
     args.add_argument('-d', '--cd', help='cleandata file dir')
     args.add_argument('-o', '--result-dir', dest='result_dir', help='输出结果文件夹')
     args.add_argument('-r', '--ref', help='reference index，运行 salmon 时只需要输入目录')
@@ -60,7 +59,7 @@ def alignment(alignment_type, sample_name, R1, R2, result_dir, ref_index, num_th
         elif alignment_type.lower() == 'salmon':
             gene_map_file = os.path.join(ref_index, 'gene_map.txt')
             salmon_output_dir = os.path.join(result_dir, f'{sample_name}')
-            alignment_cmd = f'/opt/biosoft/salmon-latest_linux_x86_64/bin/salmon quant \
+            alignment_cmd = f'/home/data/opt/biosoft/salmon-latest_linux_x86_64/bin/salmon quant \
                 -p {num_threads} \
                 --validateMappings \
                 -i {ref_index} \
@@ -85,25 +84,10 @@ def alignment(alignment_type, sample_name, R1, R2, result_dir, ref_index, num_th
                 last_line = f.readlines()[-1]
                 logger.success(f'{sample_name} {last_line}')
         
-        if alignment_type == 'hisat2' or alignment_type == 'bowtie2':
-            stringtie(sample_name, bam_file_name, gff_file, result_dir)
-        
         return bam_file_name
 
 
-def stringtie(sample_name, bam_file_name, gff_file, result_dir):
-    stringtie_cmd = (
-        f'nohup stringtie -e -B '
-        f'-G {gff_file} '
-        f'-A {result_dir}/fpkm/{sample_name}_fpkm.txt '
-        f'-o {result_dir}/ballgown/{sample_name}/{sample_name}.gtf '
-        f'{bam_file_name} > /dev/null 2>&1 &'
-    )
-    logger.debug(f'后台运行 stringtie 命令 {stringtie_cmd}')
-    os.system(stringtie_cmd)
-
-
-if __name__ == '__main__':
+def main():
     logger.warning('比对前建议检查文件和样本是否匹配')
     args = parse_input()
     
@@ -177,3 +161,7 @@ if __name__ == '__main__':
                     )
                     active_futures.append((new_future, new_sample_name))
                     sample_index += 1
+
+
+if __name__ == '__main__':
+    main()
