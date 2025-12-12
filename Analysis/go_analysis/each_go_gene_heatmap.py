@@ -37,15 +37,18 @@ def parse_input():
     return args
 
 
-def each_go_gene_expression(go_id_list, gene_go_df, expression_data, output_dir='./'):
-    for go_id in go_id_list:
+def each_go_gene_expression(target_go_df, gene_go_df, expression_data, output_dir='./'):
+    for _, row in target_go_df.iterrows():
+        go_id = row['GO_ID']
+        go_def = row['GO_def']
         each_go_id_df = gene_go_df[gene_go_df['GO_ID'] == go_id]
         if each_go_id_df.shape[0] < 1:
             logger.warning(f'没有 {go_id} 相关基因')
+            continue
         each_go_id_gene_expression_df = pd.merge(each_go_id_df, expression_data, on='GeneID', how='inner')
         each_go_id_gene_expression_df.drop(columns=['GO_ID'], inplace=True)
         # 将任何不适合创建文件的字符（包括空格）变成 _
-        go_replace_name = re.sub(r'[\\/:*?"<>|\s]', '_', go_id)
+        go_replace_name = go_id.replace(':', '_') + '_' + re.sub(r'[\\/:*?"<>|\s]', '_', str(go_def))
         go_id_gene_expression_fn = os.path.join(output_dir, f'{go_replace_name}_gene_expression.xlsx')
         write_output_df(each_go_id_gene_expression_df, go_id_gene_expression_fn, index=False)
 
@@ -93,18 +96,21 @@ def each_go_gene_heatmap(go_id_list, gene_go_df, fpkm_matrix_df, samples_df, out
 def main():
     args = parse_input()
     go_df = load_table(args.input)
-    goid_list = go_df['GO_ID'].tolist()
+    if 'GO_def' not in go_df.columns:
+        go_df['GO_def'] = go_df['GO_ID'].str.split('_').str[1]
+    go_df['GO_ID'] = go_df['GO_ID'].str.split('_').str[0]
+    
     genego_df = load_table(args.genego, header=None, names=['GeneID', 'GO_ID'])
     
-    samples_df = load_table(args.samples)
-    
-    # if args.fpkmmatrix:
-    #     fpkm_df = load_table(args.fpkmmatrix)
-    #     each_go_gene_heatmap(goid_list, genego_df, fpkm_df, samples_df, args.outputdir)
+    if args.fpkmmatrix:
+        samples_df = load_table(args.samples)
+        goid_list = go_df['GO_ID'].str.split("_").str[0].tolist()
+        fpkm_df = load_table(args.fpkmmatrix)
+        each_go_gene_heatmap(goid_list, genego_df, fpkm_df, samples_df, args.outputdir)
     
     if args.expression_data:
         expression_df = load_table(args.expression_data)
-        each_go_gene_expression(goid_list, genego_df, expression_df, args.outputdir)
+        each_go_gene_expression(go_df, genego_df, expression_df, args.outputdir)
     
     logger.success('Done')
 
