@@ -42,11 +42,11 @@ def df_drop_element_side_space(df):
 
 def df_drop_row_sum_eq_zero(df: pd.DataFrame) -> pd.DataFrame:
     """
-    删除所有数值型列和为0的行。
+    建议先运行 convert_numeric_columns 强制转换所有可能为数值列的类型
+    删除所有数值型列和为0的行
     输入: pd.DataFrame
     返回: pd.DataFrame
     """
-    df = convert_numeric_columns(df)
     numeric_cols = df.select_dtypes(include='number').columns  # 选择数值列
     row_sums = df[numeric_cols].sum(axis=1)                   # 计算每行和
     before = df.shape[0]
@@ -75,21 +75,31 @@ def df_replace_illegal_folder_chars(df, columns, replace_with="_"):
     return df
 
 
-def convert_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
+def convert_numeric_columns(df: pd.DataFrame, exclude_columns=None) -> pd.DataFrame:
     """
-    遍历所有列：若某列中所有非空值均可成功转为数值，则将该列转换为数值类型。
+    转换数字但类型是字符串的列为数值类型。
     空字符串会被视为缺失值允许保留为 NaN。
+    :param df: 待处理的DataFrame
+    :param exclude_columns: 可迭代的列名，指定这些列不做转换（可为None）
+    :return: 转换后的DataFrame
     """
     df_converted = df.copy()
     for col in df_converted.columns:
-        # 先将值标准化为字符串，去除首尾空白，并将空字符串视为缺失
+        if col in exclude_columns:
+            continue
         ser = df_converted[col].astype(str).str.strip()
         ser = ser.replace({"": None})
-        # 尝试数值转换（不可转的变为 NaN）
+        # 尝试数值转换（无法转换的字符串会变为 NaN）
         converted = pd.to_numeric(ser, errors='coerce')
+        # 获取非空值的掩码（排除原本就是空值的位置）
         non_empty_mask = ser.notna()
-        # 所有非空项均可成功转为数值则接受转换
-        if converted[non_empty_mask].notna().all():
+        # 只有当所有非空值都能成功转换为数值时，才转换该列
+        # 如果存在无法转换的字符串（如 "abc"），converted 中对应位置会是 NaN
+        # 此时 converted[non_empty_mask].notna().all() 会返回 False，该列不会被转换
+        if non_empty_mask.any() and converted[non_empty_mask].notna().all():
+            df_converted[col] = converted
+        elif not non_empty_mask.any():
+            # 如果列全部为空，也可以转换为数值类型（全部为 NaN 的数值列）
             df_converted[col] = converted
     return df_converted
 
