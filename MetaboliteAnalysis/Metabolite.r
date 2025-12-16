@@ -11,26 +11,28 @@ source('/home/colddata/qinqiang/script/Plot/PCA/pca_1.r', echo = TRUE, encoding 
 source('/home/colddata/qinqiang/script/Plot/Corrplot/correlation_1.r', echo = TRUE, encoding = 'UTF-8')
 
 option_list <- list(
-  make_option(c("-t", "--runtype"), type="character", default="normal",
-              help="运行类型, normal 和 zscore", metavar="character"),
-  make_option(c("-i", "--input"), type="character", default=NULL, 
-              help="输入数据文件", metavar="character"),
-  make_option(c("-s", "--samples"), type="character", default=NULL,
-              help="样本信息文件", metavar="character"), 
-  make_option(c("-c", "--compare"), type="character", default=NULL,
-              help="比较组信息文件", metavar="character"),
-  make_option(c("-d", "--definition"), type="character", default=NULL,
-              help="代谢物定义文件", metavar="character"),
-  make_option(c("-o", "--outdir"), type="character", default="./",
-              help="输出目录", metavar="character"),
-  make_option("--sort_by_class", type="logical", default=TRUE, metavar="logical",
-              help="是否对 class 进行排序"),
-  make_option(c("-l", "--log2data"), type="logical", default=FALSE,
-              help="是否进行log2转换", metavar="logical"),
-  make_option("--each_class_heatmap", type='logical', default=FALSE, metavar="logical",
-              help="是否进行每个 Class 画一个 heatmap 图，常用于 Class 很多的情况"),
-  make_option("--ncomp", type="integer", default=NULL, metavar="integer",
-              help="设置 PLS-DA 的主成分数量 (ncomp)，如果不指定则根据样本数量自动计算")
+  make_option(c("-t", "--runtype"), type = "character", default = "normal", metavar = "character",
+              help = "运行类型, normal（不归一化） 和 zscore（归一化）"),
+  make_option(c("-i", "--input"), type = "character", default = "All_sample_data.xlsx", metavar = "character",
+              help = "输入数据文件 All_sample_data.xlsx"),
+  make_option(c("-s", "--samples"), type = "character", default = "samples_described.txt", metavar = "character",
+              help = "样本信息文件 samples_described.txt(group sample)"),
+  make_option(c("-c", "--compare"), type = "character", default = "compare_info.txt", metavar = "character",
+              help = "比较组信息文件 compare_info.txt(Treat Control)"),
+  make_option(c("-d", "--definition"), type = "character", default = "Compound_def.xlsx", metavar = "character",
+              help = "代谢物定义文件 Compound_def.xlsx"),
+  make_option(c("-o", "--outdir"), type = "character", default = "./", metavar = "character",
+              help = "输出目录"),
+  make_option("--sort_by_class", type = "logical", default = FALSE, metavar = "logical",
+              help = "是否对 class 进行排序"),
+  make_option(c("-l", "--log2data"), type = "logical", default = FALSE, metavar = "logical",
+              help = "是否进行log2转换"),
+  make_option("--each_class_heatmap", type = "logical", default = FALSE, metavar = "logical",
+              help = "是否进行每个 Class 画一个 heatmap 图，常用于 Class 很多的情况"),
+  make_option("--heatmap_cluster", type = "logical", default = FALSE, metavar = "logical",
+              help = "是否需要多画一个聚类的 heatmap 图"),
+  make_option("--ncomp", type = "integer", default = NULL, metavar = "integer",
+              help = "设置 PLS-DA 的主成分数量 (ncomp)，如果不指定则根据样本数量自动计算（程序跑不通的情况下手动设置这个参数）")
 )
 
 opt_parser <- OptionParser(option_list=option_list)
@@ -56,7 +58,7 @@ my_set_colors <- c(
 #' @param output_dir 输出目录路径
 #' @param show_all 是否绘制综合热图（默认TRUE）
 #' @param show_each 是否绘制每个类别的热图（默认TRUE）
-row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir) {
+row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir, heatmap_cluster = FALSE) {
   
   # 检查输入有效性
   if (!is.data.frame(compound_def) || nrow(compound_def) == 0) {
@@ -100,16 +102,18 @@ row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir) 
       scale = 'row',
       main = paste("Class: ", class_name)
     )
-    smart_heatmap(
-      matrix_data = class_data, 
-      filename = file.path(output_dir, paste0(safe_name, "_heatmap_cluster_row.jpg")),
-      cluster_rows = TRUE,
-      cluster_cols = FALSE,
-      annotation_row = annotation_row_df,
-      annotation_col = annotation_col_df,
-      scale = 'row',
-      main = paste("Class: ", class_name)
-    )
+    if (heatmap_cluster) {
+      smart_heatmap(
+        matrix_data = class_data,
+        filename = file.path(output_dir, paste0(safe_name, "_heatmap_cluster_row.jpg")),
+        cluster_rows = TRUE,
+        cluster_cols = FALSE,
+        annotation_row = annotation_row_df,
+        annotation_col = annotation_col_df,
+        scale = 'row',
+        main = paste("Class: ", class_name)
+      )
+    }
 
     # 如果存在 SubClass，则为当前 Class 下的每个 SubClass 分别绘图，放入 Class 子目录
     if ("SubClass" %in% colnames(compound_def)) {
@@ -135,16 +139,18 @@ row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir) 
           scale = 'row',
           main = paste("Class/SubClass: ", class_name, "/", sub_name)
         )
-        smart_heatmap(
-          matrix_data = sub_data,
-          filename = file.path(class_dir, paste0(safe_sub, "_heatmap_cluster_row.jpg")),
-          cluster_rows = TRUE,
-          cluster_cols = FALSE,
-          annotation_row = annotation_row_df,
-          annotation_col = annotation_col_df,
-          scale = 'row',
-          main = paste("Class/SubClass: ", class_name, "/", sub_name)
-        )
+        if (heatmap_cluster) {
+          smart_heatmap(
+            matrix_data = sub_data,
+            filename = file.path(class_dir, paste0(safe_sub, "_heatmap_cluster_row.jpg")),
+            cluster_rows = TRUE,
+            cluster_cols = FALSE,
+            annotation_row = annotation_row_df,
+            annotation_col = annotation_col_df,
+            scale = 'row',
+            main = paste("Class/SubClass: ", class_name, "/", sub_name)
+          )
+        }
       }
     }
   }
@@ -296,7 +302,7 @@ gen_annotation_col_df <- function(samples_df) {
 }
 
 # 代谢物分析主函数
-metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE, ncomp = NULL) {
+metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE, heatmap_cluster = FALSE, ncomp = NULL) {
   select_sample_info <- read.table(
     samples_file, 
     sep = "\t", 
@@ -332,15 +338,17 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     annotation_col = annotation_col_df,
     scale = 'row'
   )
-  smart_heatmap(
-    matrix_data = select_data_frame,
-    file.path(output_dir, 'Compounds_heatmap_cluster_row.png'),
-    cluster_cols = FALSE,
-    cluster_rows = TRUE,
-    annotation_row = annotation_row_df,
-    annotation_col = annotation_col_df,
-    scale = 'row'
-  )
+  if (heatmap_cluster) {
+    smart_heatmap(
+      matrix_data = select_data_frame,
+      file.path(output_dir, 'Compounds_heatmap_cluster_row.png'),
+      cluster_cols = FALSE,
+      cluster_rows = TRUE,
+      annotation_row = annotation_row_df,
+      annotation_col = annotation_col_df,
+      scale = 'row'
+    )
+  }
   
   # 每个 Class 一张图
   if (each_class_heatmap) {
@@ -350,7 +358,8 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
       data_frame = select_data_frame,
       samples_df = select_sample_info,
       compound_def = current_definition_df,
-      output_dir = each_class_heatmap_dir
+      output_dir = each_class_heatmap_dir,
+      heatmap_cluster = opt$heatmap_cluster
     )
   }
 
@@ -573,7 +582,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
 }
 
 # 组间分析函数
-comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = NA, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE) {
+comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = NA, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE, heatmap_cluster = FALSE) {
   sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
   comp_info <- read.table(compare_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
   
@@ -703,15 +712,17 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
         annotation_col = current_annotation_col_df,
         scale = 'row'
       )
-      smart_heatmap(
-        matrix_data = current_expression_fpkm_data,
-        file.path(compare_path, paste0(compare_name, "_heatmap_cluster_row.png")),
-        cluster_cols = FALSE,
-        cluster_rows = TRUE,
-        annotation_row = current_annotation_row_df,
-        annotation_col = current_annotation_col_df,
-        scale = 'row'
-      )
+      if (heatmap_cluster) {
+        smart_heatmap(
+          matrix_data = current_expression_fpkm_data,
+          file.path(compare_path, paste0(compare_name, "_heatmap_cluster_row.png")),
+          cluster_cols = FALSE,
+          cluster_rows = TRUE,
+          annotation_row = current_annotation_row_df,
+          annotation_col = current_annotation_col_df,
+          scale = 'row'
+        )
+      }
     } else {
       smart_heatmap(
         matrix_data = current_expression_data,
@@ -722,15 +733,17 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
         annotation_col = current_annotation_col_df,
         scale = 'row'
       )
-      smart_heatmap(
-        matrix_data = current_expression_data,
-        file.path(compare_path, paste0(compare_name, "_heatmap_cluster_row.png")),
-        cluster_cols = FALSE,
-        cluster_rows = TRUE,
-        annotation_row = current_annotation_row_df,
-        annotation_col = current_annotation_col_df,
-        scale = 'row'
-      )
+      if (heatmap_cluster) {
+        smart_heatmap(
+          matrix_data = current_expression_data,
+          file.path(compare_path, paste0(compare_name, "_heatmap_cluster_row.png")),
+          cluster_cols = FALSE,
+          cluster_rows = TRUE,
+          annotation_row = current_annotation_row_df,
+          annotation_col = current_annotation_col_df,
+          scale = 'row'
+        )
+      }
     }
 
     # 计算FoldChange
@@ -863,7 +876,8 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
         data_frame = data_for_class_heatmap,
         samples_df = sample_info[sample_info$sample %in% current_samples, , drop = FALSE],
         compound_def = current_definition_df,
-        output_dir = each_class_heatmap_dir
+        output_dir = each_class_heatmap_dir,
+        heatmap_cluster = opt$heatmap_cluster
       )
     }
 
@@ -922,10 +936,9 @@ reads_data <- reads_data[sample_info$sample]
 reads_data <- reads_data[rowSums(reads_data != 1e-6) > 0, ]
 
 
-
-Compound_def_file <- opt$definition
 # 如果需要合并定义则读取单独定义文件，没有则跳过
 if (!is.null(opt$definition)) {
+  Compound_def_file <- opt$definition
   definition_df <- read.xlsx(Compound_def_file, sheet = 1, rowNames = TRUE)
   # definition_df <- fread(Compound_def_file, fileEncoding = "UTF-8", check.names = TRUE)
   # rownames(definition_df) <- make.names(definition_df[[1]], unique = TRUE)
@@ -972,16 +985,18 @@ smart_heatmap(
   scale = 'row',
   main = 'All metabolites heatmap'
 )
-smart_heatmap(
-  matrix_data = data_used,
-  filename = file.path(zhengtifenxi_dir, "All_metabolites_heatmap_cluster_row.png"),
-  cluster_cols = FALSE,
-  cluster_rows = TRUE,
-  annotation_row = annotation_row_df,
-  annotation_col = annotation_col_df,
-  scale = 'row',
-  main = 'All metabolites heatmap'
-)
+if (opt$heatmap_cluster) {
+  smart_heatmap(
+    matrix_data = data_used,
+    filename = file.path(zhengtifenxi_dir, "All_metabolites_heatmap_cluster_row.png"),
+    cluster_cols = FALSE,
+    cluster_rows = TRUE,
+    annotation_row = annotation_row_df,
+    annotation_col = annotation_col_df,
+    scale = 'row',
+    main = 'All metabolites heatmap'
+  )
+}
 
 # 4) 组平均热图与导出
 print(paste0('生成', file.path(zhengtifenxi_dir, "All_metabolites_groupmean_heatmap.png")))
@@ -1007,15 +1022,17 @@ smart_heatmap(
   annotation_col = NA,
   scale = 'row'
 )
-smart_heatmap(
-  matrix_data = grouped_means,
-  filename = file.path(zhengtifenxi_dir, 'All_metabolites_groupmean_heatmap_cluster_row.png'),
-  cluster_cols = FALSE,
-  cluster_rows = TRUE,
-  annotation_row = annotation_row_df,
-  annotation_col = NA,
-  scale = 'row'
-)
+if (opt$heatmap_cluster) {
+  smart_heatmap(
+    matrix_data = grouped_means,
+    filename = file.path(zhengtifenxi_dir, 'All_metabolites_groupmean_heatmap_cluster_row.png'),
+    cluster_cols = FALSE,
+    cluster_rows = TRUE,
+    annotation_row = annotation_row_df,
+    annotation_col = NA,
+    scale = 'row'
+  )
+}
 
 write.xlsx(
   grouped_means,
@@ -1057,7 +1074,8 @@ if (opt$each_class_heatmap) {
     data_frame = data_used,
     samples_df = sample_info,
     compound_def = current_definition_df,
-    output_dir = each_class_heatmap_dir
+    output_dir = each_class_heatmap_dir,
+    heatmap_cluster = opt$heatmap_cluster
   )
 }
 
@@ -1084,6 +1102,7 @@ metabolite_analysis(
   output_dir = multigroup_dir,
   log2data = opt$log2data,
   each_class_heatmap = opt$each_class_heatmap,
+  heatmap_cluster = opt$heatmap_cluster,
   ncomp = opt$ncomp
 )
 
@@ -1097,7 +1116,8 @@ if (!is.null(opt$compare)) {
     definition_df = current_definition_df,
     output_dir = comparison_analysis_dir,
     log2data = opt$log2data,
-    each_class_heatmap = opt$each_class_heatmap
+    each_class_heatmap = opt$each_class_heatmap,
+    heatmap_cluster = opt$heatmap_cluster
   )
 }
 
