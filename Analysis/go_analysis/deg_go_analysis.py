@@ -176,10 +176,12 @@ def each_go_pathway_deg_data_heatmap(target_go_df, gene_go_df, compare_info_df, 
             if go_id_deg_data_df.shape[0] == 0:
                 logger.warning(f'{compare_info} 的 {go_pathway_id} 未找到相关基因')
                 continue
-            
+            elif go_id_deg_data_df.shape[0] < 2:
+                logger.warning(f'{compare_info} 的 {go_pathway_id} 相关基因数量小于 2，跳过画 Heatmap 图')
+                continue
+
             # 提取所有 _FPKM 列
             fpkm_columns = [col for col in go_id_deg_data_df.columns if col.endswith('_FPKM')]
-            
             if len(fpkm_columns) == 0:
                 logger.warning(f'{compare_info} 的 {go_pathway_id} 在 DEG_data.txt 中未找到 _FPKM 列，跳过')
                 continue
@@ -189,6 +191,13 @@ def each_go_pathway_deg_data_heatmap(target_go_df, gene_go_df, compare_info_df, 
             # 将列名中的 _FPKM 后缀去掉，使其与 sample 名称匹配
             rename_dict = {col: col.replace('_FPKM', '') for col in fpkm_columns}
             data_df.rename(columns=rename_dict, inplace=True)
+            
+            # 数据验证：检查行数、列数和有效数据
+            data_columns = [col for col in data_df.columns if col != 'GeneID']
+            if (data_df.shape[0] < 2 or len(data_columns) == 0 or 
+                data_df[data_columns].isna().all().all()):
+                logger.warning(f'{compare_info} 的 {go_pathway_id} 数据不符合热图要求（行数<2、无有效列或全为NA），跳过画 Heatmap 图')
+                continue
             
             # 如果提供了 genesymbol_df，则替换 GeneID 为 GeneSymbol
             if genesymbol_df is not None:
