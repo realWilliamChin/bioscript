@@ -95,6 +95,11 @@ def VennNetworkPlot(
     fixed_nodes = edge_data["source"].unique()
     # print(fixed_nodes)
 
+    # 检查fixed_nodes是否为空
+    if len(fixed_nodes) == 0:
+        print("警告：没有找到固定的节点，无法生成网络图")
+        return ax
+
     # set position of fixed nodes
     # 以(0,0)为原点,以r为半径画圆,sinx^2 + cosx^2 = 1,从(0，1)开始按分组数均分取坐标点，
     fixed_nodes_pos = {
@@ -267,6 +272,21 @@ def VennNetworkPlot(
 
 def draw_enrichnetplot(df, output_pic_name):
 
+    # 检查数据是否为空
+    if df.empty or df.shape[0] == 0:
+        print(f"警告：{output_pic_name} 的数据为空，跳过绘图")
+        return
+
+    # 检查必要的列是否存在
+    if "source" not in df.columns or "target" not in df.columns:
+        print(f"警告：{output_pic_name} 的数据缺少必要的列（source 或 target），跳过绘图")
+        return
+
+    # 检查source列是否有有效数据
+    if df["source"].isnull().all() or df["target"].isnull().all():
+        print(f"警告：{output_pic_name} 的source或target列全部为空，跳过绘图")
+        return
+
     my_set_colors = [
         "#9c27b0", "#3f51b5", "#2196f3", "#00bcd4",
         "#009688", "#4caf50", "#8bc34a", "#cddc39",
@@ -277,7 +297,7 @@ def draw_enrichnetplot(df, output_pic_name):
     # 为每个 group 分配颜色，如果 group 数量超过颜色数量，则循环使用
     groups_colors = [my_set_colors[i % len(my_set_colors)] for i in range(len(groups))]
     groups_color_dict = dict(zip(groups, groups_colors))
-    
+
     # 分配颜色，确保所有行都有有效的颜色（使用 fillna 处理可能的缺失值）
     df = df.assign(color=lambda x: x["source"].map(groups_color_dict).fillna("#808080"))
 
