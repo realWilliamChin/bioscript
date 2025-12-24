@@ -4,9 +4,9 @@
 # Author        : William GoGo
 import os, sys
 import argparse
+import re
 import pandas as pd
 from loguru import logger
-import pandas as pd
 from openpyxl.styles import Font, Border, Side
 
 
@@ -45,11 +45,14 @@ def load_table(table_file, *args, **kwargs):
 
     # 读取数据, 并将 *args, **kwargs 传递给读取函数
     df = reader(table_file, *args, **kwargs)
-    
-    # 检查列名中是否包含 geneid/GeneID/gene_id, 如果有则将其转换为字符串类型（经常忘，写在这里）
-    gene_id_cols = [col for col in df.columns if 'geneid' in str(col).lower() or 'gene_id' in str(col).lower()]
+
+    # 检查列名中是否包含基因ID，如果有则将其转换为字符串类型
+    gene_id_pattern = re.compile(r'gene.?id', re.IGNORECASE)
+    gene_id_cols = [col for col in df.columns if isinstance(col, str) and gene_id_pattern.search(col)]
     if gene_id_cols:
         df[gene_id_cols] = df[gene_id_cols].astype(str)
+        logger.info(f"转换了 {len(gene_id_cols)} 个基因ID列为字符串类型: {gene_id_cols}")
+
     return df
 
 
