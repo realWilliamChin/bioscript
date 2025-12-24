@@ -66,10 +66,14 @@ def df_replace_illegal_folder_chars(df, columns, replace_with="_"):
     :return: 处理后的 DataFrame
     """
     # Windows 和 Linux 下常见非法字符
-    illegal_chars = r'[ \/\\:\*\?"<>\|]'
+    illegal_chars = r'[ \/\\:\*\?\'"<>\|]'
     for col in columns:
         if col in df.columns:
-            df[col] = df[col].astype(str).apply(lambda x: re.sub(illegal_chars, replace_with, x))
+            # 替换非法字符为下划线，并合并连续下划线为一个下划线
+            # 将 _-_ 替换为 -
+            df[col] = df[col].astype(str).apply(
+                lambda x: re.sub(r'_-_', '-', re.sub(r'_+', '_', re.sub(illegal_chars, replace_with, x)))
+            )
         else:
             logger.warning(f'输入的 {col} 没有在输入文件中，不会对当前列处理非法字符问题')
     return df
