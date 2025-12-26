@@ -15,7 +15,7 @@ suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(readr))
 
 option_list <- list(
-  make_option(c("--fpkm"),
+  make_option(c("--data_file"),
     type = "character", default = "fpkm_matrix_filtered.txt",
     help = "fpkm_matrix_filtered.txt", metavar = "character"
   ),
@@ -26,23 +26,27 @@ option_list <- list(
   make_option(c("--output"),
     type = "character", default = "pca",
     help = "输出图片文件名称", metavar = "character"
+  ),
+  make_option(c("--log2_transform"),
+    type = "logical", default = FALSE,
+    help = "是否对输入数据进行 log2 转换，默认不转换", metavar = "logical"
   )
 )
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 
 # Assign the first argument to prefix
-fpkm_file <- opt$fpkm
-fpkm_file_extension <- tools::file_ext(fpkm_file)
-reads_file <- opt$reads
+data_file <- opt$data_file
+data_file_extension <- tools::file_ext(data_file)
 samples_file <- opt$samples
 output_prefix <- opt$output
+log2_transform <- opt$log2_transform
 
-pca_plot <- function(reads_data_frame = NA, fpkm_data_frame = NA, samples_file, output_prefix) {
-  if (is.data.frame(fpkm_data_frame)) {
-    data_frame <- log2(fpkm_data_frame + 1)
+pca_plot <- function(data_frame, samples_file, output_prefix, log2_transform = FALSE) {
+  if (log2_transform) {
+    data_frame <- log2(data_frame + 1)
   } else {
-    data_frame <- reads_data_frame
+    data_frame <- data_frame
   }
 
   data_frame <- t(data_frame)
@@ -76,7 +80,12 @@ pca_plot <- function(reads_data_frame = NA, fpkm_data_frame = NA, samples_file, 
       legend.key = element_rect(fill = "transparent")
     ) +
     labs(x = paste("PCA1:", pca_eig1, "%"), y = paste("PCA2:", pca_eig2, "%"), color = "") +
-    geom_text_repel(aes(label = rownames(pca_sample)))
+    geom_text_repel(aes(label = rownames(pca_sample)), 
+                    max.overlaps = Inf, 
+                    force = 2, 
+                    min.segment.length = 0,
+                    box.padding = 0.5,
+                    point.padding = 0.3)
 
   cluster_border <- ddply(pca_sample, .(group), function(df) df[chull(df$Dim.1, df$Dim.2), ])
   p <- p + geom_polygon(data = cluster_border, aes(group = group, fill = group), color = "black", alpha = 0.3, show.legend = FALSE)
@@ -85,15 +94,14 @@ pca_plot <- function(reads_data_frame = NA, fpkm_data_frame = NA, samples_file, 
   ggsave(pca_file, p, dpi = 300, width = 10, height = 10)
 }
 
-if (fpkm_file_extension == "txt" || fpkm_file_extension == "tsv") {
-  fpkm <- read.table(fpkm_file, sep = ifelse(fpkm_file_extension == "tsv", "\t", "\t"), 
-                     header = TRUE, row.names = 1, check.names = FALSE)
-} else if (fpkm_file_extension == "csv") {
-  fpkm <- read.table(fpkm_file, sep = ",", header = TRUE, row.names = 1, check.names = FALSE)
-} else if (fpkm_file_extension == "xlsx" || fpkm_file_extension == "xls") {
-  fpkm <- read_excel(fpkm_file, col_names = TRUE, na = "")
+if (data_file_extension == "txt" || data_file_extension == "tsv") {
+  data_frame <- read.table(data_file, sep = ifelse(data_file_extension == "tsv", "\t", "\t"), 
+                           header = TRUE, row.names = 1, check.names = FALSE)
+} else if (data_file_extension == "csv") {
+  data_frame <- read.table(data_file, sep = ",", header = TRUE, row.names = 1, check.names = FALSE)
+} else if (data_file_extension == "xlsx" || data_file_extension == "xls") {
+  data_frame <- read_excel(data_file, col_names = TRUE, na = "")
 } else {
   stop("Unsupported file format. Please provide a .txt, .csv, .tsv, .xlsx, or .xls file.")
 }
-# read.table(fpkm_file, sep = "\t", header = T, row.names = 1, check.names = F) -> fpkm
-pca_plot(fpkm_data_frame=fpkm, samples_file=samples_file, output_prefix=output_prefix)
+pca_plot(data_frame=data_frame, samples_file=samples_file, output_prefix=output_prefix, log2_transform=log2_transform)
