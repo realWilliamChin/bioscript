@@ -259,7 +259,6 @@ def each_go_pathway_deg_data_heatmap(target_go_df, gene_go_df, compare_info_df, 
                 logger.info(f'已生成 {compare_info} 的 {go_pathway_id} 热图: {os.path.basename(heatmap_filename)}')
             
 
-
 def deg_go_analysis(target_go_df, enrich_data_dir, output_dir):
     ontology_list = list(set(target_go_df['Ontology'].tolist()))
     # 循环每个差异数据文件
@@ -332,12 +331,15 @@ def main():
     args = parse_input()
     samples_df = load_table(args.samples_described)
     comparison_df = load_table(args.compare)
-    # target_go_df 预处理
-    gene_go_df = load_table(args.genego, header=None, names=['GeneID', 'GO_pathway_ID', 'GO_pathway_def'], dtype={"GeneID": str})
-    go_id_def_df = gene_go_df[['GO_pathway_ID', 'GO_pathway_def']].drop_duplicates()
+    # target_go_df 预处理，只需要
     target_go_df = load_table(args.input)
     target_go_df = df_drop_element_side_space(target_go_df)
     target_go_df['GO_pathway_ID'] = target_go_df['GO_pathway_ID'].str.split('_').str[0]
+    
+    # 读取 gene_go_df 和 ref_go_def_df，并合并，格式为 GeneID, GO_pathway_ID, GO_pathway_def
+    gene_go_df = load_table(args.genego, header=None, usecols=[0, 1], names=['GeneID', 'GO_pathway_ID'], dtype={"GeneID": str})
+    ref_go_def_df = load_table('/home/colddata/qinqiang/script/lib/go_term.list', sep='\t', header=None, usecols=[0, 1], names=['GO_pathway_ID', 'GO_pathway_def'])
+    go_id_def_df = pd.merge(left=gene_go_df, right=ref_go_def_df, on='GO_pathway_ID', how='left').drop(columns=['GeneID']).drop_duplicates()
     
     # 合并 target_go_df 和 gene_go_df
     num_before_merge = target_go_df.shape[0]
