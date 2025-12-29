@@ -66,7 +66,7 @@ def df_replace_illegal_folder_chars(df, columns, replace_with="_"):
     :return: 处理后的 DataFrame
     """
     # Windows 和 Linux 下常见非法字符
-    illegal_chars = r'[ \/\\:\*\?\'"<>\|]'
+    illegal_chars = r'[ \/\\:\*\?\'"<>\|\(\)（）【】]'
     for col in columns:
         if col in df.columns:
             # 替换非法字符为下划线，并合并连续下划线为一个下划线
@@ -77,6 +77,17 @@ def df_replace_illegal_folder_chars(df, columns, replace_with="_"):
         else:
             logger.warning(f'输入的 {col} 没有在输入文件中，不会对当前列处理非法字符问题')
     return df
+
+
+def str_replace_illegal_folder_chars(str, replace_with="_"):
+    """
+    替换指定字符串中不能作为文件夹名的非法字符
+    :param str: 需要处理的字符串
+    :param replace_with: 替换成的字符，默认为下划线
+    :return: 处理后的字符串
+    """
+    illegal_chars = r'[ \/\\:\*\?\'"<>\|\(\)（）【】]'
+    return re.sub(illegal_chars, replace_with, str)
 
 
 def convert_numeric_columns(df: pd.DataFrame, exclude_columns=None) -> pd.DataFrame:
