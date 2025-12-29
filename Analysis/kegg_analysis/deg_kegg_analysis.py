@@ -10,12 +10,10 @@ from pathlib import Path
 from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
-from Rscript import draw_multigroup_heatmap
-from Rscript import draw_twogroup_heatmap
-from Rscript import draw_pathview
+from Rscript import smart_heatmap, draw_pathview
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from load_input import load_table, write_output_df
-from data_check import df_drop_row_sum_eq_zero
+from data_check import df_drop_row_sum_eq_zero, df_replace_illegal_folder_chars
 sys.path.append('/home/colddata/qinqiang/script/Analysis/kegg_analysis')
 from each_ko_gene_heatmap import each_ko_gene_heatmap
 from get_passed_path import passed_path
@@ -82,11 +80,11 @@ def up_down_idlist_geneid2kid(down_df, up_df, output_prefix, kegg_clean_file):
         kegg_clean (_type_): KEGG_clean 文件
     """
 
-    kegg_clean_df = load_table(kegg_clean_file, dtype=str, usecols=[0, 1, 4], names=['GeneID', 'KEGG_Pathway_ID', 'KEGG_ID'])
-    kegg_clean_df['KEGG_Pathway_ID'] = kegg_clean_df['KEGG_Pathway_ID'].str.split(':').str[0]
+    kegg_clean_df = load_table(kegg_clean_file, dtype=str, usecols=[0, 1, 4], names=['GeneID', 'KEGG_pathway_ID', 'KEGG_ID'])
+    kegg_clean_df['KEGG_pathway_ID'] = kegg_clean_df['KEGG_pathway_ID'].str.split(':').str[0]
     
     geneid_kid_df = kegg_clean_df[['GeneID', 'KEGG_ID']].copy()
-    k_pathway_id_kid_df = kegg_clean_df[['KEGG_Pathway_ID', 'KEGG_ID']].copy()
+    k_pathway_id_kid_df = kegg_clean_df[['KEGG_pathway_ID', 'KEGG_ID']].copy()
     
     down_df = pd.merge(left=down_df, right=geneid_kid_df, on='GeneID', how='left')
     down_df = down_df.drop_duplicates(subset='GeneID', keep='first')
@@ -118,7 +116,7 @@ def kegg_summary(input_target_df, df_list):
     """kegg summary 汇总文件
 
     Args:
-        input_target_df (str): 输入文件 KEGG_Pathway_ID，Ontology，Subontology ...
+        input_target_df (str): 输入文件 KEGG_pathway_ID，Ontology，Subontology ...
         df_list (list): 需要汇总的 dataframe list
 
     Returns:
@@ -126,70 +124,132 @@ def kegg_summary(input_target_df, df_list):
     """
     kegg_output_summary_df = pd.concat(df_list)
     kegg_output_summary_df.drop(columns=['Ontology'], inplace=True)
-    kegg_output_summary_df.rename(columns={'ID': 'KEGG_Pathway_ID'}, inplace=True)
+    kegg_output_summary_df.rename(columns={'ID': 'KEGG_pathway_ID'}, inplace=True)
     if 'Ontology' in input_target_df.columns and 'SubOntology' in input_target_df.columns:
         kegg_output_summary_df = pd.merge(
-            input_target_df[['KEGG_Pathway_ID', 'Ontology', 'SubOntology']],
+            input_target_df[['KEGG_pathway_ID', 'Ontology', 'SubOntology']],
             kegg_output_summary_df,
             how='right',
-            on='KEGG_Pathway_ID'
+            on='KEGG_pathway_ID'
         )
     return kegg_output_summary_df
 
 
-def ko03000_deg_data_summary(input_dir):
-    """每个组间 ko03000 相关目标基因有表达结果汇总
+# def ko03000_deg_data_summary(input_dir):
+#     """每个组间 ko03000 相关目标基因有表达结果汇总
 
+#     Args:
+#         input_dir (str): 结果目录
+
+#     Returns:
+#         pd.DataFrame: 结果 dataframe
+#     """
+#     ko03000_df_list = []
+#     for each_dir in os.listdir(input_dir):
+#         if '-vs-' not in each_dir:
+#             continue
+#         ko03000_data_df = load_table(
+#             os.path.join(input_dir, each_dir, f'{each_dir}_ko03000_DEG_data.xlsx'),
+#             header = 0,
+#             usecols = ['GeneID', 'sampleA', 'sampleB', 'pvalue', 'padj', 'regulation', 'FC', 'KEGG_Description']
+#         )
+#         ko03000_data_df = ko03000_data_df[ko03000_data_df['regulation'].str.lower() != 'nosignificant']
+#         ko03000_df_list.append(ko03000_data_df)
+#     ko03000_df = pd.concat(ko03000_df_list)
+#     return ko03000_df
+
+
+def _each_kegg_pathway_deg_data_summary(df_list, samples_info_df):
+    """每个 KEGG_pathway_ID 的 DEG 数据汇总
+    
     Args:
-        input_dir (str): 结果目录
-
+        df_list (list): KEGG_pathway_ID 的 DEG 数据列表
+        samples_info_df (pd.DataFrame): 样本信息 DataFrame，包含 sample 和 group 列
+        
     Returns:
         pd.DataFrame: 结果 dataframe
     """
-    ko03000_df_list = []
-    for each_dir in os.listdir(input_dir):
-        if '-vs-' not in each_dir:
-            continue
-        ko03000_data_df = load_table(
-            os.path.join(input_dir, each_dir, 'DEG_expression_data', f'{each_dir}_ko03000_DEG_data.xlsx'),
-            header = 0,
-            usecols = ['GeneID', 'sampleA', 'sampleB', 'pvalue', 'padj', 'regulation', 'FC', 'KEGG_Description']
-        )
-        ko03000_data_df = ko03000_data_df[ko03000_data_df['regulation'].str.lower() != 'nosignificant']
-        ko03000_df_list.append(ko03000_data_df)
-    ko03000_df = pd.concat(ko03000_df_list)
-    return ko03000_df
+    processed_df_list = []
+    max_samples_number = samples_info_df.groupby('group').size().max()
+    for df in df_list:
+        treat = df['sampleA'].values.tolist()[0]
+        control = df['sampleB'].values.tolist()[0]
+        treat_samples = samples_info_df[samples_info_df['group'] == treat]['sample'].values.tolist()
+        control_samples = samples_info_df[samples_info_df['group'] == control]['sample'].values.tolist()
+        
+        # 获取原始的 FPKM 列和 reads 列
+        df_treat_fpkm_column = [f'{x}_FPKM' for x in treat_samples]
+        df_control_fpkm_column = [f'{x}_FPKM' for x in control_samples]
+        df_treat_reads_column = [f'{x}_raw_reads' for x in treat_samples]
+        df_control_reads_column = [f'{x}_raw_reads' for x in control_samples]
+        
+        # Treat FPKM
+        for i in range(1, max_samples_number + 1):
+            new_treat_fpkm = f"Treat_{i}_FPKM"
+            if i <= len(df_treat_fpkm_column):
+                df = df.rename(columns={df_treat_fpkm_column[i-1]: new_treat_fpkm})
+            else:
+                df[new_treat_fpkm] = 'N/A'
+        # Control FPKM
+        for i in range(1, max_samples_number + 1):
+            new_control_fpkm = f"Control_{i}_FPKM"
+            if i <= len(df_control_fpkm_column):
+                df = df.rename(columns={df_control_fpkm_column[i-1]: new_control_fpkm})
+            else:
+                df[new_control_fpkm] = 'N/A'
+        # Treat reads
+        for i in range(1, max_samples_number + 1):
+            new_treat_reads = f"Treat_{i}_reads"
+            if i <= len(df_treat_reads_column):
+                df = df.rename(columns={df_treat_reads_column[i-1]: new_treat_reads})
+            else:
+                df[new_treat_reads] = 'N/A'
+        # Control reads
+        for i in range(1, max_samples_number + 1):
+            new_control_reads = f"Control_{i}_reads"
+            if i <= len(df_control_reads_column):
+                df = df.rename(columns={df_control_reads_column[i-1]: new_control_reads})
+            else:
+                df[new_control_reads] = 'N/A'
+        
+        processed_df_list.append(df)
+    
+    output_summary_df = pd.concat(processed_df_list)
+    return output_summary_df
 
+
+def each_kegg_pathway_deg_data(kegg_pathway_id, deg_data_df, samples_described_df):
+    pass
 
 def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_df, kegg_pathway_df,
-                  kegg_clean_file, treat_color, control_color, output_dir):
+                  kegg_clean_file, output_dir):
     """
     DEG 数据的 KEGG 分析
     """
     input_target_ko_df = load_table(ko_list_file)
-    ko_list = input_target_ko_df['KEGG_Pathway_ID'].values.tolist()
+    ko_list = input_target_ko_df['KEGG_pathway_ID'].values.tolist()
     deg_data_list = [x for x in os.listdir(deg_data_dir) if x.endswith('_DEG_data.txt')]
     if len(deg_data_list) == 0:
         logger.error(f'{deg_data_dir} 没有找到 DEG_data.txt 文件')
         sys.exit(1)
     
+    kegg_pathway_deg_data_list = []
     kegg_output_summary_df_list = []
     for deg_data_file in deg_data_list:
         # 读取 DEG_data.txt 文件，获取比较组信息
-        deg_data_df = load_table(os.path.join(deg_data_dir, deg_data_file), dtype=str)
+        deg_data_df = load_table(os.path.join(deg_data_dir, deg_data_file))
         treat_group = deg_data_df.iloc[0, 1]
         control_group = deg_data_df.iloc[0, 2]
         compare_info = treat_group + '-vs-' + control_group
         compare_info_dir = os.path.join(output_dir, compare_info)
         
         # 转录组 KEGG 分析输出文件夹创建
-        deg_expression_data_dir = os.path.join(compare_info_dir, 'DEG_expression_data')
         kegg_heatmap_dir = os.path.join(compare_info_dir, 'KEGG_heatmap')
         kegg_pathway_graph_dir = os.path.join(compare_info_dir, 'KEGG_pathway_graph')
         
-        for each_dir in [compare_info_dir, deg_expression_data_dir, kegg_heatmap_dir, kegg_pathway_graph_dir]:
+        for each_dir in [compare_info_dir, kegg_heatmap_dir, kegg_pathway_graph_dir]:
             if not os.path.exists(each_dir):
-                os.mkdir(each_dir)
+                os.makedirs(each_dir, exist_ok=True)
             else:
                 logger.warning(f"{each_dir} 文件夹已存在，输出将覆盖原文件")
         
@@ -231,45 +291,49 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
         control_group_samples_name = samples_described_df[samples_described_df['group'].isin([control_group,])]['sample'].to_list()
         logger.debug(f"crt_group_samples: {crt_group_samples}")
         
-        # 画热图准备文件 Sheet2 samples group color
-        heatmap_sheet2_samplegroupcolor_df = pd.DataFrame(columns=['samples', 'group', 'colors'])
-        for each_sample in crt_group_samples:
-            if each_sample in treat_group_samples_name:
-                group = treat_group
-                color = treat_color
-            else:
-                group = control_group
-                color = control_color
-            row_data = {'samples': each_sample, 'group': group, 'colors': color}
-            row_df = pd.DataFrame([row_data])
-            heatmap_sheet2_samplegroupcolor_df = pd.concat([heatmap_sheet2_samplegroupcolor_df, row_df], ignore_index=True)
+        # 画热图准备文件 Sheet2 samples group
+        heatmap_sheet2_samplegroup_df = pd.DataFrame({
+            'samples': crt_group_samples,
+            'group': [treat_group if s in treat_group_samples_name else control_group for s in crt_group_samples]
+        })
 
         # 循环每个 ko number 筛选表达量画热图
-        for ko_number in ko_list:
-            ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number, na=False)]['GeneID'])].copy()
-            if ko_num_fpkm_expr_df.shape[0] == 0:
-                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表为空")
-                continue
-            # 去除掉除 GeneID 列之外全为空的行
-            ko_num_fpkm_expr_df.dropna(subset=crt_group_samples, how='all', inplace=True)
-            ko_num_fpkm_expr_df = df_drop_row_sum_eq_zero(ko_num_fpkm_expr_df)
+        for kegg_pathway_id in ko_list:
+            ko_num_fpkm_expr_df = fpkm_df[fpkm_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_pathway'].str.contains(kegg_pathway_id, na=False)]['GeneID'])].copy()
             
-            ko_num_fpkm_expr_df_file = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_fpkm_expression.xlsx")
-            ko_num_fpkm_expr_pic_name = os.path.join(kegg_heatmap_dir, f"{compare_info}_{ko_number}_heatmap.jpeg")
-
-            with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
-                ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
-                heatmap_sheet2_samplegroupcolor_df.to_excel(writer, index=False, sheet_name='Sheet2')
-            if ko_num_fpkm_expr_df.shape[0] > 1:
-                logger.info(f"正在画 {compare_info} {ko_number} 相关基因表达量的热图")
-                draw_twogroup_heatmap(ko_num_fpkm_expr_df_file, ko_num_fpkm_expr_pic_name)
+            if ko_num_fpkm_expr_df.shape[0] == 0:
+                logger.warning(f"{compare_info} 的 {kegg_pathway_id} 中相关的基因表达量表为空")
+                continue
+            elif ko_num_fpkm_expr_df.shape[0] == 1:
+                logger.warning(f"{compare_info} 的 {kegg_pathway_id} 中相关的基因表达量表只有一行, 不执行画热图")
+                continue
             else:
-                logger.warning(f"{compare_info} 的 {ko_number} 中相关的基因表达量表只有一行, 不执行画热图")
-        
-            # 输出每个 ko 的 deg_data 文件
-            ko_num_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{ko_number}_DEG_data.xlsx")
-            ko_num_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_Pathway'].str.contains(ko_number, na=False)]['GeneID'])]
-            write_output_df(ko_num_deg_data_df, ko_num_deg_data_file, index=False)
+                # 去除掉除 GeneID 列之外全为空的行
+                ko_num_fpkm_expr_df.dropna(subset=crt_group_samples, how='all', inplace=True)
+                ko_num_fpkm_expr_df = df_drop_row_sum_eq_zero(ko_num_fpkm_expr_df)
+                
+                ko_num_fpkm_expr_df_file = os.path.join(kegg_heatmap_dir, f"{compare_info}_{kegg_pathway_id}_fpkm_expression.xlsx")
+                ko_num_fpkm_expr_pic_name = os.path.join(kegg_heatmap_dir, f"{compare_info}_{kegg_pathway_id}_heatmap.jpeg")
+
+                with pd.ExcelWriter(ko_num_fpkm_expr_df_file) as writer:
+                    ko_num_fpkm_expr_df.to_excel(writer, index=False, sheet_name='Sheet1')
+                    heatmap_sheet2_samplegroup_df.to_excel(writer, index=False, sheet_name='Sheet2')
+                logger.info(f"正在画 {compare_info} {kegg_pathway_id} 相关基因表达量的热图")
+                smart_heatmap(
+                    input_file=ko_num_fpkm_expr_df_file,
+                    output_file=ko_num_fpkm_expr_pic_name,
+                    annotation_col=2,
+                    cluster_rows=False,
+                    cluster_cols=False,
+                    scale="row"
+                )
+            
+                # 输出每个 ko 的 deg_data 文件
+                # each_kegg_pathway_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{kegg_pathway_id}_DEG_data.xlsx")
+                each_kegg_pathway_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_pathway'].str.contains(kegg_pathway_id, na=False)]['GeneID'])]
+                # write_output_df(each_kegg_pathway_deg_data_df, each_kegg_pathway_deg_data_file, index=False)
+                each_kegg_pathway_deg_data_df.insert(0, 'KEGG_pathway_ID', kegg_pathway_id)
+                kegg_pathway_deg_data_list.append(each_kegg_pathway_deg_data_df)
             
         # R pathview 画图准备文件 regulation
         # print(f"正在准备 {compare_info} 的 regulation 文件")
@@ -289,53 +353,66 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
             os.path.join(compare_info_dir, f"{compare_info}_regulation.txt"),
             os.path.join(compare_info_dir, f"{compare_info}_ko_passed_path.txt")
         )
-        
-        # 对每个比较组的文件进行整理
-        os.system(f"mv *.png {kegg_pathway_graph_dir}")
+        os.system(f"mv *.png {kegg_pathway_graph_dir}")  # 对每个比较组的文件进行整理
 
-    
     kegg_summary_df = kegg_summary(input_target_ko_df, kegg_output_summary_df_list)
     write_output_df(kegg_summary_df, os.path.join(output_dir, 'Target_KEGG_analysis_summary.xlsx'), index=False)
     
-    ko03000_summary_df = ko03000_deg_data_summary(output_dir)
-    write_output_df(ko03000_summary_df, os.path.join(output_dir, 'ko03000_DEG_data_summary.xlsx'), index=False)
+    # ko03000_summary_df = ko03000_deg_data_summary(os.path.join(output_dir, '00_Each_Target_KEGG_pathway_DEG_data'))
+    # write_output_df(ko03000_summary_df, os.path.join(output_dir, '00_ko03000_significant_DEG_TF_summary.xlsx'), index=False)
+    
+    kegg_pathway_deg_data_summary_df = _each_kegg_pathway_deg_data_summary(kegg_pathway_deg_data_list, samples_described_df)
+    # 按 KEGG_pathway_ID 分组并输出每个分组
+    output_each_pathway_dir = os.path.join(output_dir, '00_Each_Target_KEGG_pathway_DEG_data')
+    os.makedirs(output_each_pathway_dir, exist_ok=True)
+    
+    # 获取 pathway 名称映射（从 input_target_ko_df 中获取）
+    pathway_name_map = {}
+    pathway_name_map = dict(zip(input_target_ko_df['KEGG_pathway_ID'], input_target_ko_df['KEGG_pathway_def']))
+    
+    # 按 KEGG_pathway_ID 分组
+    for kegg_pathway_id, group_df in kegg_pathway_deg_data_summary_df.groupby('KEGG_pathway_ID'):
+        # 获取 pathway 名称，如果没有则使用 pathway_id
+        kegg_name = pathway_name_map.get(kegg_pathway_id, kegg_pathway_id)
+        # 清理 KEGG 名称中的非法文件名字符（例如空格、斜杠等）
+        tmp_name_df = pd.DataFrame({'KEGG_pathway_def': [str(kegg_name)]})
+        tmp_name_df = df_replace_illegal_folder_chars(tmp_name_df, ['KEGG_pathway_def'])
+        kegg_name_clean = tmp_name_df.loc[0, 'KEGG_pathway_def']
+        # 创建文件名
+        output_filename = f'{kegg_pathway_id}_{kegg_name_clean}.txt'
+        output_filepath = os.path.join(output_each_pathway_dir, output_filename)
+        # 输出文件
+        write_output_df(group_df, output_filepath, index=False)
+        logger.debug(f'已输出 {kegg_pathway_id} 的 DEG 数据到 {output_filepath}')
+    
 
 
 def parse_input():
-    argparser = argparse.ArgumentParser()
-    # 其他参数
-    argparser.add_argument('-i', dest="target_ko_file", type=str, required=True,
-            help='[必须]输入目标 ko 文件，必须要有列名，KEGG_Pathway_ID')
-    argparser.add_argument('-s', '--samplesinfo', type=str,
-            help='[必须]输入样品信息文件，如果有则添加到输出文件中')
-    argparser.add_argument('--kegg-clean', dest="kegg_clean", required=True, type=str,
-            help='[必须]输入 kegg 注释出来的 KEGG_clean 文件')
-    argparser.add_argument('--enrich-dir', dest='enrich_dir', type=str,
-            help='[必须]输入富集分析的文件夹')
-    argparser.add_argument('--output-dir', dest='output_dir', type=str, default='./',
-            help='输出目录, 默认当前目录')
-    argparser.add_argument('--deg-data-dir', dest='deg_data_dir', type=str, 
-                        help='[必须]输入 DEG_data.txt 文件')
-
-    argparser.add_argument('--treat-color', dest="treat_color", type=str, default="blue",
-                        help='[可选]画 heatmap 时指定 Treat Group 的颜色，默认 blue')
-    argparser.add_argument('--control-color', dest="control_color", type=str, default="red",
-                        help='[可选]画 heatmap 时指定 Control Group 的颜色, 默认 red')
-    
-    args = argparser.parse_args()
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', dest="target_ko_file", type=str, required=True, help='[必须]输入目标 ko 文件，必须要有列名，KEGG_pathway_ID, KEGG_pathway_def')
+    parser.add_argument('-s', '--samplesinfo', type=str, help='[必须]输入样品信息文件，如果有则添加到输出文件中')
+    parser.add_argument('-k', '--kegg-clean', dest="kegg_clean", type=str, required=True, help='[必须]输入 kegg 注释出来的 KEGG_clean 文件')
+    parser.add_argument('-e', '--enrich-dir', dest='enrich_dir', type=str, help='[必须]输入富集分析的文件夹')
+    parser.add_argument('-d', '--deg-data-dir', dest='deg_data_dir', type=str, help='[必须]输入 DEG_data.txt 文件')
+    parser.add_argument('-f', '--fpkm', help='输入 fpkm_matrix.txt 文件(为了输出每个 KEGG_pathway_ID 的相关基因的 Heatmap 图)')
+    parser.add_argument('-g', '--genesymbol', help='使用 GeneSymbol 作为索引画热图，人和大鼠小鼠通常使用，输入包含 GeneID GeneSymbol 两列的文件')
+    parser.add_argument('-o', '--output-dir', dest='output_dir', type=str, default='./', help='输出目录, 默认当前目录')
+    args = parser.parse_args()
+    os.makedirs(args.output_dir, exist_ok=True)
     return args
 
 
 def main():
     args = parse_input()
-    
-    samples_described_df = load_table(args.samplesinfo, usecols=[0, 1], dtype=str)
-    kegg_pathway_df = load_table(args.kegg_clean, usecols=[0, 1], names=['GeneID', 'KEGG_Pathway'], dtype=str)
-    
-    deg_kegg_analysis(args.target_ko_file, args.enrich_dir, args.deg_data_dir, samples_described_df, kegg_pathway_df,
-                args.kegg_clean, args.treat_color, args.control_color, args.output_dir)
-    
+    samples_info = load_table(args.samplesinfo, usecols=[0, 1], dtype=str)
+    kegg_pathway_df = load_table(args.kegg_clean, usecols=[0, 1], names=['GeneID', 'KEGG_pathway'], dtype=str)
+    input_ko_df = load_table(args.target_ko_file, dtype=str)
+    deg_kegg_analysis(args.target_ko_file, args.enrich_dir, args.deg_data_dir, samples_info, kegg_pathway_df, args.kegg_clean, args.output_dir)
+    if args.fpkm:
+        fpkm_matrix_df = load_table(args.fpkm)
+        each_ko_gene_heatmap(input_ko_df, kegg_pathway_df, fpkm_matrix_df, samples_info, os.path.join(args.output_dir, '00_Each_Target_KEGG_pathway_heatmap'), args.genesymbol)
+    else:
+        logger.warning('fpkm_matrix 为空，跳过输出每个 KEGG_pathway_ID 的相关基因的 Heatmap 图')
     logger.success('Done!')
     
 
