@@ -1,6 +1,6 @@
 #!/home/train/miniconda3/bin/python
 # -*- coding: utf-8 -*-
-# Created Time  : 2023/08/05 19:07
+# Created Time  : 2025/12/30 15:56
 # Author        : William GoGo
 import argparse
 import os
@@ -14,7 +14,7 @@ def parse_input():
                         help='path of the fasta')
     argparser.add_argument('--input2', dest='input2', default='./05_first_GB_file',
                         help='path of the .gb')
-    argparser.add_argument('--date_out', dest='data_out', default='./06_psba_motified_sequence',
+    argparser.add_argument('--data-out', default='./06_psba_motified_sequence',
                         help='path of output data')
     return argparser.parse_args()
 
@@ -22,15 +22,15 @@ def parse_input():
 def main():
     arg = parse_input()
 
-    inputPath1 = arg.input1
-    inputPath2 = arg.input2
-    outputPath = arg.data_out
-    filelist1 = os.listdir(inputPath1)
-    filelist2 = os.listdir(inputPath2)
+    input_path1 = arg.input1
+    input_path2 = arg.input2
+    output_path = arg.data_out
+    filelist1 = os.listdir(input_path1)
+    filelist2 = os.listdir(input_path2)
 
-    if outputPath == './06_psba_motified_sequence':
-        if os.path.exists(outputPath) == False:
-            os.mkdir(outputPath)
+    if output_path == './06_psba_motified_sequence':
+        if os.path.exists(output_path) == False:
+            os.mkdir(output_path)
 
     for seqfile in filelist1:
         if '.fa' in seqfile:
@@ -40,9 +40,9 @@ def main():
                 if seqname in gbfile:
                     print(seqfile)
                     print(gbfile)
-                    f1=open(inputPath1+os.sep+seqfile,'r+')
-                    f2=open(inputPath2+os.sep+gbfile,'r+')
-                    f3=open(outputPath+os.sep+seqname+'.fasta','w+')
+                    f1=open(input_path1+os.sep+seqfile,'r+')
+                    f2=open(input_path2+os.sep+gbfile,'r+')
+                    f3=open(output_path+os.sep+seqname+'.fasta','w+')
                     gblist=[]
                     times=0
                     for line in f2:
@@ -75,6 +75,8 @@ def main():
     print('finish')
 
 
+if __name__ == '__main__':
+    main()
 
 
 
