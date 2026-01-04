@@ -14,18 +14,19 @@ from load_input import load_table, write_output_df
 
 def parse_input():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', help='输入目录')
-    parser.add_argument('-d', help='definition_dataframe')
+    parser.add_argument('-i', '--input-dir', default='04_代谢物差异分析/组间分析/',help='输入目录')
+    parser.add_argument('-d', '--definition-df', default='Compound_def.xlsx', help='definition_dataframe，可识别 KEGG、Class、SubClass 列')
+    parser.add_argument('-o', '--output-dir', default='./', help='输出目录，默认为当前目录')
     
     return parser.parse_args()
 
 
-def prepare_kegg_data(vip_df, compare_group_name):
+def prepare_kegg_data(vip_df, compare_group_name, output_dir):
     """准备KEGG富集分析数据和目录"""
     
     # 创建目录结构
-    ko01000_enrich_dir = '06_KEGG_ko01100_Enrich'
-    kegg_all_enrich_dir = '05_KEGG_all_Enrich'
+    ko01000_enrich_dir = os.path.join(output_dir, '06_KEGG_ko01100_Enrich')
+    kegg_all_enrich_dir = os.path.join(output_dir, '05_KEGG_all_Enrich')
     
     os.makedirs(ko01000_enrich_dir, exist_ok=True)
     os.makedirs(kegg_all_enrich_dir, exist_ok=True)
@@ -55,21 +56,21 @@ def prepare_kegg_data(vip_df, compare_group_name):
     return up_df, down_df, up_df_filename, down_df_filename, enrich_output_prefix, kegg_enrich_output_prefix
 
 
-def run_kegg_enrich_analysis(up_df, down_df, up_df_filename, down_df_filename, enrich_output_prefix, kegg_enrich_output_prefix, definition_df=None):
+def run_kegg_enrich_analysis(up_df, down_df, up_df_filename, down_df_filename, enrich_output_prefix, kegg_enrich_output_prefix, output_dir, definition_df=None):
     """运行KEGG富集分析并处理结果"""
     # 运行富集分析脚本
     Rscript_path = '/home/data/opt/biosoft/R-422/bin/Rscript'
     enrich_script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_enrich.r"
-    up_df_cmd = f"{Rscript_path} {enrich_script_path} --datatable {up_df_filename} --outputprefix {enrich_output_prefix}_Up"
-    down_df_cmd = f"{Rscript_path} {enrich_script_path} --datatable {down_df_filename} --outputprefix {enrich_output_prefix}_Down"
+    up_df_cmd = f"{Rscript_path} {enrich_script_path} --datatable {up_df_filename} --outputprefix {os.path.join(output_dir, enrich_output_prefix)}_Up"
+    down_df_cmd = f"{Rscript_path} {enrich_script_path} --datatable {down_df_filename} --outputprefix {os.path.join(output_dir, enrich_output_prefix)}_Down"
     
     subprocess.run(up_df_cmd, shell=True)
     subprocess.run(down_df_cmd, shell=True)
     
     # 运行KEGG富集分析脚本
     kegg_enrich_script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_kegg_enrich.r"
-    up_df_cmd = f"{Rscript_path} {kegg_enrich_script_path} --datatable {up_df_filename} --outputprefix {kegg_enrich_output_prefix}_Up"
-    down_df_cmd = f"{Rscript_path} {kegg_enrich_script_path} --datatable {down_df_filename} --outputprefix {kegg_enrich_output_prefix}_Down"
+    up_df_cmd = f"{Rscript_path} {kegg_enrich_script_path} --datatable {up_df_filename} --outputprefix {os.path.join(output_dir, kegg_enrich_output_prefix)}_Up"
+    down_df_cmd = f"{Rscript_path} {kegg_enrich_script_path} --datatable {down_df_filename} --outputprefix {os.path.join(output_dir, kegg_enrich_output_prefix)}_Down"
     
     subprocess.run(up_df_cmd, shell=True)
     subprocess.run(down_df_cmd, shell=True)
@@ -84,11 +85,11 @@ def run_kegg_enrich_analysis(up_df, down_df, up_df_filename, down_df_filename, e
         down_df_merged = pd.merge(pd.DataFrame({'KEGG': down_df}), definition_df, on='KEGG', how='left')
         
         # 保存合并后的数据
-        up_df_merged.to_csv(up_df_filename, sep='\t', index=False)
-        down_df_merged.to_csv(down_df_filename, sep='\t', index=False)
+        up_df_merged.to_csv(os.path.join(output_dir, up_df_filename), sep='\t', index=False)
+        down_df_merged.to_csv(os.path.join(output_dir, down_df_filename), sep='\t', index=False)
 
 
-def summarize_vip_and_enrich(input_dir, definition_df=None):
+def summarize_vip_and_enrich(input_dir, output_dir, definition_df=None):
     # 列出 VIP 文件
     all_files = glob.glob(os.path.join(input_dir, "**", "*"), recursive=True)
     vip_files = [f for f in all_files if "VIP" in f and f.endswith('.xlsx')]
@@ -97,7 +98,7 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
     subclass_count_list = []
     
     for vip_file in vip_files:
-        print(vip_file)
+        logger.info(vip_file)
         compare_group_name = os.path.basename(vip_file).replace("_VIP.xlsx", "")
         
         # 读取数据
@@ -117,11 +118,11 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
         # ======= enrich start ======== 有 KEGG 列才能做 enrich
         if "KEGG" in vip_df.columns:
             logger.info('正在尝试进行 enrich 分析')
-            result = prepare_kegg_data(vip_df, compare_group_name)
+            result = prepare_kegg_data(vip_df, compare_group_name, output_dir)
             if result[0] is not None:  # 检查是否有KEGG数据
                 up_df, down_df, up_df_filename, down_df_filename, enrich_output_prefix, kegg_enrich_output_prefix = result
                 run_kegg_enrich_analysis(up_df, down_df, up_df_filename, down_df_filename, 
-                                    enrich_output_prefix, kegg_enrich_output_prefix, definition_df)
+                                    enrich_output_prefix, kegg_enrich_output_prefix, output_dir, definition_df)
         # ======= enrich end =======
         
         # 计算总数 (包含上调、下调和无显著差异)
@@ -230,7 +231,7 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
                 
                 subclass_count_list.append(subclass_result)
         else:
-            print(f"警告: vip_df_all {os.path.basename(vip_file)} 没有数据")
+            logger.warning(f"警告: vip_df_all {os.path.basename(vip_file)} 没有数据")
     
     # 合并Class统计结果并导出
     if class_count_list:
@@ -284,13 +285,9 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
         
         # 重新排列DataFrame
         class_count_result = class_count_result[reordered_cols]
-        
-        class_count_result.to_excel(
-            os.path.join(input_dir, "Significant_compound_count_by_class.xlsx"),
-            index=False
-        )
+        write_output_df(class_count_result, os.path.join(input_dir, "Significant_compound_count_by_class.xlsx"), index=False)
     else:
-        print("警告: 没有Class统计数据可导出")
+        logger.warning("警告: 没有Class统计数据可导出")
     
     # 合并SubClass统计结果并导出
     if subclass_count_list:
@@ -358,20 +355,15 @@ def summarize_vip_and_enrich(input_dir, definition_df=None):
             cols = ['Class'] + [col for col in cols if col != 'Class']
             subclass_count_result = subclass_count_result[cols]
         
-        subclass_count_result.to_excel(
-            os.path.join(input_dir, "Significant_compound_count_by_subclass.xlsx"),
-            index=False
-        )
+        write_output_df(subclass_count_result, os.path.join(input_dir, "Significant_compound_count_by_subclass.xlsx"), index=False)
     else:
-        print("警告: 没有SubClass统计数据可导出")
+        logger.warning("警告: 没有SubClass统计数据可导出")
     
     return True
 
-# 使用示例
-# summarize_vip_and_enrich("/path/to/output/directory")
 
 if __name__ == '__main__':
     args = parse_input()
     input_dir = args.i
     compound_def = load_table(args.d)
-    summarize_vip_and_enrich(input_dir, compound_def)
+    summarize_vip_and_enrich(input_dir, args.output_dir, compound_def)
