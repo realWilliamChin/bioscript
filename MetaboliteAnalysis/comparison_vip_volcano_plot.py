@@ -16,9 +16,34 @@ from Rscript import volcano_plot
 
 def parse_input():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-files', nargs='+',
-        help='输入文件，多个文件用空格分隔, 组间比较的 VIP 文件')
+    parser.add_argument('-i', '--input-files', nargs='+', help='输入文件，多个文件用空格分隔, 组间比较的 VIP 文件')
+    
+    parser.add_argument('--bs-neg', type=float, default=np.log10(0.8), help='左侧阈值，默认 log10(0.8)')
+    parser.add_argument('--bs-pos', type=float, default=np.log10(1.2), help='右侧阈值，默认 log10(1.2)')
+    parser.add_argument('--width', type=float, default=10, help='图片宽度(inches)，默认 10')
+    parser.add_argument('--height', type=float, default=10, help='图片高度(inches)，默认 10')
+    parser.add_argument('--dpi', type=int, default=300, help='图片 DPI，默认 300')
+    parser.add_argument('--x-left', type=float, default=-2, help='x 轴左侧范围，默认 -2')
+    parser.add_argument('--x-right', type=float, default=2, help='x 轴右侧范围，默认 2')
+    parser.add_argument('--title', default='', help='图标题，默认空')
+    parser.add_argument('--label-col', default='Annotation', help='标注列名，默认 Annotation')
+    parser.add_argument('--center-zero', action='store_true', help='是否以 0 为中心对称显示 x 轴')
+    parser.add_argument('--top-n', type=int, default=15, help='标注前多少个非 NoSignificant 的条目，默认 15；设置为 0 则不标注')
+
     return parser.parse_args()
+
+
+def df_add_annotation(df, top_n=15):
+    # 添加Annotation列
+    df = df.sort_values(by='VIP', ascending=False)
+    first_col = df.columns[0]
+    df['Annotation'] = ''  # 初始化空列
+    non_sig_mask = df['regulation'] != 'NoSignificant'
+    annot_idx = df[non_sig_mask].head(top_n).index
+    df.loc[annot_idx, 'Annotation'] = df.loc[annot_idx, first_col].values
+    logger.info(f"已成功添加Annotation列, 共标注 {len(annot_idx)} 个非 NoSignificant 条目")
+    
+    return df
 
 
 def main():
@@ -31,24 +56,12 @@ def main():
     for idx, input_file in enumerate(input_files, 1):
         logger.info(f"[{idx}/{len(input_files)}] 正在处理文件: {input_file}")
 
-        try:
-            vip_df = load_table(input_file)
-            logger.success(f"文件读取成功: {input_file}")
-        except Exception as e:
-            logger.error(f"文件读取失败: {input_file}, 错误: {e}")
-            continue
-
-        vip_df = vip_df.sort_values(by='VIP', ascending=False)
+        vip_df = load_table(input_file)
         
-        # 添加Annotation列
-        first_col = vip_df.columns[0]
-        vip_df['Annotation'] = ''  # 初始化空列
-        # 前15行使用第一列的值
-        n_rows = min(15, len(vip_df))
-        vip_df.iloc[:n_rows, vip_df.columns.get_loc('Annotation')] = vip_df.iloc[:n_rows][first_col].values
-        logger.info(f"已成功添加Annotation列, 前{n_rows}行将用于标注")
+        if args.top_n > 0:
+            vip_df = df_add_annotation(vip_df, top_n=args.top_n)
+        
         vip_df['log10FoldChange'] = np.log10(vip_df['FoldChange'])
-        # 保存结果
         output_file = input_file.replace('.xlsx', '_volcano_plot.txt')
         vip_df.to_csv(output_file, sep='\t', index=False)
         logger.info(f'数据已保存至临时文件: {output_file}')
@@ -56,30 +69,26 @@ def main():
         # 画图
         output_png = output_file.replace('.txt', '.png')
         logger.info(f"开始绘制火山图: {output_png}")
-        plot_success = volcano_plot(
+        volcano_plot(
             input_file=output_file,
             output_file=output_png,
-            label_col='Annotation',
+            label_col=args.label_col,
             x_col='log10FoldChange',
             y_col='VIP',
-            bs_neg=np.log10(0.8),
-            bs_pos=np.log10(1.2),
-            width=10,
-            height=10,
-            dpi=300,
-            center_zero=True
+            bs_neg=args.bs_neg,
+            bs_pos=args.bs_pos,
+            width=args.width,
+            height=args.height,
+            dpi=args.dpi,
+            x_left=args.x_left,
+            x_right=args.x_right,
+            title=args.title,
+            center_zero=args.center_zero
         )
-        if plot_success:
-            logger.success(f"火山图绘制成功: {output_png}")
-        else:
-            logger.error(f"火山图绘制失败: {output_png}")
 
         # 删除临时文件
-        try:
-            os.remove(output_file)
-            logger.info(f'已删除临时文件: {output_file}')
-        except Exception as e:
-            logger.warning(f'删除临时文件失败: {output_file}, 错误: {e}')
+        os.remove(output_file)
+        logger.info(f'已删除临时文件: {output_file}')
 
 
 if __name__ == '__main__':
