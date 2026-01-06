@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Created Time  : 2025/09/16 17:52
+# Author        : William GoGo
 import os, sys
 import argparse
 import pandas as pd
@@ -345,8 +349,14 @@ def summarize_vip_and_enrich(input_dir, output_dir, definition_df=None):
         subclass_count_result = subclass_count_result[reordered_cols]
         
         # 获取 SubClass 到 Class 的对应关系
-        subclass_to_class = definition_df[['SubClass', 'Class']].drop_duplicates()
-        subclass_count_result = pd.merge(subclass_to_class, subclass_count_result, on='SubClass', how='right')
+        if definition_df is not None and isinstance(definition_df, pd.DataFrame) and len(definition_df) > 0:
+            if 'SubClass' in definition_df.columns and 'Class' in definition_df.columns:
+                subclass_to_class = definition_df[['SubClass', 'Class']].drop_duplicates()
+                subclass_count_result = pd.merge(subclass_to_class, subclass_count_result, on='SubClass', how='right')
+            else:
+                logger.warning("警告: definition_df 没有 'SubClass' 或 'Class' 列，跳过合并")
+        else:
+            logger.warning("警告: definition_df 不可用，跳过 SubClass 到 Class 的映射")
         # 按照 Class 排序
         subclass_count_result = subclass_count_result.sort_values(by=['Class', 'SubClass'])
         # 将 Class 列放到第一列
@@ -364,6 +374,16 @@ def summarize_vip_and_enrich(input_dir, output_dir, definition_df=None):
 
 if __name__ == '__main__':
     args = parse_input()
-    input_dir = args.i
-    compound_def = load_table(args.d)
-    summarize_vip_and_enrich(input_dir, args.output_dir, compound_def)
+    
+    definition_df = None
+    if args.definition_df and os.path.exists(args.definition_df):
+        try:
+            definition_df = load_table(args.definition_df)
+            logger.info(f"成功读取 definition_df: {args.definition_df}")
+        except Exception as e:
+            logger.error(f"读取 definition_df 文件失败: {e}")
+            definition_df = None
+    elif args.definition_df:
+        logger.warning(f"definition_df 文件不存在: {args.definition_df}")
+    
+    summarize_vip_and_enrich(args.input_dir, args.output_dir, definition_df)
