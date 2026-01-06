@@ -141,7 +141,10 @@ read_indexed_table <- function(path, sheet = NULL, expect_numeric = FALSE) {
     sep <- if (ext %in% c("tsv")) "\t" else if (ext %in% c("csv")) "," else "\t"
     df <- utils::read.table(path, header = TRUE, sep = sep, quote = "\"", comment.char = "", check.names = FALSE, stringsAsFactors = FALSE)
   }
-  if (ncol(df) < 2) stop(sprintf("文件 %s 列数不足，首列需为索引，后续需包含数据列", path))
+  if (ncol(df) < 2) {
+    warning(sprintf("文件 %s 列数不足，首列需为索引，后续需包含数据列", path))
+    return(NULL)
+  }
   rownames(df) <- as.character(df[[1]])
   df[[1]] <- NULL
   if (expect_numeric) {
@@ -193,19 +196,50 @@ auto_set_heatmap_parameters <- function(matrix_data, autoset_image_specification
 
   # 根据行数选择参数
   row_idx <- findInterval(nrow_data, auto_cfg$n_values, rightmost.closed = TRUE)
-  row_idx <- min(row_idx, length(auto_cfg$n_values))
+  row_idx <- max(1, min(row_idx, length(auto_cfg$n_values)))
 
   # 根据列数选择参数
   col_idx <- findInterval(ncol_data, auto_cfg$n_values, rightmost.closed = TRUE)
-  col_idx <- min(col_idx, length(auto_cfg$n_values))
+  col_idx <- max(1, min(col_idx, length(auto_cfg$n_values)))
 
-  # 自动设置的参数
+  # 基础的 cellwidth / cellheight 取值
+  cellwidth_value <- auto_cfg$cellwidth_values[col_idx]
+  cellheight_value <- auto_cfg$cellwidth_values[row_idx]
+
+  # 如果 cellwidth * ncol 与 cellheight * nrow 相差过大，进行自适应调整
+  # 规则：
+  # 1) 如果 cellwidth * ncol >= 1.5 * cellheight * nrow
+  #    则调节 cellheight，使得 cellheight * nrow = (cellwidth * ncol) / 1.5
+  # 2) 反之如果 cellheight * nrow >= 1.5 * cellwidth * ncol
+  #    则调节 cellwidth，使得 cellwidth * ncol = (cellheight * nrow) / 1.5
+  # 这样在行列数极不平衡时，避免极端的长条形热图
+  total_width  <- cellwidth_value * ncol_data
+  total_height <- cellheight_value * nrow_data
+  if (total_width >= 1.5 * total_height && nrow_data > 0) {
+    new_cellheight <- total_width / (1.5 * nrow_data)
+    # 防止出现极端过小或非数值
+    if (is.finite(new_cellheight) && new_cellheight > 0) {
+      cellheight_value <- new_cellheight
+    }
+  } else if (total_height >= 1.5 * total_width && ncol_data > 0) {
+    new_cellwidth <- total_height / (1.5 * ncol_data)
+    if (is.finite(new_cellwidth) && new_cellwidth > 0) {
+      cellwidth_value <- new_cellwidth
+    }
+  }
+
+  # 自动设置的参数（融合上述自适应结果）
+  default_dpi <- .HEATMAP_CONFIG$DEFAULT_DPI
+  dpi_row <- if (row_idx > 0 && row_idx <= length(auto_cfg$dpi_values)) auto_cfg$dpi_values[row_idx] else default_dpi
+  dpi_col <- if (col_idx > 0 && col_idx <= length(auto_cfg$dpi_values)) auto_cfg$dpi_values[col_idx] else default_dpi
+  dpi_value <- if (is.finite(dpi_row) && is.finite(dpi_col)) max(dpi_row, dpi_col) else default_dpi
+  
   auto_params <- list(
-    cellwidth = auto_cfg$cellwidth_values[col_idx],
-    cellheight = auto_cfg$cellwidth_values[row_idx],
+    cellwidth = cellwidth_value,
+    cellheight = cellheight_value,
     fontsize_row = auto_cfg$fontsize_values[row_idx],
     fontsize_col = auto_cfg$fontsize_values[col_idx],
-    dpi = max(auto_cfg$dpi_values[row_idx], auto_cfg$dpi_values[col_idx]),
+    dpi = dpi_value,
     color = colorRampPalette(c("navy", "white", "firebrick3"))(100)
   )
 
@@ -216,6 +250,7 @@ auto_set_heatmap_parameters <- function(matrix_data, autoset_image_specification
   if (ncol_data > .HEATMAP_CONFIG$NAME_THRESHOLD) {
     auto_params$show_colnames <- FALSE
   }
+  
 
   # 合并参数：用户参数优先，自动参数作为默认值
   final_params <- user_params
@@ -294,7 +329,14 @@ clean_matrix_data <- function(matrix_data, remove_zero_variance = FALSE) {
   if (is.data.frame(matrix_data)) {
     matrix_data <- as.matrix(matrix_data)
   } else if (!is.matrix(matrix_data)) {
-    stop("输入数据必须是矩阵或数据框格式")
+    warning("输入数据必须是矩阵或数据框格式")
+    return(matrix_data)
+  }
+
+  # 检查矩阵是否为空
+  if (nrow(matrix_data) == 0 || ncol(matrix_data) == 0) {
+    warning("数据矩阵为空，无法生成热图")
+    return(NULL)
   }
 
   # 检查并处理NA、NaN、Inf值
@@ -306,35 +348,49 @@ clean_matrix_data <- function(matrix_data, remove_zero_variance = FALSE) {
 
     # 检查是否还有问题
     if (any(is.na(matrix_data)) || any(is.infinite(matrix_data))) {
-      stop("数据清理后仍存在异常值，无法生成热图")
+      warning("数据清理后仍存在异常值，继续处理但可能影响热图生成")
+    }
+  }
+  
+  # 检查数据是否全为相同值（会导致pheatmap无法生成断点）
+  data_range <- range(matrix_data, na.rm = TRUE, finite = TRUE)
+  if (length(data_range) == 0 || !is.finite(data_range[1]) || !is.finite(data_range[2]) || 
+      data_range[1] == data_range[2]) {
+    warning("数据全为相同值或无效值，无法生成热图。尝试添加微小随机噪声...")
+    # 如果所有值都相同，添加微小的随机噪声以允许生成热图
+    if (is.finite(data_range[1])) {
+      matrix_data <- matrix_data + rnorm(length(matrix_data), mean = 0, sd = abs(data_range[1]) * 1e-10)
+    } else {
+      # 如果数据完全无效，设置为0并添加微小噪声
+      matrix_data[] <- rnorm(length(matrix_data), mean = 0, sd = 1e-10)
     }
   }
 
   # 检查方差为0的行和列（只有聚类时才需要移除）
-  if (remove_zero_variance) {
-    # 检查方差为0的行（所有值相同）
-    row_vars <- apply(matrix_data, 1, var, na.rm = TRUE)
-    zero_var_rows <- which(row_vars == 0 | is.na(row_vars))
+  # if (remove_zero_variance) {
+  #   # 检查方差为0的行（所有值相同）
+  #   row_vars <- apply(matrix_data, 1, var, na.rm = TRUE)
+  #   zero_var_rows <- which(row_vars == 0 | is.na(row_vars))
 
-    if (length(zero_var_rows) > 0) {
-      warning(paste("发现", length(zero_var_rows), "行方差为0，将被移除"))
-      matrix_data <- matrix_data[-zero_var_rows, , drop = FALSE]
-    }
+  #   if (length(zero_var_rows) > 0) {
+  #     warning(paste("发现", length(zero_var_rows), "行方差为0，将被移除"))
+  #     matrix_data <- matrix_data[-zero_var_rows, , drop = FALSE]
+  #   }
 
-    # 检查方差为0的列（所有值相同）
-    col_vars <- apply(matrix_data, 2, var, na.rm = TRUE)
-    zero_var_cols <- which(col_vars == 0 | is.na(col_vars))
+  #   # 检查方差为0的列（所有值相同）
+  #   col_vars <- apply(matrix_data, 2, var, na.rm = TRUE)
+  #   zero_var_cols <- which(col_vars == 0 | is.na(col_vars))
 
-    if (length(zero_var_cols) > 0) {
-      warning(paste("发现", length(zero_var_cols), "列方差为0，将被移除"))
-      matrix_data <- matrix_data[, -zero_var_cols, drop = FALSE]
-    }
-  }
+  #   if (length(zero_var_cols) > 0) {
+  #     warning(paste("发现", length(zero_var_cols), "列方差为0，将被移除"))
+  #     matrix_data <- matrix_data[, -zero_var_cols, drop = FALSE]
+  #   }
+  # }
 
-  # 检查矩阵是否为空
-  if (nrow(matrix_data) == 0 || ncol(matrix_data) == 0) {
-    stop("数据清理后矩阵为空，无法生成热图")
-  }
+  # # 检查矩阵是否为空
+  # if (nrow(matrix_data) == 0 || ncol(matrix_data) == 0) {
+  #   stop("数据清理后矩阵为空，无法生成热图")
+  # }
 
   return(matrix_data)
 }
@@ -355,11 +411,23 @@ smart_heatmap <- function(matrix_data,
                           ...) {
   config <- .HEATMAP_CONFIG
 
+  # 首先检查输入数据是否有效
+  if (is.null(matrix_data) || (is.matrix(matrix_data) && (nrow(matrix_data) == 0 || ncol(matrix_data) == 0))) {
+    warning("输入数据为空，无法生成热图")
+    return(invisible(NULL))
+  }
+  
   # 使用自动参数设置函数，先获取参数以确定是否需要聚类
   params <- auto_set_heatmap_parameters(matrix_data, autoset_image_specification, ...)
   # 根据聚类参数决定是否移除方差为0的数据
   needs_clustering <- (isTRUE(params$cluster_rows) || isTRUE(params$cluster_cols))
   matrix_data <- clean_matrix_data(matrix_data, remove_zero_variance = needs_clustering)
+  
+  # 再次检查清理后的数据
+  if (is.null(matrix_data) || nrow(matrix_data) == 0 || ncol(matrix_data) == 0) {
+    warning("数据清理后矩阵为空，无法生成热图")
+    return(invisible(NULL))
+  }
 
   # 获取dpi参数（用于输出设备设置）
   dpi <- if ("dpi" %in% names(params)) params$dpi else config$DEFAULT_DPI
@@ -401,27 +469,6 @@ smart_heatmap <- function(matrix_data,
     ))
   }
 
-  # 调试信息：输出 annotation_col 信息
-  has_annotation_col <- "annotation_col" %in% names(params) &&
-    !is.null(params$annotation_col) &&
-    !identical(params$annotation_col, NA) &&
-    !(is.data.frame(params$annotation_col) && nrow(params$annotation_col) == 0)
-
-  if (has_annotation_col) {
-    cat("=== Column Annotations 调试信息 ===\n")
-    if (is.data.frame(params$annotation_col)) {
-      cat("Column annotations 维度:", dim(params$annotation_col), "\n")
-      cat("Column annotations 列名:", colnames(params$annotation_col), "\n")
-    } else {
-      cat("Column annotations 类型:", class(params$annotation_col), "\n")
-    }
-    cat("================================\n")
-  } else {
-    cat("=== Column Annotations 调试信息 ===\n")
-    cat("未提供 column annotations 或为 NA\n")
-    cat("================================\n")
-  }
-
   cluster_checked <- validate_clustering(
     matrix_data,
     params$cluster_rows,
@@ -434,6 +481,7 @@ smart_heatmap <- function(matrix_data,
   if (!is.null(filename)) {
     # 确保设备能被安全关闭
     device_opened <- FALSE
+    should_skip <- FALSE
 
     tryCatch(
       {
@@ -451,19 +499,21 @@ smart_heatmap <- function(matrix_data,
           height_px <- dimensions$height * dpi
 
           if (width_px > max_pixels_per_side || height_px > max_pixels_per_side) {
-            stop(sprintf(
-              "热图尺寸过大 (%.0f x %.0f 像素)，无法生成PNG文件。建议：1) 使用PDF格式 2) 减少数据维度 3) 调整cellwidth/cellheight参数",
+            warning(sprintf(
+              "热图尺寸过大 (%.0f x %.0f 像素)，无法生成PNG文件。建议：1) 使用PDF格式 2) 减少数据维度 3) 调整cellwidth/cellheight参数。跳过PNG生成",
               width_px, height_px
             ))
+            device_opened <- FALSE
+            should_skip <- TRUE
+          } else {
+            png(
+              filename = filename,
+              width = width_px,
+              height = height_px,
+              res = dpi
+            )
+            device_opened <- TRUE
           }
-
-          png(
-            filename = filename,
-            width = width_px,
-            height = height_px,
-            res = dpi
-          )
-          device_opened <- TRUE
         } else if (output_format == "tiff") {
           dpi <- adjust_dpi_if_needed(dpi, dimensions$width, dimensions$height)
           tiff(
@@ -490,13 +540,21 @@ smart_heatmap <- function(matrix_data,
           )
           device_opened <- TRUE
         } else {
-          stop("不支持的输出格式。请选择: 'pdf', 'png', 'tiff', 'svg', 'jpg', 或 'jpeg'")
+          warning("不支持的输出格式。请选择: 'pdf', 'png', 'tiff', 'svg', 'jpg', 或 'jpeg'。跳过文件生成")
+          device_opened <- FALSE
+          should_skip <- TRUE
         }
       },
       error = function(e) {
-        stop(sprintf("无法创建输出设备: %s\n建议使用PDF格式或减少热图尺寸", e$message))
+        warning(sprintf("无法创建输出设备: %s\n建议使用PDF格式或减少热图尺寸", e$message))
+        device_opened <<- FALSE
+        should_skip <<- TRUE
       }
     )
+
+    if (should_skip) {
+      return(invisible(NULL))
+    }
 
     # 绘制热图并保证关闭设备
     on.exit(
@@ -525,6 +583,19 @@ smart_heatmap <- function(matrix_data,
 
 #' 安全绘制热图，必要时禁用聚类
 draw_heatmap_safe <- function(matrix_data, params) {
+  # 检查数据有效性
+  if (is.null(matrix_data) || nrow(matrix_data) == 0 || ncol(matrix_data) == 0) {
+    warning("数据矩阵为空，无法生成热图")
+    return(invisible(NULL))
+  }
+  
+  # 检查数据范围是否有效
+  data_range <- range(matrix_data, na.rm = TRUE, finite = TRUE)
+  if (length(data_range) == 0 || !is.finite(data_range[1]) || !is.finite(data_range[2])) {
+    warning("数据范围无效，无法生成热图")
+    return(invisible(NULL))
+  }
+  
   # 过滤掉 NULL 或空字符串的参数，避免传递给 pheatmap 时出错
   params <- params[!sapply(params, function(x) is.null(x) || (is.character(x) && length(x) == 1 && !nzchar(x)))]
 
@@ -538,8 +609,20 @@ draw_heatmap_safe <- function(matrix_data, params) {
         params$cluster_rows <- FALSE
         params$cluster_cols <- FALSE
         do.call(pheatmap, c(list(matrix_data), params))
+      } else if (grepl("seq|finite|breaks", e$message, ignore.case = TRUE)) {
+        # 处理数据范围问题
+        warning("数据范围问题，尝试修复...")
+        # 确保数据有有效范围
+        if (data_range[1] == data_range[2]) {
+          matrix_data <- matrix_data + rnorm(length(matrix_data), mean = 0, sd = abs(data_range[1]) * 1e-10 + 1e-10)
+        }
+        # 禁用聚类以避免进一步问题
+        params$cluster_rows <- FALSE
+        params$cluster_cols <- FALSE
+        do.call(pheatmap, c(list(matrix_data), params))
       } else {
-        stop("热图生成失败: ", e$message)
+        warning("热图生成失败: ", e$message)
+        return(invisible(NULL))
       }
     }
   )
@@ -563,25 +646,13 @@ if (is_main()) {
       type = "character", default = NULL,
       help = "输入数据文件（txt/csv/tsv/xlsx/xls），首列为行名", metavar = "character"
     ),
-    make_option(c("--input_sheet"),
-      type = "character", default = NULL,
-      help = "当输入为 Excel 时，指定数据矩阵所在的 Sheet 名或序号"
-    ),
     make_option(c("--annotation_row"),
       type = "character", default = NULL,
-      help = "行注释文件（txt/csv/tsv/xlsx/xls），首列为行名"
-    ),
-    make_option(c("--annotation_row_sheet"),
-      type = "character", default = NULL,
-      help = "行注释 Excel Sheet 名或序号"
+      help = "行注释：数字表示 Excel 输入文件的 Sheet 序号，或文件路径（txt/csv/tsv/xlsx/xls），首列为行名"
     ),
     make_option(c("--annotation_col"),
       type = "character", default = NULL,
-      help = "列注释文件（txt/csv/tsv/xlsx/xls），首列为列名"
-    ),
-    make_option(c("--annotation_col_sheet"),
-      type = "character", default = NULL,
-      help = "列注释 Excel Sheet 名或序号"
+      help = "列注释：数字表示 Excel 输入文件的 Sheet 序号，或文件路径（txt/csv/tsv/xlsx/xls），首列为列名"
     ),
     make_option(c("--output"),
       type = "character", default = NULL,
@@ -607,37 +678,78 @@ if (is_main()) {
   opt_parser <- OptionParser(option_list = option_list)
   opt <- parse_args(opt_parser)
 
-  if (is.null(opt$input)) stop("必须提供 --input")
-
+  # 自动检测输入文件是否为 Excel 格式
+  input_ext <- tolower(tools::file_ext(opt$input))
+  is_excel_input <- input_ext %in% c("xlsx", "xls")
+  
   # 读取数据矩阵
-  input_sheet_val <- parse_sheet_param(opt$input_sheet)
-  data_df <- read_indexed_table(opt$input, sheet = input_sheet_val, expect_numeric = TRUE)
-  data_mat <- as.matrix(data_df)
+  # 如果是 Excel 文件，默认读取第一个 sheet（sheet=1）；否则 sheet 参数会被忽略
+  data_mat <-
+  # data_df <- read_indexed_table(opt$input, sheet = if (is_excel_input) 1 else NULL, expect_numeric = TRUE)
+  # data_mat <- as.matrix(data_df)
 
   # 读取注释
+  # annotation_row 和 annotation_col 可以是：
+  # 1. 数字：表示从输入 Excel 文件中读取对应 sheet
+  # 2. 文件路径：从独立文件中读取
   row_anno <- NULL
   if (!is.null(opt$annotation_row)) {
-    row_sheet_val <- parse_sheet_param(opt$annotation_row_sheet)
-    row_anno <- read_indexed_table(opt$annotation_row, sheet = row_sheet_val, expect_numeric = FALSE)
+    row_sheet_val <- parse_sheet_param(opt$annotation_row)
+    if (is.numeric(row_sheet_val)) {
+      # 是数字，从输入 Excel 文件中读取
+      if (!is_excel_input) {
+        warning("--annotation_row 指定为数字时，输入文件必须是 Excel 格式，跳过行注释")
+        row_anno <- NULL
+      } else {
+        row_anno <- read_indexed_table(opt$input, sheet = row_sheet_val, expect_numeric = FALSE)
+      }
+    } else {
+      # 是文件路径，从独立文件中读取
+      row_ext <- tolower(tools::file_ext(opt$annotation_row))
+      is_excel_row <- row_ext %in% c("xlsx", "xls")
+      row_anno <- read_indexed_table(opt$annotation_row, sheet = if (is_excel_row) 1 else NULL, expect_numeric = FALSE)
+    }
   }
+  
   col_anno <- NULL
   if (!is.null(opt$annotation_col)) {
-    col_sheet_val <- parse_sheet_param(opt$annotation_col_sheet)
-    col_anno <- read_indexed_table(opt$annotation_col, sheet = col_sheet_val, expect_numeric = FALSE)
+    col_sheet_val <- parse_sheet_param(opt$annotation_col)
+    if (is.numeric(col_sheet_val)) {
+      # 是数字，从输入 Excel 文件中读取
+      if (!is_excel_input) {
+        warning("--annotation_col 指定为数字时，输入文件必须是 Excel 格式，跳过列注释")
+        col_anno <- NULL
+      } else {
+        col_anno <- read_indexed_table(opt$input, sheet = col_sheet_val, expect_numeric = FALSE)
+      }
+    } else {
+      # 是文件路径，从独立文件中读取
+      col_ext <- tolower(tools::file_ext(opt$annotation_col))
+      is_excel_col <- col_ext %in% c("xlsx", "xls")
+      col_anno <- read_indexed_table(opt$annotation_col, sheet = if (is_excel_col) 1 else NULL, expect_numeric = FALSE)
+    }
   }
 
   # 对齐注释到数据
   if (!is.null(row_anno)) {
     common_rows <- intersect(rownames(data_mat), rownames(row_anno))
-    if (length(common_rows) == 0) stop("行注释与数据行名没有交集")
-    row_anno <- row_anno[common_rows, , drop = FALSE]
-    data_mat <- data_mat[common_rows, , drop = FALSE]
+    if (length(common_rows) == 0) {
+      warning("行注释与数据行名没有交集，跳过行注释")
+      row_anno <- NULL
+    } else {
+      row_anno <- row_anno[common_rows, , drop = FALSE]
+      data_mat <- data_mat[common_rows, , drop = FALSE]
+    }
   }
   if (!is.null(col_anno)) {
     common_cols <- intersect(colnames(data_mat), rownames(col_anno))
-    if (length(common_cols) == 0) stop("列注释与数据列名没有交集")
-    col_anno <- col_anno[common_cols, , drop = FALSE]
-    data_mat <- data_mat[, common_cols, drop = FALSE]
+    if (length(common_cols) == 0) {
+      warning("列注释与数据列名没有交集，跳过列注释")
+      col_anno <- NULL
+    } else {
+      col_anno <- col_anno[common_cols, , drop = FALSE]
+      data_mat <- data_mat[, common_cols, drop = FALSE]
+    }
   }
 
   # 组装 pheatmap 参数（用户参数优先，NA 表示自动）
@@ -672,63 +784,3 @@ if (is_main()) {
     )
   )
 }
-
-
-
-# ============= 示例数据 ================
-# set.seed(2398)
-# n_rows <- 3
-# n_cols <- 1024
-
-# data_matrix <- matrix(rnorm(n_rows * n_cols), nrow = n_rows, ncol = n_cols)
-# rownames(data_matrix) <- paste0("Gene_", 1:n_rows, "_with_very_long_name_for_testing")
-# colnames(data_matrix) <- paste0("Sample_", 1:n_cols, "_condition_timepoint")
-
-# # 创建行注释
-# row_annotation <- data.frame(
-#   Pathway = rep(c("Apoptosis", "Cell Cycle", "Metabolism"), length.out = n_rows),
-#   Expression = rnorm(n_rows)
-# )
-# rownames(row_annotation) <- rownames(data_matrix)
-
-# # 创建列注释
-# col_annotation <- data.frame(
-#   Treatment = rep(c("Control", "Drug_A", "Drug_B"), length.out = n_cols),
-#   Timepoint = rep(1:3, length.out = n_cols)
-# )
-# rownames(col_annotation) <- colnames(data_matrix)
-# =======================================
-
-# nrow or ncol 2   4   8   16  64  128 256 512
-# cellwidth    120 60  30  20  15  7.5 3.3 1.2
-# fontsize     10  10  10  10  10  8   4   1
-# dpi          300 300 300 300 300 300 512 1024
-# 实际的热图生成调用
-# smart_heatmap(
-#   matrix_data = reads_data,
-#   filename = output_pic,
-#   output_format = "png",
-#   # 以下参数将根据数据矩阵的行数和列数自动设置：
-#   # cellwidth, cellheight, fontsize_row, fontsize_col, dpi, color
-#   show_rownames = TRUE,
-#   show_colnames = TRUE,
-#   main = "Heatmap"
-# )
-
-# 示例：如果需要自定义颜色，可以这样调用：
-# smart_heatmap(
-#   matrix_data = data_matrix,
-#   filename = "advanced_heatmap.svg",
-#   cellwidth = 1.2,
-#   cellheight = 120,
-#   fontsize_col = 1,
-#   fontsize_row = 10,
-#   annotation_row = row_annotation,
-#   annotation_col = col_annotation,
-#   show_rownames = TRUE,
-#   show_colnames = TRUE,
-#   #treeheight_row = 20,
-#   #treeheight_col = 20,
-#   main = "Class:",
-#   dpi = 2048
-# )
