@@ -25,6 +25,10 @@ option_list <- list(
               help = "输出目录"),
   make_option("--sort_by_class", type = "logical", default = FALSE, metavar = "logical",
               help = "是否对 class 进行排序"),
+  make_option("--sort_by_subclass", type = "logical", default = FALSE, metavar = "logical",
+              help = "是否对 subclass 进行排序"),
+  make_option("--group_significant_heatmap_plot", type = "logical", default = FALSE, metavar = "logical",
+              help = "是否进行组间的显著差异的 heatmap 图"),
   make_option(c("-l", "--log2data"), type = "logical", default = FALSE, metavar = "logical",
               help = "是否进行log2转换"),
   make_option("--each_class_heatmap", type = "logical", default = FALSE, metavar = "logical",
@@ -82,9 +86,9 @@ row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir, 
     class_samples <- rownames(compound_def)[compound_def$Class == class_name]
     class_data <- data_frame[class_samples, , drop = FALSE]
     
-    # 跳过样本不足的类别
+    # 跳过代谢物数量不足的类别（至少需要2个代谢物才能绘制热图）
     if (nrow(class_data) < 2) {
-      warning("跳过类别 [", class_name, "] - 样本数不足 (n=", nrow(class_data), ")")
+      warning("跳过类别 [", class_name, "] - 代谢物数量不足 (n=", nrow(class_data), ")")
       next
     }
     
@@ -125,7 +129,7 @@ row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir, 
         sub_samples <- rownames(compound_def)[compound_def$Class == class_name & compound_def$SubClass == sub_name]
         sub_data <- data_frame[sub_samples, , drop = FALSE]
         if (nrow(sub_data) < 2) {
-          warning("跳过子类别 [", class_name, "/", sub_name, "] - 样本数不足 (n=", nrow(sub_data), ")")
+          warning("跳过子类别 [", class_name, "/", sub_name, "] - 代谢物数量不足 (n=", nrow(sub_data), ")")
           next
         }
         safe_sub <- make.names(sub_name)
@@ -563,7 +567,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     }
     
     # 处理Class和SubClass分析
-    write.xlsx(greater_than_one_data_def, file=file.path(output_dir, 'temp.xlsx'), rowNames=TRUE, colNames=TRUE)    
+    # write.xlsx(greater_than_one_data_def, file=file.path(output_dir, 'temp.xlsx'), rowNames=TRUE, colNames=TRUE)    
     process_class_analysis(greater_than_one_data_def, "Class", "Significant_compound_count_by_class.xlsx")
     process_class_analysis(greater_than_one_data_def, "SubClass", "Significant_compound_count_by_subclass.xlsx")
   }
@@ -582,10 +586,11 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
 }
 
 # 组间分析函数
-comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = NA, definition_df = NA, output_dir, log2data = FALSE, each_class_heatmap = FALSE, heatmap_cluster = FALSE) {
+comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = NA, definition_df = NA, output_dir,
+  log2data = FALSE, each_class_heatmap = FALSE, heatmap_cluster = FALSE, group_significant_heatmap_plot = FALSE, sort_by_subclass = FALSE) {
+
   sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
   comp_info <- read.table(compare_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
-  
   
   comparisons <- list()
   for (i in seq_along(1:nrow(comp_info))) {
@@ -610,6 +615,7 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
     Down_list = character(0)
   )
 
+  # 组间循环
   # 循环中注意可能需要修改 corssvalI 值
   for (i in seq_along(comparisons)) {
     compare_name <- paste(comparisons[[i]], collapse = "-vs-")
@@ -696,10 +702,7 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
     }
 
     # 获取VIP值，如果模型失败则赋予 0
-    vip_values <- tryCatch(
-      {opls_model@vipVn},
-      error = function(e) {rep(0, ncol(current_expression_data))}
-    )
+    vip_values <- tryCatch({opls_model@vipVn}, error = function(e) {rep(0, ncol(current_expression_data))})
 
     # 组间 heatmap 图
     if (is.data.frame(fpkm_df)) {
@@ -751,26 +754,16 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
     baseMeanB <- rowMeans(current_expression_data[, groupB_cols])
     FoldChange <- ifelse(baseMeanB > 0, abs(baseMeanA / baseMeanB), 0)
 
-    # 定义一个函数进行成对t检验
-    paired_t_test <- function(x, y) {
+    # 计算 p_values
+    paired_t_test <- function(x, y) {  # 定义一个函数进行成对t检验
       # 如果x中所有值都相同
-      if (length(unique(x)) == 1) {
-        x[1] <- x[1] + 0.000000001
-      }
-
+      if (length(unique(x)) == 1) {x[1] <- x[1] + 0.000000001}
       # 如果y中所有值都相同
-      if (length(unique(y)) == 1) {
-        y[1] <- y[1] + 0.000000001
-      }
+      if (length(unique(y)) == 1) {y[1] <- y[1] + 0.000000001}
       test_result <- t.test(x, y)
       return(test_result$p.value)
     }
-
-    p_values <- apply(
-      current_expression_data, 
-      1, 
-      function(row) paired_t_test(row[groupA_cols], row[groupB_cols])
-    )
+    p_values <- apply(current_expression_data, 1, function(row) paired_t_test(row[groupA_cols], row[groupB_cols]))
 
     current_expression_data_def <- cbind(
       current_expression_data, 
@@ -795,50 +788,61 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
       VIP = vip_values_adjusted
     )
 
-    current_expression_data_def <- current_expression_data_def[
-      order(current_expression_data_def$pvalues, na.last = TRUE), 
-    ]
+    
+
+    current_expression_data_def <- current_expression_data_def[order(current_expression_data_def$pvalues, na.last = TRUE), ]
     
     current_expression_data_def$Metabolite <- rownames(current_expression_data_def)
     current_expression_data_def <- current_expression_data_def[
       , c("Metabolite", setdiff(names(current_expression_data_def), "Metabolite"))
     ]
     
-    current_expression_data_def$padj <- p.adjust(
-      current_expression_data_def$pvalues, 
-      "BH"
-    )
+    current_expression_data_def$padj <- p.adjust(current_expression_data_def$pvalues, "BH")
 
     if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
-      current_expression_data_def <- merge(
-        current_expression_data_def, 
-        definition_df, 
-        by = "Metabolite", 
-        all.x = TRUE
-      )
+      current_expression_data_def <- merge(current_expression_data_def, definition_df, by = "Metabolite", all.x = TRUE)
     }
 
-    current_expression_data_def <- current_expression_data_def[
-      order(-current_expression_data_def$VIP, na.last = TRUE), 
-    ]
-    current_expression_data_def[is.na(current_expression_data_def)] <- 0
+    current_expression_data_def <- current_expression_data_def[order(-current_expression_data_def$VIP, na.last = TRUE),]
 
-    # 将更新后的数据框保存为文本文件
-    write.xlsx(
-      current_expression_data_def,
-      file = file.path(compare_path, paste0(compare_name, "_VIP.xlsx")),
-      sheetName = "Sheet1",
-      rowNames = FALSE,
-      colNames = TRUE
+    # 只替换数值列的 NA，保留来自 definition_df 的列中的 NA
+    if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
+      # 获取来自 definition_df 的列名（排除 Metabolite，因为它是合并键）
+      definition_cols <- setdiff(colnames(definition_df), "Metabolite")
+      # 只对非 definition_df 列的数值列进行 NA 替换
+      numeric_cols <- sapply(current_expression_data_def, is.numeric)
+      cols_to_replace <- names(numeric_cols)[numeric_cols & !names(numeric_cols) %in% definition_cols]
+      for (col in cols_to_replace) {
+        current_expression_data_def[[col]][is.na(current_expression_data_def[[col]])] <- 0
+      }
+    } else {
+      # 如果没有 definition_df，则替换所有数值列的 NA
+      numeric_cols <- sapply(current_expression_data_def, is.numeric)
+      for (col in names(numeric_cols)[numeric_cols]) {
+        current_expression_data_def[[col]][is.na(current_expression_data_def[[col]])] <- 0
+      }
+    }
+
+    # 标注上调/下调/不显著
+    current_expression_data_def$regulation <- ifelse(
+      current_expression_data_def$VIP > 1 & current_expression_data_def$FoldChange >= 1.2,
+      "Up",
+      ifelse(
+        current_expression_data_def$VIP > 1 & current_expression_data_def$FoldChange < 0.8,
+        "Down",
+        "NoSignificant"
+      )
     )
 
-    deg_df <- current_expression_data_def[
-      current_expression_data_def$VIP > 1, 
-    ]
-    deg_up <- nrow(deg_df[deg_df$FoldChange >= 1.2, ])
-    deg_up_idlist <- deg_df[deg_df$FoldChange >= 1.2, ]$Metabolite
-    deg_down <- nrow(deg_df[deg_df$FoldChange <= 0.8, ])
-    deg_down_idlist <- deg_df[deg_df$FoldChange <= 0.8, ]$Metabolite
+    # 将更新后的数据框保存为文本文件
+    vip_output_name <- file.path(compare_path, paste0(compare_name, "_VIP.xlsx"))
+    write.xlsx(current_expression_data_def, file = vip_output_name, sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
+
+    # 使用已计算的regulation列来统计
+    deg_up <- sum(current_expression_data_def$regulation == "Up")
+    deg_up_idlist <- current_expression_data_def$Metabolite[current_expression_data_def$regulation == "Up"]
+    deg_down <- sum(current_expression_data_def$regulation == "Down")
+    deg_down_idlist <- current_expression_data_def$Metabolite[current_expression_data_def$regulation == "Down"]
     
     new_row <- data.frame(
       group = compare_name,
@@ -855,15 +859,60 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
 
     # 每个 Class 一张图
     if (each_class_heatmap && is.data.frame(current_definition_df) && nrow(current_definition_df) > 0) {
-      each_class_heatmap_dir <- file.path(compare_path, 'Each_class_heatmap')
+      each_class_heatmap_dir <- file.path(compare_path, 'Each_class_metabolite_heatmap')
       dir.create(each_class_heatmap_dir, showWarnings = FALSE)
-      
+
       # 根据是否有 fpkm 数据选择使用的数据
       if (is.data.frame(fpkm_df)) {
         data_for_class_heatmap <- current_expression_fpkm_data
       } else {
         data_for_class_heatmap <- current_expression_data
       }
+
+
+      if (group_significant_heatmap_plot) {
+        significant_heatmap_dir <- file.path(compare_path, 'Each_class_significant_metabolite_heatmap')
+        dir.create(significant_heatmap_dir, showWarnings = FALSE)
+        print(colnames(current_expression_data_def))
+        significant_expression_data_def_df <- current_expression_data_def[current_expression_data_def$regulation != "NoSignificant", ]
+
+        if (sort_by_subclass) {
+          significant_expression_data_def_df <- significant_expression_data_def_df[order(significant_expression_data_def_df$SubClass), ]
+        }
+        
+        # 如果显著差异代谢物数量小于1，跳过绘图
+        if (nrow(significant_expression_data_def_df) <= 1) {
+          cat("显著差异代谢物数量小于1，跳过绘图\n")
+        } else {
+          significant_expression_data_df <- significant_expression_data_def_df[, current_samples, drop = FALSE] 
+          # 设置行名为代谢物名称，确保与注释数据框匹配
+          rownames(significant_expression_data_df) <- significant_expression_data_def_df$Metabolite
+          
+          # 筛选出显著差异代谢物的注释数据
+          if (is.data.frame(current_definition_df) && nrow(current_definition_df) > 0) {
+            # 只选择在 current_definition_df 中存在的代谢物
+            available_metabolites <- intersect(significant_expression_data_def_df$Metabolite, rownames(current_definition_df))
+            if (length(available_metabolites) > 0) {
+              significant_definition_df <- current_definition_df[available_metabolites, , drop = FALSE]
+              # 同时筛选表达数据，只保留有注释的代谢物
+              significant_expression_data_df <- significant_expression_data_df[available_metabolites, , drop = FALSE]
+            } else {
+              significant_definition_df <- NA
+            }
+          } else {
+            significant_definition_df <- NA
+          }
+
+          row_class_heatmap(
+            data_frame = significant_expression_data_df,
+            samples_df = sample_info[sample_info$sample %in% current_samples, , drop = FALSE],
+            compound_def = significant_definition_df,
+            output_dir = significant_heatmap_dir,
+            heatmap_cluster = opt$heatmap_cluster
+          )
+        }
+      }
+
       
       # 使注释行名与热图数据完全一致
       if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
@@ -1117,7 +1166,9 @@ if (!is.null(opt$compare)) {
     output_dir = comparison_analysis_dir,
     log2data = opt$log2data,
     each_class_heatmap = opt$each_class_heatmap,
-    heatmap_cluster = opt$heatmap_cluster
+    heatmap_cluster = opt$heatmap_cluster,
+    sort_by_subclass = opt$sort_by_subclass,
+    group_significant_heatmap_plot = opt$group_significant_heatmap_plot
   )
 }
 
