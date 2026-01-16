@@ -109,15 +109,15 @@ def summarize_vip_and_enrich(input_dir, output_dir, definition_df=None):
         vip_df = pd.read_excel(vip_file)
         
         # 标注上调/下调/不显著
-        conditions = [
-            (vip_df['VIP'] > 1) & ((vip_df['FoldChange'] > 1.2) | (vip_df['FoldChange'] < 0.8)) & (vip_df['FoldChange'] >= 1.2),
-            (vip_df['VIP'] > 1) & ((vip_df['FoldChange'] > 1.2) | (vip_df['FoldChange'] < 0.8)) & (vip_df['FoldChange'] < 0.8)
-        ]
-        choices = ['Up', 'Down']
-        vip_df['regulation'] = np.select(conditions, choices, default='NoSignificant')
+        # conditions = [
+        #     (vip_df['VIP'] > 1) & ((vip_df['FoldChange'] > 1.2) | (vip_df['FoldChange'] < 0.8)) & (vip_df['FoldChange'] >= 1.2),
+        #     (vip_df['VIP'] > 1) & ((vip_df['FoldChange'] > 1.2) | (vip_df['FoldChange'] < 0.8)) & (vip_df['FoldChange'] < 0.8)
+        # ]
+        # choices = ['Up', 'Down']
+        # vip_df['regulation'] = np.select(conditions, choices, default='NoSignificant')
         
-        # 保存标注后的数据
-        vip_df.to_excel(vip_file, index=False)
+        # # 保存标注后的数据
+        # vip_df.to_excel(vip_file, index=False)
         
         # ======= enrich start ======== 有 KEGG 列才能做 enrich
         if "KEGG" in vip_df.columns:
