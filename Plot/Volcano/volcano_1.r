@@ -13,7 +13,9 @@ plot_volcano <- function(
   bs_pos = 1.2,
   title = NULL,
   label_col = "Annotation",
-  center_zero = FALSE
+  center_zero = FALSE,
+  x_left = NA_real_,
+  x_right = NA_real_
 ) {
 
   missing_cols <- setdiff(c(x_col, y_col, reg_col), colnames(df))
@@ -64,6 +66,12 @@ plot_volcano <- function(
     }
   }
 
+  # 手动指定左右轴范围时优先使用，传入 NA 表示保留自动范围
+  if (is.finite(x_left) || is.finite(x_right)) {
+    limits <- c(x_left, x_right)
+    p <- p + coord_cartesian(xlim = limits)
+  }
+
   if (!is.null(title) && nzchar(title)) {
     p <- p + labs(title = title)
   }
@@ -89,7 +97,6 @@ if (is_main()) {
     make_option(c("--x_col"), type = "character", default = "FoldChange", help = "横轴列名，默认 FoldChange（如用 log2FoldChange 请自行设置阈值）"),
     make_option(c("--y_col"), type = "character", default = "padj", help = "纵轴列名，默认 padj"),
     make_option(c("--reg_col"), type = "character", default = "regulation", help = "分组列名，默认 regulation"),
-    make_option(c("--alpha"), type = "double", default = 0.05, help = "显著性阈值 alpha，默认 0.05"),
     make_option(c("--bs_neg"), type = "double", default = 0.8, help = "左侧竖线阈值（FoldChange），默认 0.8；若 x_col=log2FoldChange 可设为 np.log10(0.8)"),
     make_option(c("--bs_pos"), type = "double", default = 1.2, help = "右侧竖线阈值（FoldChange），默认 1.2；若 x_col=log2FoldChange 可设为 np.log10(1.2)"),
     make_option(c("--width"), type = "double", default = 10, help = "图片宽度(inches)，默认 10"),
@@ -97,7 +104,9 @@ if (is_main()) {
     make_option(c("--dpi"), type = "integer", default = 300, help = "图片 DPI，默认 300"),
     make_option(c("--title"), type = "character", default = "", help = "图标题，可为空"),
     make_option(c("--label_col"), type = "character", default = "", help = "标注列名，默认 Annotation；为空则不标注"),
-    make_option(c("--center_zero"), type = "logical", default = TRUE, help = "x 轴 0 居中且两侧距离相等，默认 FALSE")
+    make_option(c("--center_zero"), type = "logical", default = TRUE, help = "x 轴 0 居中且两侧距离相等，默认 FALSE"),
+    make_option(c("--x_left"), type = "double", default = NA, help = "x 轴左侧最小值，默认自动"),
+    make_option(c("--x_right"), type = "double", default = NA, help = "x 轴右侧最大值，默认自动")
   )
   opt_parser <- OptionParser(option_list = option_list)
   opt <- parse_args(opt_parser)
@@ -118,7 +127,9 @@ if (is_main()) {
     bs_pos = opt$bs_pos,
     title = opt$title,
     label_col = opt$label_col,
-    center_zero = opt$center_zero
+    center_zero = opt$center_zero,
+    x_left = opt$x_left,
+    x_right = opt$x_right
   )
 
   ggsave(filename = opt$output, plot = p, width = opt$width, height = opt$height, dpi = opt$dpi, units = "in")
