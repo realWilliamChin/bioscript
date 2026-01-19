@@ -10,6 +10,32 @@ import subprocess
 from loguru import logger
 
 
+def _build_rscript_cmd(script_path, **kwargs):
+    """构建通用的 Rscript 命令，统一处理参数解析逻辑。"""
+    cmd_parts = [f'Rscript {script_path}']
+    for key, value in kwargs.items():
+        if value is None:
+            continue
+        # 跳过空字符串（避免传递给 R 脚本时出现问题）
+        if isinstance(value, str):
+            if not value.strip():
+                continue
+            # 字符串参数，如果包含空格则加引号
+            if ' ' in value:
+                arg_val = f'"{value}"'
+            else:
+                arg_val = value
+        # 逻辑值参数转换为 R 格式
+        elif isinstance(value, bool):
+            arg_val = str(value).upper()
+        else:
+            arg_val = value
+
+        cmd_parts.append(f'--{key} {arg_val}')
+
+    return ' '.join(cmd_parts)
+
+
 def enrichment_barplot(input_file, output_file):
     cmd = f"Rscript /home/colddata/qinqiang/script/Analysis/enrich_analysis/enrichment_barplot.r \
         -f {input_file} \
@@ -151,32 +177,9 @@ def smart_heatmap(input_file, output_file=None, **kwargs):
         bool: 成功返回 True，失败返回 False
     """
     script_path = '/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r'
-    
-    # 构建命令
-    cmd_parts = [f'Rscript {script_path}', f'--input {input_file}']
-    
-    if output_file is not None:
-        cmd_parts.append(f'--output {output_file}')
-    
-    # 处理 kwargs 中的参数
-    for key, value in kwargs.items():
-        if value is not None:
-            # 跳过空字符串（避免传递给 R 脚本时出现问题）
-            if isinstance(value, str) and not value.strip():
-                continue
-            # 逻辑值参数转换为 R 格式
-            if isinstance(value, bool):
-                cmd_parts.append(f'--{key} {str(value).upper()}')
-            # 字符串参数，如果包含空格则加引号
-            elif isinstance(value, str):
-                if ' ' in value:
-                    cmd_parts.append(f'--{key} "{value}"')
-                else:
-                    cmd_parts.append(f'--{key} {value}')
-            else:
-                cmd_parts.append(f'--{key} {value}')
-    
-    cmd = ' '.join(cmd_parts)
+
+    # 构建命令（统一参数处理）
+    cmd = _build_rscript_cmd(script_path, input=input_file, output=output_file, **kwargs)
     logger.debug(f'运行命令: {cmd}')
     
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -191,14 +194,10 @@ def smart_heatmap(input_file, output_file=None, **kwargs):
 
 def volcano_plot(input_file, output_file, **kwargs):
     script_path = '/home/colddata/qinqiang/script/Plot/Volcano/volcano_1.r'
-    
-    # 组装命令
-    cmd_parts = [f'Rscript {script_path}', f'--input {input_file}', f'--output {output_file}']
-    for key, value in kwargs.items():
-        if value is not None:
-            cmd_parts.append(f'--{key} {value}')
-    cmd = ' '.join(cmd_parts)
-    
+
+    # 构建命令（统一参数处理）
+    cmd = _build_rscript_cmd(script_path, input=input_file, output=output_file, **kwargs)
+
     # 运行命令
     logger.debug(f'运行命令: {cmd}')
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
