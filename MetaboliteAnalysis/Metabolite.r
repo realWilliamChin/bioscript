@@ -350,6 +350,9 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
   }
   annotation_row_df <- gen_annotation_row_df(current_definition_df, select_data_frame)
   annotation_col_df <- gen_annotation_col_df(select_sample_info)
+  if ("SubClass" %in% colnames(annotation_row_df)) {
+    annotation_row_df <- annotation_row_df[, setdiff(colnames(annotation_row_df), "SubClass"), drop = FALSE]
+  }
 
   smart_heatmap(matrix_data = select_data_frame, file.path(output_dir, 'Compounds_heatmap.png'), scale = 'row',
     cluster_cols = FALSE, cluster_rows = FALSE,
@@ -555,7 +558,9 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     }
     vipgt1_annotation_row_df <- gen_annotation_row_df(vipgt1_data_def, vipgt1_data_df)
     vipgt1_annotation_col_df <- gen_annotation_col_df(select_sample_info[select_sample_info$sample %in% sample_names, , drop = FALSE])
-
+    if ("SubClass" %in% colnames(vipgt1_annotation_row_df)) {
+      vipgt1_annotation_row_df <- vipgt1_annotation_row_df[, setdiff(colnames(vipgt1_annotation_row_df), "SubClass"), drop = FALSE]
+    }
     smart_heatmap(
       matrix_data = vipgt1_data_df,
       file.path(output_dir, "Significant_compounds_heatmap.png"),
