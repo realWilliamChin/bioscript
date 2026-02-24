@@ -63,7 +63,8 @@ def prepare_kegg_data(vip_df, compare_group_name, output_dir):
 def run_kegg_enrich_analysis(up_df, down_df, up_df_filename, down_df_filename, enrich_output_prefix, kegg_enrich_output_prefix, output_dir, definition_df=None):
     """运行KEGG富集分析并处理结果"""
     # 运行富集分析脚本
-    Rscript_path = '/home/data/opt/biosoft/R-422/bin/Rscript'
+    # Rscript_path = '/home/data/opt/biosoft/R-422/bin/Rscript'
+    Rscript_path = 'Rscript'
     enrich_script_path = "/home/colddata/qinqiang/script/MetaboliteAnalysis/MetaboliteEnrich/metabolite_enrich.r"
     up_df_cmd = f"{Rscript_path} {enrich_script_path} --datatable {up_df_filename} --outputprefix {os.path.join(output_dir, enrich_output_prefix)}_Up"
     down_df_cmd = f"{Rscript_path} {enrich_script_path} --datatable {down_df_filename} --outputprefix {os.path.join(output_dir, enrich_output_prefix)}_Down"
@@ -134,24 +135,24 @@ def summarize_vip_and_enrich(input_dir, output_dir, definition_df=None):
             # 处理Class统计
             if "Class" in vip_df.columns:
                 # 计算总数
-                class_total = vip_df.groupby('Class')['Metabolite'].count().reset_index()
+                class_total = vip_df.groupby('Class')['Compounds'].count().reset_index()
                 class_total = class_total[class_total['Class'] != ""]
-                class_total = class_total.rename(columns={'Metabolite': 'Total'})
+                class_total = class_total.rename(columns={'Compounds': 'Total'})
                 
                 # 计算上调数 (VIP > 1 且 FoldChange > 1.2)
-                class_up = vip_df[(vip_df['VIP'] > 1) & (vip_df['FoldChange'] > 1.2)].groupby('Class')['Metabolite'].count().reset_index()
+                class_up = vip_df[(vip_df['VIP'] > 1) & (vip_df['FoldChange'] > 1.2)].groupby('Class')['Compounds'].count().reset_index()
                 class_up = class_up[class_up['Class'] != ""]
-                class_up = class_up.rename(columns={'Metabolite': 'Up'})
+                class_up = class_up.rename(columns={'Compounds': 'Up'})
                 
                 # 计算下调数 (VIP > 1 且 FoldChange < 0.8)
-                class_down = vip_df[(vip_df['VIP'] > 1) & (vip_df['FoldChange'] < 0.8)].groupby('Class')['Metabolite'].count().reset_index()
+                class_down = vip_df[(vip_df['VIP'] > 1) & (vip_df['FoldChange'] < 0.8)].groupby('Class')['Compounds'].count().reset_index()
                 class_down = class_down[class_down['Class'] != ""]
-                class_down = class_down.rename(columns={'Metabolite': 'Down'})
+                class_down = class_down.rename(columns={'Compounds': 'Down'})
                 
                 # 计算比较组总数 (上调+下调)
-                class_comparison_total = vip_df[(vip_df['VIP'] > 1) & ((vip_df['FoldChange'] > 1.2) | (vip_df['FoldChange'] < 0.8))].groupby('Class')['Metabolite'].count().reset_index()
+                class_comparison_total = vip_df[(vip_df['VIP'] > 1) & ((vip_df['FoldChange'] > 1.2) | (vip_df['FoldChange'] < 0.8))].groupby('Class')['Compounds'].count().reset_index()
                 class_comparison_total = class_comparison_total[class_comparison_total['Class'] != ""]
-                class_comparison_total = class_comparison_total.rename(columns={'Metabolite': 'Comparison_total'})
+                class_comparison_total = class_comparison_total.rename(columns={'Compounds': 'Comparison_total'})
                 
                 # 合并结果
                 class_result = pd.merge(class_total, class_comparison_total, on='Class', how='outer')
@@ -186,24 +187,24 @@ def summarize_vip_and_enrich(input_dir, output_dir, definition_df=None):
             # 处理SubClass统计
             if "SubClass" in vip_df.columns:
                 # 计算总数
-                subclass_total = vip_df.groupby('SubClass')['Metabolite'].count().reset_index()
+                subclass_total = vip_df.groupby('SubClass')['Compounds'].count().reset_index()
                 subclass_total = subclass_total[subclass_total['SubClass'] != ""]
-                subclass_total = subclass_total.rename(columns={'Metabolite': 'Total'})
+                subclass_total = subclass_total.rename(columns={'Compounds': 'Total'})
                 
                 # 计算上调数 (VIP > 1 且 FoldChange > 1.2)
-                subclass_up = vip_df[(vip_df['VIP'] > 1) & (vip_df['FoldChange'] > 1.2)].groupby('SubClass')['Metabolite'].count().reset_index()
+                subclass_up = vip_df[(vip_df['VIP'] > 1) & (vip_df['FoldChange'] > 1.2)].groupby('SubClass')['Compounds'].count().reset_index()
                 subclass_up = subclass_up[subclass_up['SubClass'] != ""]
-                subclass_up = subclass_up.rename(columns={'Metabolite': 'Up'})
+                subclass_up = subclass_up.rename(columns={'Compounds': 'Up'})
                 
                 # 计算下调数 (VIP > 1 且 FoldChange < 0.8)
-                subclass_down = vip_df[(vip_df['VIP'] > 1) & (vip_df['FoldChange'] < 0.8)].groupby('SubClass')['Metabolite'].count().reset_index()
+                subclass_down = vip_df[(vip_df['VIP'] > 1) & (vip_df['FoldChange'] < 0.8)].groupby('SubClass')['Compounds'].count().reset_index()
                 subclass_down = subclass_down[subclass_down['SubClass'] != ""]
-                subclass_down = subclass_down.rename(columns={'Metabolite': 'Down'})
+                subclass_down = subclass_down.rename(columns={'Compounds': 'Down'})
                 
                 # 计算比较组总数 (上调+下调)
-                subclass_comparison_total = vip_df[(vip_df['VIP'] > 1) & ((vip_df['FoldChange'] > 1.2) | (vip_df['FoldChange'] < 0.8))].groupby('SubClass')['Metabolite'].count().reset_index()
+                subclass_comparison_total = vip_df[(vip_df['VIP'] > 1) & ((vip_df['FoldChange'] > 1.2) | (vip_df['FoldChange'] < 0.8))].groupby('SubClass')['Compounds'].count().reset_index()
                 subclass_comparison_total = subclass_comparison_total[subclass_comparison_total['SubClass'] != ""]
-                subclass_comparison_total = subclass_comparison_total.rename(columns={'Metabolite': 'Comparison_total'})
+                subclass_comparison_total = subclass_comparison_total.rename(columns={'Compounds': 'Comparison_total'})
                 
                 # 合并结果
                 subclass_result = pd.merge(subclass_total, subclass_comparison_total, on='SubClass', how='outer')
