@@ -36,60 +36,60 @@ def deg_enrich_data_merge(input_dir, comp_file, output_file, filter_col='pvalue'
         compare_info = compare['Treat'] + "-vs-" + compare['Control']
 
         for enrich_file in os.listdir(input_dir):
-            if enrich_file.startswith(compare_info) and enrich_file.endswith('Down_EnrichmentGO.xlsx'):
+            if enrich_file.startswith(f'{compare_info}_Down_') and enrich_file.endswith('EnrichmentGO.xlsx'):
                 go_enrich_df_down = load_table(os.path.join(input_dir, enrich_file))
                 go_enrich_df_down['Comparison_ID'] = compare_info
                 go_enrich_df_down['Regulation'] = 'Down'
                 go_enrich_df_down_list.append(go_enrich_df_down)
-            elif enrich_file.startswith(compare_info) and enrich_file.endswith('Up_EnrichmentGO.xlsx'):
+            elif enrich_file.startswith(f'{compare_info}_Up_') and enrich_file.endswith('EnrichmentGO.xlsx'):
                 go_enrich_df_up = load_table(os.path.join(input_dir, enrich_file))
                 go_enrich_df_up['Comparison_ID'] = compare_info
                 go_enrich_df_up['Regulation'] = 'Up'
                 go_enrich_df_up_list.append(go_enrich_df_up)
-            elif enrich_file.startswith(compare_info) and enrich_file.endswith('Down_EnrichmentKEGG.xlsx'):
+            elif enrich_file.startswith(f'{compare_info}_Down_') and enrich_file.endswith('EnrichmentKEGG.xlsx'):
                 kegg_enrich_df_down = load_table(os.path.join(input_dir, enrich_file))
                 kegg_enrich_df_down['Comparison_ID'] = compare_info
                 kegg_enrich_df_down['Regulation'] = 'Down'
                 kegg_enrich_df_down_list.append(kegg_enrich_df_down)
-            elif enrich_file.startswith(compare_info) and enrich_file.endswith('Up_EnrichmentKEGG.xlsx'):
+            elif enrich_file.startswith(f'{compare_info}_Up_') and enrich_file.endswith('EnrichmentKEGG.xlsx'):
                 kegg_enrich_df_up = load_table(os.path.join(input_dir, enrich_file))
                 kegg_enrich_df_up['Comparison_ID'] = compare_info
                 kegg_enrich_df_up['Regulation'] = 'Up'
                 kegg_enrich_df_up_list.append(kegg_enrich_df_up)
                 
                 
-        # go筛选
-        go_down_summary = pd.concat(go_enrich_df_down_list)
-        go_down_summary["p.adjust"] = go_down_summary["p.adjust"].astype(float)
-        go_down_summary = go_down_summary[go_down_summary['Count'] >= count_threshold]
-        go_down_summary = go_down_summary[go_down_summary[filter_col] < filter_value] if filter_col in go_down_summary.columns else go_down_summary
-        go_down_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
-        
-        go_up_summary = pd.concat(go_enrich_df_up_list)
-        go_up_summary["p.adjust"] = go_up_summary["p.adjust"].astype(float)
-        go_up_summary = go_up_summary[go_up_summary['Count'] >= count_threshold]
-        go_up_summary = go_up_summary[go_up_summary[filter_col] < filter_value] if filter_col in go_up_summary.columns else go_up_summary
-        go_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
-        
-        # kegg筛选
-        kegg_down_summary = pd.concat(kegg_enrich_df_down_list)
-        kegg_down_summary["pvalue"] = kegg_down_summary["pvalue"].astype(float)
-        kegg_down_summary = kegg_down_summary[kegg_down_summary['Count'] >= count_threshold]
-        kegg_down_summary = kegg_down_summary[kegg_down_summary[filter_col] < filter_value] if filter_col in kegg_down_summary.columns else kegg_down_summary
-        kegg_down_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
-        
-        kegg_up_summary = pd.concat(kegg_enrich_df_up_list)
-        kegg_up_summary["pvalue"] = kegg_up_summary["pvalue"].astype(float)
-        kegg_up_summary = kegg_up_summary[kegg_up_summary['Count'] >= count_threshold]
-        kegg_up_summary = kegg_up_summary[kegg_up_summary[filter_col] < filter_value] if filter_col in kegg_up_summary.columns else kegg_up_summary
-        kegg_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
-        
-        go_summary = pd.concat([go_down_summary, go_up_summary])
-        kegg_summary = pd.concat([kegg_down_summary, kegg_up_summary])
-        
-        with pd.ExcelWriter(output_file, engine='openpyxl') as w:
-            go_summary.to_excel(w, sheet_name='GO_analysis', index=False)
-            kegg_summary.to_excel(w, sheet_name='KEGG_analysis', index=False)
+    # go筛选
+    go_down_summary = pd.concat(go_enrich_df_down_list)
+    go_down_summary["p.adjust"] = go_down_summary["p.adjust"].astype(float)
+    go_down_summary = go_down_summary[go_down_summary['Count'] >= count_threshold]
+    go_down_summary = go_down_summary[go_down_summary[filter_col] < filter_value] if filter_col in go_down_summary.columns else go_down_summary
+    go_down_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
+    
+    go_up_summary = pd.concat(go_enrich_df_up_list)
+    go_up_summary["p.adjust"] = go_up_summary["p.adjust"].astype(float)
+    go_up_summary = go_up_summary[go_up_summary['Count'] >= count_threshold]
+    go_up_summary = go_up_summary[go_up_summary[filter_col] < filter_value] if filter_col in go_up_summary.columns else go_up_summary
+    go_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
+    
+    # kegg筛选
+    kegg_down_summary = pd.concat(kegg_enrich_df_down_list)
+    kegg_down_summary["pvalue"] = kegg_down_summary["pvalue"].astype(float)
+    kegg_down_summary = kegg_down_summary[kegg_down_summary['Count'] >= count_threshold]
+    kegg_down_summary = kegg_down_summary[kegg_down_summary[filter_col] < filter_value] if filter_col in kegg_down_summary.columns else kegg_down_summary
+    kegg_down_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
+    
+    kegg_up_summary = pd.concat(kegg_enrich_df_up_list)
+    kegg_up_summary["pvalue"] = kegg_up_summary["pvalue"].astype(float)
+    kegg_up_summary = kegg_up_summary[kegg_up_summary['Count'] >= count_threshold]
+    kegg_up_summary = kegg_up_summary[kegg_up_summary[filter_col] < filter_value] if filter_col in kegg_up_summary.columns else kegg_up_summary
+    kegg_up_summary.sort_values(by='Description', key=lambda x: x.str.lower(), inplace=True)
+    
+    go_summary = pd.concat([go_down_summary, go_up_summary])
+    kegg_summary = pd.concat([kegg_down_summary, kegg_up_summary])
+    
+    with pd.ExcelWriter(output_file, engine='openpyxl') as w:
+        go_summary.to_excel(w, sheet_name='GO_analysis', index=False)
+        kegg_summary.to_excel(w, sheet_name='KEGG_analysis', index=False)
     
 
 
