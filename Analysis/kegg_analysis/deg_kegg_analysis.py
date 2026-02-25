@@ -221,12 +221,11 @@ def _each_kegg_pathway_deg_data_summary(df_list, samples_info_df):
 def each_kegg_pathway_deg_data(kegg_pathway_id, deg_data_df, samples_described_df):
     pass
 
-def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_df, kegg_pathway_df,
-                  kegg_clean_file, output_dir):
+def deg_kegg_analysis(input_target_ko_df, enrich_dir, deg_data_dir, samples_described_df, kegg_pathway_df,
+                  kegg_clean_file, output_dir, genesymbol_df=None):
     """
     DEG 数据的 KEGG 分析
     """
-    input_target_ko_df = load_table(ko_list_file)
     ko_list = input_target_ko_df['KEGG_pathway_ID'].values.tolist()
     deg_data_list = [x for x in os.listdir(deg_data_dir) if x.endswith('_DEG_data.txt')]
     if len(deg_data_list) == 0:
@@ -254,29 +253,22 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
                 logger.warning(f"{each_dir} 文件夹已存在，输出将覆盖原文件")
         
         # 从 enrich 文件中提取 kegg 相关数据
-        up_enrich_df = load_table(os.path.join(enrich_dir, f'{compare_info}_Up_EnrichmentKEGG.xlsx'))
-        down_enrich_df = load_table(os.path.join(enrich_dir, f'{compare_info}_Down_EnrichmentKEGG.xlsx'))
-        # 过滤提取包含 kolist 的行
-        kegg_up_enrich_df = up_enrich_df[up_enrich_df['ID'].isin(ko_list)]
-        kegg_down_enrich_df = down_enrich_df[down_enrich_df['ID'].isin(ko_list)]
-        write_output_df(
-            kegg_up_enrich_df,
-            os.path.join(compare_info_dir, f'{compare_info}_Up_Enrich.xlsx'),
-            index=False
-        )
-        write_output_df(
-            kegg_down_enrich_df,
-            os.path.join(compare_info_dir, f'{compare_info}_Down_Enrich.xlsx'),
-            index=False
-        )
+        up_kegg_enrich_file = os.path.join(enrich_dir, f'{compare_info}_Up_EnrichmentKEGG.xlsx')
+        down_kegg_enrich_file = os.path.join(enrich_dir, f'{compare_info}_Down_EnrichmentKEGG.xlsx')
+        if os.path.exists(up_kegg_enrich_file) and os.path.exists(down_kegg_enrich_file):
+            up_enrich_df = load_table(up_kegg_enrich_file)
+            down_enrich_df = load_table(down_kegg_enrich_file)
+            # 过滤提取包含 kolist 的行
+            kegg_up_enrich_df = up_enrich_df[up_enrich_df['ID'].isin(ko_list)]
+            kegg_down_enrich_df = down_enrich_df[down_enrich_df['ID'].isin(ko_list)]
         
-        # 上面 kegg_up/down_enrich_df 输出汇总到一个文件 2025——01——16
-        kegg_up_enrich_df.insert(0, 'Group', compare_info)
-        kegg_up_enrich_df.insert(1, 'Regulation', 'Up')
-        kegg_down_enrich_df.insert(0, 'Group', compare_info)
-        kegg_down_enrich_df.insert(1, 'Regulation', 'Down')
-        kegg_output_summary_df_list.append(kegg_up_enrich_df)
-        kegg_output_summary_df_list.append(kegg_down_enrich_df)
+            # 上面 kegg_up/down_enrich_df 输出汇总到一个文件 2025——01——16
+            kegg_up_enrich_df.insert(0, 'Group', compare_info)
+            kegg_up_enrich_df.insert(1, 'Regulation', 'Up')
+            kegg_down_enrich_df.insert(0, 'Group', compare_info)
+            kegg_down_enrich_df.insert(1, 'Regulation', 'Down')
+            kegg_output_summary_df_list.append(kegg_up_enrich_df)
+            kegg_output_summary_df_list.append(kegg_down_enrich_df)
         
         logger.info(f"====正在处理 {compare_info}====")
         up_df = deg_data_df[deg_data_df['regulation'] == 'Up']['GeneID']
@@ -308,9 +300,24 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
                 logger.warning(f"{compare_info} 的 {kegg_pathway_id} 中相关的基因表达量表只有一行, 不执行画热图")
                 continue
             else:
+                # 输出每个 ko 的 deg_data 文件
+                # each_kegg_pathway_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{kegg_pathway_id}_DEG_data.xlsx")
+                each_kegg_pathway_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_pathway'].str.contains(kegg_pathway_id, na=False)]['GeneID'])]
+                # write_output_df(each_kegg_pathway_deg_data_df, each_kegg_pathway_deg_data_file, index=False)
+                each_kegg_pathway_deg_data_df.insert(0, 'KEGG_pathway_ID', kegg_pathway_id)
+                kegg_pathway_deg_data_list.append(each_kegg_pathway_deg_data_df)
+                
                 # 去除掉除 GeneID 列之外全为空的行
                 ko_num_fpkm_expr_df.dropna(subset=crt_group_samples, how='all', inplace=True)
                 ko_num_fpkm_expr_df = df_drop_row_sum_eq_zero(ko_num_fpkm_expr_df)
+                if genesymbol_df is not None:
+                    ko_num_fpkm_expr_df = pd.merge(ko_num_fpkm_expr_df, genesymbol_df, on='GeneID', how='inner')
+                    ko_num_fpkm_expr_df['GeneID'] = ko_num_fpkm_expr_df['GeneSymbol']
+                    ko_num_fpkm_expr_df.drop(columns=['GeneSymbol'], inplace=True)
+                    ko_num_fpkm_expr_df.drop_duplicates(subset=['GeneID'], inplace=True)  # 换成 GeneSymbol 可能会出现重复，进行去重处理，可能后续需要修改去重方式
+                    if ko_num_fpkm_expr_df.shape[0] < 3:
+                        logger.warning(f"{compare_info} 的 {kegg_pathway_id} 相关基因表达量小于 3，跳过画热图")
+                        continue
                 
                 ko_num_fpkm_expr_df_file = os.path.join(kegg_heatmap_dir, f"{compare_info}_{kegg_pathway_id}_fpkm_expression.xlsx")
                 ko_num_fpkm_expr_pic_name = os.path.join(kegg_heatmap_dir, f"{compare_info}_{kegg_pathway_id}_heatmap.jpeg")
@@ -327,13 +334,6 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
                     cluster_cols=False,
                     scale="row"
                 )
-            
-                # 输出每个 ko 的 deg_data 文件
-                # each_kegg_pathway_deg_data_file = os.path.join(deg_expression_data_dir, f"{compare_info}_{kegg_pathway_id}_DEG_data.xlsx")
-                each_kegg_pathway_deg_data_df = deg_data_df[deg_data_df['GeneID'].isin(kegg_pathway_df[kegg_pathway_df['KEGG_pathway'].str.contains(kegg_pathway_id, na=False)]['GeneID'])]
-                # write_output_df(each_kegg_pathway_deg_data_df, each_kegg_pathway_deg_data_file, index=False)
-                each_kegg_pathway_deg_data_df.insert(0, 'KEGG_pathway_ID', kegg_pathway_id)
-                kegg_pathway_deg_data_list.append(each_kegg_pathway_deg_data_df)
             
         # R pathview 画图准备文件 regulation
         # print(f"正在准备 {compare_info} 的 regulation 文件")
@@ -389,7 +389,7 @@ def deg_kegg_analysis(ko_list_file, enrich_dir, deg_data_dir, samples_described_
 
 def parse_input():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', dest="target_ko_file", type=str, required=True, help='[必须]输入目标 ko 文件，必须要有列名，KEGG_pathway_ID, KEGG_pathway_def')
+    parser.add_argument('-i', dest="target_ko_file", type=str, required=True, help='[必须]输入kegg pathway 文件，必须要有列名，KEGG_pathway_ID, SubOntology, Ontology')
     parser.add_argument('-s', '--samplesinfo', type=str, help='[必须]输入样品信息文件，如果有则添加到输出文件中')
     parser.add_argument('-k', '--kegg-clean', dest="kegg_clean", type=str, required=True, help='[必须]输入 kegg 注释出来的 KEGG_clean 文件')
     parser.add_argument('-e', '--enrich-dir', dest='enrich_dir', type=str, help='[必须]输入富集分析的文件夹')
@@ -404,10 +404,29 @@ def parse_input():
 
 def main():
     args = parse_input()
+    
     samples_info = load_table(args.samplesinfo, usecols=[0, 1], dtype=str)
     kegg_pathway_df = load_table(args.kegg_clean, usecols=[0, 1], names=['GeneID', 'KEGG_pathway'], dtype=str)
+    ref_kegg_def_df = load_table('/home/colddata/qinqiang/script/kns_annotation/scripts/kegg_db.txt', usecols=[0])
+    ref_kegg_def_df.drop_duplicates(inplace=True)
+    ref_kegg_def_df[['KEGG_pathway_ID', 'KEGG_pathway_def']] = ref_kegg_def_df['KEGG_Pathway'].str.split(':', n=1, expand=True)
+    ref_kegg_def_df['KEGG_pathway_ID'] = ref_kegg_def_df['KEGG_pathway_ID'].str.strip()
+    ref_kegg_def_df['KEGG_pathway_def'] = ref_kegg_def_df['KEGG_pathway_def'].str.strip()
+    ref_kegg_def_df.drop(columns=['KEGG_Pathway'], inplace=True)
     input_ko_df = load_table(args.target_ko_file, dtype=str)
-    deg_kegg_analysis(args.target_ko_file, args.enrich_dir, args.deg_data_dir, samples_info, kegg_pathway_df, args.kegg_clean, args.output_dir)
+    input_ko_df = pd.merge(input_ko_df, ref_kegg_def_df, on='KEGG_pathway_ID', how='left')
+    
+    genesymbol_df = None
+    if args.genesymbol:
+        genesymbol_df = load_table(args.genesymbol)
+        # 只保留 GeneID 和 GeneSymbol 两列
+        genesymbol_df = genesymbol_df[['GeneID', 'GeneSymbol']].copy()
+        # 删除空值
+        genesymbol_df.dropna(subset=['GeneID', 'GeneSymbol'], inplace=True)
+        logger.info(f'读取到 {genesymbol_df.shape[0]} 个 GeneID-GeneSymbol 映射')
+    
+    deg_kegg_analysis(input_ko_df, args.enrich_dir, args.deg_data_dir, samples_info, kegg_pathway_df, args.kegg_clean, args.output_dir, genesymbol_df)
+    
     if args.fpkm:
         fpkm_matrix_df = load_table(args.fpkm)
         each_ko_gene_heatmap(input_ko_df, kegg_pathway_df, fpkm_matrix_df, samples_info, os.path.join(args.output_dir, '00_Each_Target_KEGG_pathway_heatmap'), args.genesymbol)

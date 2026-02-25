@@ -3,7 +3,6 @@ suppressPackageStartupMessages(library(openxlsx)) # 读取.xlsx文件
 suppressPackageStartupMessages(library(ggplot2)) # 柱状图和点状图
 suppressPackageStartupMessages(library(stringr)) # 基因ID转换
 suppressPackageStartupMessages(library(enrichplot)) # GO,KEGG,GSEA
-suppressPackageStartupMessages(library(clusterProfiler)) # GO,KEGG,GSEA
 suppressPackageStartupMessages(library(GOplot)) # 弦图，弦表图，系统聚类图
 suppressPackageStartupMessages(library(DOSE))
 suppressPackageStartupMessages(library(ggnewscale))
@@ -212,9 +211,11 @@ kegg_clean <- read.table(kegg_clean,
   header = F, sep = "\t", quote = "",
   col.names = c("GeneID", "KEGG_Pathway", "Metabolism_Category", "General_Metabolism", "K_Number", "Protein", "EC_Number")
 )
+kegg2name <- data.frame(do.call(rbind, strsplit(as.character(kegg_clean$KEGG_Pathway), ":", fixed = TRUE)), stringsAsFactors = FALSE)
+colnames(kegg2name) <- c("ID", "Description")
 kegg2gene <- kegg_clean[c("KEGG_Pathway", "GeneID")]
 kegg2gene$KEGG_Pathway <- sub(":.*", "", kegg2gene$KEGG_Pathway)
-kegg2name <- read.table("/home/colddata/qinqiang/script/lib/KO_id_pathway_name.txt", header = F, sep = "\t")
+# kegg2name <- read.table("/home/colddata/qinqiang/script/lib/KO_id_pathway_name.txt", header = F, sep = "\t")
 
 go_enrich(id_list_file, output_dir)
 kegg_enrich(id_list_file, kegg2gene, kegg2name, output_dir)
