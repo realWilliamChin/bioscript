@@ -28,6 +28,8 @@ def parse_input():
     p.add_argument('-o', '--outputdir', default='00_Each_GO_pathway_heatmap', help='所有 heatmap 输出文件夹')
     p.add_argument('-e', '--expression-data', help='[暂时不用] reads_fpkm_matrix_def.txt')
     args = p.parse_args()
+    if not os.path.exists(args.outputdir):
+        os.mkdir(args.outputdir)
     return args
 
 
@@ -85,6 +87,7 @@ def each_go_gene_heatmap(target_go_df, gene_go_df, fpkm_matrix_df, samples_df, o
             # 将 GeneID 列替换为 GeneSymbol
             each_go_pathway_id_gene_fpkm_df['GeneID'] = each_go_pathway_id_gene_fpkm_df['GeneSymbol']
             each_go_pathway_id_gene_fpkm_df.drop(columns=['GeneSymbol'], inplace=True)
+            each_go_pathway_id_gene_fpkm_df.drop_duplicates(subset=['GeneID'], inplace=True)  # 换成 GeneSymbol 可能会出现重复，进行去重处理，可能后续需要修改去重方式
         
         go_pathway_replace_name = go_pathway_id.replace(':', '_') + '_' + re.sub(r'[\\/:*?"<>|\s]', '_', str(go_pathway_def))
         # 准备 multigroup heatmap 输入文件
@@ -119,7 +122,8 @@ def each_go_gene_heatmap(target_go_df, gene_go_df, fpkm_matrix_df, samples_df, o
             annotation_col=2,
             cluster_rows=True,
             cluster_cols=False,
-            scale="row"
+            scale="row",
+            main=f'GO_pathway: {go_pathway_id} \n {go_pathway_def}'
         )
         if not heatmap_result:
             logger.error(f'{go_pathway_id} draw_multigroup_heatmap 程序失败')
@@ -127,10 +131,10 @@ def each_go_gene_heatmap(target_go_df, gene_go_df, fpkm_matrix_df, samples_df, o
 
 def main():
     args = parse_input()
-    genego_df = load_table(args.genego, header=None, names=['GeneID', 'GO_pathway_ID', 'GO_pathway_def'])
+    gene_go_df = load_table(args.genego, header=None, usecols=[0, 1], names=['GeneID', 'GO_pathway_ID'], dtype={"GeneID": str})
     # target_go_df 预处理
-    gene_go_df = load_table(args.genego, header=None, names=['GeneID', 'GO_pathway_ID', 'GO_pathway_def'], dtype={"GeneID": str})
-    go_id_def_df = gene_go_df[['GO_pathway_ID', 'GO_pathway_def']].drop_duplicates()
+    ref_go_def_df = load_table('/home/colddata/qinqiang/script/lib/go_term.list', sep='\t', header=None, usecols=[0, 1], names=['GO_pathway_ID', 'GO_pathway_def'])
+    go_id_def_df = pd.merge(left=gene_go_df, right=ref_go_def_df, on='GO_pathway_ID', how='left')
     target_go_df = load_table(args.input)
     target_go_df = df_drop_element_side_space(target_go_df)
     target_go_df['GO_pathway_ID'] = target_go_df['GO_pathway_ID'].str.split('_').str[0]
@@ -153,11 +157,11 @@ def main():
     if args.fpkm:
         samples_df = load_table(args.samples)
         fpkm_df = load_table(args.fpkm)
-        each_go_gene_heatmap(target_go_df, genego_df, fpkm_df, samples_df, args.outputdir, args.genesymbol)
+        each_go_gene_heatmap(target_go_df, gene_go_df, fpkm_df, samples_df, args.outputdir, args.genesymbol)
     
     if args.expression_data:
         expression_df = load_table(args.expression_data)
-        each_go_gene_expression(target_go_df, genego_df, expression_df, args.outputdir)
+        each_go_gene_expression(target_go_df, gene_go_df, expression_df, args.outputdir)
     
     logger.success('Done')
 
