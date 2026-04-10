@@ -46,8 +46,14 @@ def goid_enrich_summary(target_go_df: pd.DataFrame, comparisons_df: pd.DataFrame
     comparisons_df['comparisons'] = comparisons_df['Treat'] + '-vs-' + comparisons_df['Control']
     comparison_list = comparisons_df['comparisons'].values.tolist()
     for comparison in comparison_list:
-        up_enrich_df = load_table(os.path.join(enrich_data_dir, f'{comparison}_Up_EnrichmentGO.xlsx'))
-        down_enrich_df = load_table(os.path.join(enrich_data_dir, f'{comparison}_Down_EnrichmentGO.xlsx'))
+        # 检查 enrichment 结果文件是否存在，若不存在则跳过该 comparison
+        up_file = os.path.join(enrich_data_dir, f'{comparison}_Up_EnrichmentGO.xlsx')
+        down_file = os.path.join(enrich_data_dir, f'{comparison}_Down_EnrichmentGO.xlsx')
+        if not (os.path.isfile(up_file) and os.path.isfile(down_file)):
+            logger.warning(f"{comparison} 的富集文件不存在，跳过该 comparison")
+            continue
+        up_enrich_df = load_table(up_file)
+        down_enrich_df = load_table(down_file)
         target_go_enrich_up_df = up_enrich_df[up_enrich_df['ID'].isin(target_go_list)]
         target_go_enrich_down_df = down_enrich_df[down_enrich_df['ID'].isin(target_go_list)]
         
