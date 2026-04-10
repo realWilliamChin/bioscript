@@ -344,7 +344,7 @@ def deg_kegg_analysis(input_target_ko_df, enrich_dir, deg_data_dir, samples_desc
         compare_passed_path_filename = os.path.join(compare_info_dir, f"{compare_info}_ko_passed_path.txt")
         # pre_passed_path_name = f'{compare_info}_pre_passed_path.txt'
         # passed_path(pre_passed_path_name, compare_passed_path_filename)
-        passed_path(ko_list_file, compare_passed_path_filename)
+        passed_path(input_target_ko_df[['KEGG_pathway_ID']], compare_passed_path_filename)
         
         # R pathview 画图
         logger.info(f"正在画 {compare_info} 的 pathview 图")
