@@ -25,6 +25,10 @@ option_list <- list(
     type = "character", default = NULL,
     help = "提供 kegg 注释出来的 KEGG_clean.txt 文件", metavar = "character"
   ),
+  make_option(c("--genesymbol"),
+    type = "character", default = NULL,
+    help = "GeneID 替换为 GeneSymbol 进行分析，输入包含 GeneID GeneSymbol 两列的文件", metavar = "character"
+  ),
   make_option(c("--outputdir"),
     type = "character", default = NULL,
     help = "输出结果文件的目录，输出 EnrichmentGO.xlsx 和 EnrichmentKEGG.xlsx", metavar = "character"
@@ -57,6 +61,7 @@ if (substr(opt$outputdir, nchar(opt$outputdir), nchar(opt$outputdir)) != "/") {
 id_list_file <- opt$inputidfile
 gene_go <- opt$genego
 kegg_clean <- opt$keggclean
+genesymbol <- opt$genesymbol
 output_dir <- opt$outputdir
 
 # 计算比值的函数
@@ -67,13 +72,13 @@ calculate_ratio <- function(ratio_string) {
   return(numerator / denominator) # 返回比值
 }
 
-go_enrich <- function(deg_id_file, output_dir) {
+go_enrich <- function(deg_id_file, go_anno, output_dir) {
   gene_list <- read.delim(deg_id_file, stringsAsFactors = FALSE, header = T)
-  names(gene_list)[1] <- c("gene_id")
-  gene_select <- gene_list$gene_id
+  names(gene_list)[1] <- c("GeneID")
+  gene_select <- gene_list$GeneID
   go_rich_bp <- enricher(
     gene = gene_select,
-    TERM2GENE = go_anno[go_anno$Ontology == "biological_process", ][c("ID", "gene_id")],
+    TERM2GENE = go_anno[go_anno$Ontology == "biological_process", ][c("ID", "GeneID")],
     TERM2NAME = go_anno[go_anno$Ontology == "biological_process", ][c("ID", "Description")],
     pvalueCutoff = 1,
     pAdjustMethod = "BH",
@@ -84,7 +89,7 @@ go_enrich <- function(deg_id_file, output_dir) {
 
   go_rich_mf <- enricher(
     gene = gene_select,
-    TERM2GENE = go_anno[go_anno$Ontology == "molecular_function", ][c("ID", "gene_id")],
+    TERM2GENE = go_anno[go_anno$Ontology == "molecular_function", ][c("ID", "GeneID")],
     TERM2NAME = go_anno[go_anno$Ontology == "molecular_function", ][c("ID", "Description")],
     pvalueCutoff = 1,
     pAdjustMethod = "BH",
@@ -95,7 +100,7 @@ go_enrich <- function(deg_id_file, output_dir) {
 
   go_rich_cc <- enricher(
     gene = gene_select,
-    TERM2GENE = go_anno[go_anno$Ontology == "cellular_component", ][c("ID", "gene_id")],
+    TERM2GENE = go_anno[go_anno$Ontology == "cellular_component", ][c("ID", "GeneID")],
     TERM2NAME = go_anno[go_anno$Ontology == "cellular_component", ][c("ID", "Description")],
     pvalueCutoff = 1,
     pAdjustMethod = "BH",
@@ -203,19 +208,33 @@ names(go_class) <- c("ID", "Description", "Ontology")
 
 # 加载背景库文件，gene\tGOid
 go_anno <- read.delim(gene_go, header = FALSE, stringsAsFactors = FALSE)
-names(go_anno) <- c("gene_id", "ID")
-# 合并背景与GO文件
-go_anno <- merge(go_anno, go_class, by = "ID", all.x = TRUE)
+names(go_anno) <- c("GeneID", "ID")
 
 kegg_clean <- read.table(kegg_clean,
   header = F, sep = "\t", quote = "",
   col.names = c("GeneID", "KEGG_Pathway", "Metabolism_Category", "General_Metabolism", "K_Number", "Protein", "EC_Number")
 )
+
 kegg2name <- data.frame(do.call(rbind, strsplit(as.character(kegg_clean$KEGG_Pathway), ":", fixed = TRUE)), stringsAsFactors = FALSE)
 colnames(kegg2name) <- c("ID", "Description")
 kegg2gene <- kegg_clean[c("KEGG_Pathway", "GeneID")]
 kegg2gene$KEGG_Pathway <- sub(":.*", "", kegg2gene$KEGG_Pathway)
 # kegg2name <- read.table("/home/colddata/qinqiang/script/lib/KO_id_pathway_name.txt", header = F, sep = "\t")
+if (!is.null(genesymbol)) {
+  genesymbol_df <- read.delim(genesymbol, header = TRUE, stringsAsFactors = FALSE)
+  go_anno <- merge(go_anno, genesymbol_df, by = "GeneID", all.x = TRUE)
+  go_anno$GeneID <- NULL
+  go_anno <- go_anno[!duplicated(go_anno$GeneSymbol), ]
+  names(go_anno)[names(go_anno) == "GeneSymbol"] <- "GeneID"
+  
 
-go_enrich(id_list_file, output_dir)
+  kegg2gene <- merge(kegg2gene, genesymbol_df, by = "GeneID", all.x = TRUE)
+  kegg2gene$GeneID <- NULL
+  kegg2gene <- kegg2gene[!duplicated(kegg2gene$GeneSymbol), ]
+  names(kegg2gene)[names(kegg2gene) == "GeneSymbol"] <- "GeneID"
+}
+# 合并背景与GO文件
+go_anno <- merge(go_anno, go_class, by = "ID", all.x = TRUE)
+
+go_enrich(id_list_file, go_anno, output_dir)
 kegg_enrich(id_list_file, kegg2gene, kegg2name, output_dir)
