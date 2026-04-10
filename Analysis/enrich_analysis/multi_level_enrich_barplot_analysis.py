@@ -53,7 +53,6 @@ def main():
         df_list.append(specific_enrich_df)
     
     summary_df = pd.concat(df_list, axis=0)
-    # 避免 replace 的 downcasting 警告：使用 pd.to_numeric 处理数值转换
     summary_df['Count'] = summary_df['Count'].astype(str).replace('N/A', '0').fillna('0')
     summary_df['Count'] = pd.to_numeric(summary_df['Count'], errors='coerce').fillna(0).astype(int)
     summary_df['p.adjust'] = summary_df['p.adjust'].astype(str).replace('N/A', '1').fillna('1')
