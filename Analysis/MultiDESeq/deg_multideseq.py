@@ -55,7 +55,7 @@ def deseq(fpkm_file, reads_file, samples_file, compare_file, filter_col, filter_
         logger.critical(f'样本描述文件 {samples_file} 和比较文件 {compare_file} 不符合要求')
         sys.exit(1)
         
-    cmd = f"/home/data/opt/biosoft/R-422/bin/Rscript /home/colddata/qinqiang/script/Analysis/MultiDESeq/multiple_samples_DESeq2.r \
+    cmd = f"Rscript /home/colddata/qinqiang/script/Analysis/MultiDESeq/multiple_samples_DESeq2.r \
         --degvalue {deg_value} \
         --fpkm {fpkm_file} \
         --reads {reads_file} \
@@ -81,7 +81,7 @@ def deseq_limma(fpkm_file, samples_file, compare_file, filter_col, filter_value,
         logger.critical(f'样本描述文件 {samples_file} 和比较文件 {compare_file} 不符合要求')
         sys.exit(1)
         
-    cmd = f"/home/data/opt/biosoft/R-422/bin/Rscript /home/colddata/qinqiang/script/Analysis/MultiDESeq/limma.R \
+    cmd = f"Rscript /home/colddata/qinqiang/script/Analysis/MultiDESeq/limma.R \
         --degvalue {deg_value} \
         --fpkm {fpkm_file} \
         --samples {samples_file} \
@@ -103,7 +103,7 @@ def deg_enrich_distribution(work_dir):
     cur_dir = os.getcwd()
     os.chdir(work_dir)
     logger.info(f'运行 enrich_distribution_plot 脚本中')
-    cmd = f"/home/data/opt/biosoft/R-422/bin/Rscript /home/colddata/qinqiang/script/Analysis/enrich_analysis/enrich_distribution_plot.r"
+    cmd = f"Rscript /home/colddata/qinqiang/script/Analysis/enrich_analysis/enrich_distribution_plot.r"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     os.chdir(cur_dir)
     if ret.returncode != 0:
@@ -129,12 +129,14 @@ def process_deresults(de_results_file, kns_df, run_type='deseq'):
         de_reads_df = load_table(readcounts_file, sep='\t', dtype=str)
         # 统一首列列名，确保与 DE 结果的键一致
         first_col = de_reads_df.columns.tolist()[0]
-        if first_col != 'GeneID':
-            de_reads_df.rename(columns={first_col: 'GeneID'}, inplace=True)
+        de_reads_df.rename(columns={first_col: 'GeneID'}, inplace=True)
         de_reads_df.columns = [de_reads_df.columns.tolist()[0]] + [x + '_raw_reads' for x in de_reads_df.columns.tolist()[1:]]
         de_df = pd.merge(left=de_df, right=de_reads_df, on='GeneID', how='left')
+    elif run_type == 'limma_deseq':
+        logger.info(f'跳过 readCounts.matrix 文件加载，直接使用 DE 结果文件')
     else:
-        logger.info(f'跳过 readCounts.matrix 文件加载 (运行类型: {run_type}, 文件存在: {os.path.exists(readcounts_file) if run_type == "deseq" else "N/A"})')
+        logger.critical(f'运行类型 {run_type} 不支持')
+        sys.exit(1)
     
     # 排序 down，up，NOsig。down 的 FC 值从小到大，up 的 FC 值从大到小
     # 先分三份，再合并
@@ -187,10 +189,12 @@ def main():
             os.path.join(args.output_dir, 'Pathway_enrichment_analysis', 'Pathway_enrichment_raw_data', 'DEG_enrichment_significant_pathway_summary.xlsx')
         )
     
+    de_results_raw_input_dir = os.path.join(args.output_dir, 'Prep_files')
     de_results_output_dir = os.path.join(args.output_dir, 'DEG_analysis_results/Expression_data')
 
     kns_df = load_table(args.kns, dtype={"GeneID": str})
-    for de_results_file in os.listdir(args.output_dir):
+    for de_results_file in os.listdir(de_results_raw_input_dir):
+        de_results_file = os.path.join(de_results_raw_input_dir, de_results_file)
         if de_results_file.endswith('DE_results') or de_results_file.endswith('DE_results.xlsx'):
             logger.info(f'processing---{de_results_file}')
             de_df = process_deresults(de_results_file, kns_df, args.run_type)
