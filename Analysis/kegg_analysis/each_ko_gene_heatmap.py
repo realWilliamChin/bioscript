@@ -89,12 +89,13 @@ def each_ko_gene_heatmap(input_ko_df, kegg_clean_df, fpkm_matrix_df, samples_df,
         if genesymbol_df is not None:
             # 合并 GeneSymbol 映射
             each_kegg_id_gene_fpkm_df = pd.merge(each_kegg_id_gene_fpkm_df, genesymbol_df, on='GeneID', how='inner')
-            if each_kegg_id_gene_fpkm_df.shape[0] < 3:
-                logger.warning(f'{safe_kegg_id_def} 相关 genesymbol 数量小于 3，跳过画 Heatmap 图')
-                continue
             # 将 GeneID 列替换为 GeneSymbol
             each_kegg_id_gene_fpkm_df['GeneID'] = each_kegg_id_gene_fpkm_df['GeneSymbol']
             each_kegg_id_gene_fpkm_df.drop(columns=['GeneSymbol'], inplace=True)
+            each_kegg_id_gene_fpkm_df.drop_duplicates(subset=['GeneID'], inplace=True)  # 换成 GeneSymbol 可能会出现重复，进行去重处理，可能后续需要修改去重方式
+            if each_kegg_id_gene_fpkm_df.shape[0] < 3:
+                logger.warning(f'{safe_kegg_id_def} 相关 genesymbol 数量小于 3，跳过画 Heatmap 图')
+                continue
         
         # multigroup heatmap 输入文件
         kegg_pathway_id_gene_heatmap_filename = os.path.join(output_dir, f'{safe_kegg_id_def}_gene_heatmap.xlsx')
