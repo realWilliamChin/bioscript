@@ -15,16 +15,12 @@ from load_input import load_table, write_output_df
 
 def parse_input():
     p = argparse.ArgumentParser()
-    p.add_argument('-i', '--id-files', required=True, nargs='+',
-                   help='包含单 GeneID 列所有文件，可接受多个文件')
-    p.add_argument('--ids-header', dest='ids_header', action='store_true',
-                        help='所有 id 文件是否有 header(GeneID)')
-    p.add_argument('-k', '--kegg-clean', dest="kegg_clean", required=True,
-                   help='kegg_clean.txt 文件')
-    p.add_argument('-g', '--gene-go', dest="gene_go", required=True,
-                   help='swiss 注释出来的的 gene_go.txt 文件')
-    p.add_argument('-o', '--output-dir', dest='output_dir', default=os.getcwd(),
-                   help='文件输出目录')
+    p.add_argument('-i', '--id-files', required=True, nargs='+', help='包含单 GeneID 列所有文件，可接受多个文件')
+    p.add_argument('--ids-header', action='store_true', help='所有 id 文件是否有 header(GeneID)')
+    p.add_argument('-k', '--kegg-clean', required=True, help='kegg_clean.txt 文件')
+    p.add_argument('-g', '--gene-go', required=True, help='swiss 注释出来的的 gene_go.txt 文件')
+    p.add_argument('--genesymbol', help='GeneID 替换为 GeneSymbol 进行分析，输入包含 GeneID GeneSymbol 两列的文件')
+    p.add_argument('-o', '--output-dir', dest='output_dir', default=os.getcwd(), help='文件输出目录')
     
     args = p.parse_args()
     
@@ -39,9 +35,7 @@ def parse_input():
     return args
 
 
-def main():
-    args = parse_input()
-    id_files, ids_header = args.id_files, args.ids_header
+def genes_enrich(id_files, ids_header, gene_go, kegg_clean, output_dir, genesymbol):
     for module_file in id_files:
         logger.info(f'正在处理 {module_file}')
         module_df = load_table(
@@ -52,11 +46,19 @@ def main():
             dtype={"GeneID": str}
         )
         module_name = os.path.basename(module_file).split('.')[0]
-        tmp_file = os.path.join(args.output_dir, f'{module_name}_ID.txt')
+        tmp_file = os.path.join(output_dir, f'{module_name}_ID.txt')
         write_output_df(module_df, tmp_file, index=False, header=False)
-        enrich_analysis(tmp_file, args.gene_go, args.kegg_clean, args.output_dir)
+        enrich_analysis(tmp_file, gene_go, kegg_clean, output_dir, genesymbol)
+        os.remove(tmp_file)
 
     logger.success('Done!')
+
+
+def main():
+    args = parse_input()
+    id_files, ids_header = args.id_files, args.ids_header
+    genes_enrich(id_files, ids_header, args.gene_go, args.kegg_clean, args.output_dir, args.genesymbol)
+    
 
 if __name__ == '__main__':
     main()
