@@ -18,16 +18,16 @@ def parse_input():
     return args
 
 
-def passed_path(ko_file, output_file):
-    ko_def_df = pd.read_csv(ko_file, sep='\t', names=['KEGG_Pathway_ID'], dtype=str, usecols=[0], header=0)
+def passed_path(ko_def_df, output_file):
     passed_path_file = '/home/colddata/qinqiang/script/Analysis/pathview/passed_path.txt'
-    passed_path_df = pd.read_csv(passed_path_file, sep='\t', names=['KEGG_Pathway_ID', 'Ko_Def'], dtype=str)
-    ko_def_df = passed_path_df[passed_path_df['KEGG_Pathway_ID'].isin(ko_def_df['KEGG_Pathway_ID'])]
-    ko_def_df = ko_def_df.drop_duplicates(subset=['KEGG_Pathway_ID'])
+    passed_path_df = pd.read_csv(passed_path_file, sep='\t', names=['KEGG_pathway_ID', 'Ko_Def'], dtype=str)
+    ko_def_df = passed_path_df[passed_path_df['KEGG_pathway_ID'].isin(ko_def_df['KEGG_pathway_ID'])]
+    ko_def_df = ko_def_df.drop_duplicates(subset=['KEGG_pathway_ID'])
     ko_def_df.to_csv(output_file, sep='\t', index=False, header=False)
 
 
 if __name__ == '__main__':
     args = parse_input()
+    ko_def_df = pd.read_csv(args.ko_file, sep='\t', usecols=['KEGG_pathway_ID'], dtype=str, header=0)
     
-    passed_path(args.ko_file, args.output_file)
+    passed_path(ko_def_df, args.output_file)
