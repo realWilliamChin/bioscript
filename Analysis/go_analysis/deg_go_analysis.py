@@ -27,13 +27,15 @@ if sys.version_info < (3, 10):
 def parse_input():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-i', '--input', help="输入文件，文件中至少包含三列，GO_pathway_ID、Ontology、SubOntology")
-    argparser.add_argument('-c', '--compare', help='输入 compare_info.txt 文件')
-    argparser.add_argument('-g', '--genego', help='swiss 注释出来的的 gene_go.txt')
     argparser.add_argument('-s', '--samples-described', help='输入 samples_described.txt 文件')
-    argparser.add_argument('-e', '--enrich-data-dir', help='转录组 输入 enrich.r 运行出来的结果文件夹')
-    argparser.add_argument('-d', '--deg-data-dir', help='转录组 输入 DEG_data.txt 文件目录')
+    argparser.add_argument('-c', '--compare', help='输入 compare_info.txt 文件')
     argparser.add_argument('-f', '--fpkm-matrix', help='输入 fpkm_matrix.txt 文件(为了输出每个 GO_pathway_ID 的相关基因的 Heatmap 图)')
     argparser.add_argument('-r', '--expression-data', help='[暂时不用] 输入 reads_fpkm_matrix_def.txt 文件(为了输出每个 GO_ID 的相关基因的表达量数据文件)')
+    
+    argparser.add_argument('-e', '--enrich-data-dir', help='转录组 输入 enrich.r 运行出来的结果文件夹')
+    argparser.add_argument('-d', '--deg-data-dir', help='转录组 输入 DEG_data.txt 文件目录')
+    
+    argparser.add_argument('-g', '--genego', help='swiss 注释出来的的 gene_go.txt')
     argparser.add_argument('--genesymbol', help='使用 GeneSymbol 作为索引画热图，人和大鼠小鼠通常使用，输入包含 GeneID GeneSymbol 两列的文件')
     
     argparser.add_argument('-o', '--output', default=os.getcwd(), help='输出目录，默认为当前目录，输出目录如果不存在则会尝试创建')
@@ -199,6 +201,13 @@ def each_go_pathway_deg_data_heatmap(target_go_df, gene_go_df, compare_info_df, 
                 logger.warning(f'{compare_info} 的 {go_pathway_id} 数据不符合热图要求（行数<2、无有效列或全为NA），跳过画 Heatmap 图')
                 continue
             
+            # 如果某一行（除了 GeneID 列）全为 0，则删掉该行
+            data_columns_no_id = [col for col in data_df.columns if col != 'GeneID']
+            data_df = data_df[~(data_df[data_columns_no_id] == 0).all(axis=1)].copy()
+            if data_df.shape[0] < 2:
+                logger.warning(f'{compare_info} 的 {go_pathway_id} 删除全为0后的基因数量小于2，跳过画 Heatmap 图')
+                continue
+            
             # 如果提供了 genesymbol_df，则替换 GeneID 为 GeneSymbol
             if genesymbol_df is not None:
                 # 合并 GeneSymbol 映射
@@ -209,6 +218,7 @@ def each_go_pathway_deg_data_heatmap(target_go_df, gene_go_df, compare_info_df, 
                 # 将 GeneID 列替换为 GeneSymbol
                 data_df['GeneID'] = data_df['GeneSymbol']
                 data_df.drop(columns=['GeneSymbol'], inplace=True)
+                data_df.drop_duplicates(subset=['GeneID'], inplace=True)  # 换成 GeneSymbol 可能会出现重复，进行去重处理，可能后续需要修改去重方式
             
             # 构建 group 和 sample 映射表
             # 从 FPKM 列名中提取 sample 名称（去掉 _FPKM 后缀）
