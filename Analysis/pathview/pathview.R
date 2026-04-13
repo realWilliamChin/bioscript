@@ -64,7 +64,11 @@ for (pw_id in pathway.names) {
       kegg.native = TRUE,
       node.attrs = node.font,
       edge.attrs = edge.font,
-      kegg.dir = '/home/colddata/qinqiang/script/Analysis/pathview/kegg_files'
+      kegg.dir = '/home/colddata/qinqiang/script/Analysis/pathview/kegg_files',
+      limit = list(gene = c(-1, 1)),   # 关键：固定范围
+      low = list(gene = "blue"),       # -1 → 蓝
+      mid = list(gene = "white"),      # 0 → 白
+      high = list(gene = "red")        # 1 → 红
     )
     
     # 如果成功，可以打印一条消息（可选）
