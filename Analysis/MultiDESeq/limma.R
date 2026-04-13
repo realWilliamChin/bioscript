@@ -80,11 +80,13 @@ deg_dir <- paste0(output_dir, "DEG_analysis_results/")
 deg_exp_data_dir <- paste0(output_dir, "DEG_analysis_results/Expression_data/")
 deg_exp_graph_dir <- paste0(output_dir, "DEG_analysis_results/Expression_data_graphs/")
 exp_evaluation_dir <- paste0(output_dir, "Expression_data_evaluation/")
+prep_files_dir <- paste0(output_dir, "Prep_files/")
 
 dir.create(deg_dir)
 dir.create(deg_exp_data_dir)
 dir.create(deg_exp_graph_dir)
 dir.create(exp_evaluation_dir)
+dir.create(prep_files_dir)
 
 # 读取数据
 fpkm <- read.table(fpkm_file, sep = "\t", header = T, row.names = 1, check.names = F)
@@ -246,7 +248,7 @@ for (i in seq_along(1:nrow(comp_info))) {
   colnames(volcano)[1] <- "GeneID"
   
   # 输出完整的差异表达分析结果到文件
-  outfile <- paste0(group_vs_group_name, "_DE_results")
+  outfile <- file.path(prep_files_dir, paste0(group_vs_group_name, "_DE_results"))
   write.table(volcano, file = outfile, sep = "\t", quote = FALSE, row.names = F)
   
   # 收集所有差异表达基因的ID
@@ -318,7 +320,7 @@ deg_fpkm <- log2(deg_fpkm[rowSums(deg_fpkm) > 0, ] + 1)
 # ggsave("deg_heatmap.jpeg", p.heatmap, dpi = 300, width = 10, height = 10)
 smart_heatmap(
   matrix_data = deg_fpkm,
-  filename = "deg_heatmap.jpeg",
+  filename = file.path(prep_files_dir, "deg_heatmap.jpeg"),
   scale = 'row',
   cluster_cols = F,
   show_rownames = F
