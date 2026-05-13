@@ -7,7 +7,7 @@ import os
 sample = config.get("sample")
 input_file = config.get("input_file")
 output_dir = config.get("output_dir", os.getcwd())
-humandb_path = config.get("humandb_path", "/home/data/opt/biosoft/annovar/humandb")
+humandb_path = config.get("humandb_path", "/opt/biosoft/annovar/humandb")
 buildver = config.get("buildver", "hg38")
 protocols = config.get('protocols', 'refGene,gnomad41_exome,clinvar_20240917')
 operations = config.get('operations', 'g,f,f')
@@ -15,7 +15,7 @@ arguments = config.get('arguments', ',,-infoasscore')
 
 rule all:
     input:
-        expand("{output_dir}/{sample}.hg38_multianno.txt", 
+        expand("{output_dir}/{sample}.hg38_multianno.final.txt", 
                output_dir=output_dir, 
                sample=sample)
 
@@ -54,4 +54,18 @@ rule annotate_variants:
             --intronhgvs 100 \
             --otherinfo \
             --remove
+        """
+
+rule restore_colnames:
+    input:
+        annovar_result = rules.annotate_variants.output.annotated,
+        original_vcf = input_file
+    output:
+        final_result = os.path.join(output_dir, '{sample}.hg38_multianno.final.txt')
+    shell:
+        """
+        python /home/colddata/qinqiang/script/reseq/vcf/restore_annovar_colnames.py \
+            -a {input.annovar_result} \
+            -v {input.original_vcf} \
+            -o {output.final_result}
         """
