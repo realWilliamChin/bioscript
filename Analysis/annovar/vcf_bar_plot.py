@@ -24,7 +24,7 @@ def parse_input():
     p.add_argument('--width', type=float, default=12, help='图片宽度')
     p.add_argument('--height', type=float, default=8, help='图片高度')
     p.add_argument('--dpi', type=int, default=300, help='图片分辨率')
-    p.add_argument('--depth-col', default='Otherinfo3', help='深度列的列名，默认是Otherinfo3，恢复列名后可以指定为INFO、样本名等实际列名')
+    p.add_argument('--depth-col', default='INFO', help='深度列的列名，默认是INFO（适配恢复列名后的注释结果），旧文件可以指定为Otherinfo3')
     
     args = p.parse_args()
     return args
