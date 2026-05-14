@@ -86,7 +86,7 @@ def exec_blast(fasta_file, num_threads, database, prefix):
     # pep 文件清理 _frame=1
     os.system(f"sed 's/_frame=1//g' -i {pep_file_name}")
     
-    blast_command = f'/opt/biosoft/ncbi-blast-2.9.0+/bin/blastp \
+    blast_command = f'/home/data/opt/biosoft/ncbi-blast-2.9.0+/bin/blastp \
         -db {database} \
         -query {pep_file_name} \
         -out {blast_file_name} \
