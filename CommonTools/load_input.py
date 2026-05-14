@@ -7,7 +7,6 @@ import argparse
 import re
 import pandas as pd
 from loguru import logger
-from openpyxl.styles import Font, Border, Side
 
 
 def parse_input():
@@ -51,7 +50,6 @@ def load_table(table_file, *args, **kwargs):
     gene_id_cols = [col for col in df.columns if isinstance(col, str) and gene_id_pattern.search(col)]
     if gene_id_cols:
         df[gene_id_cols] = df[gene_id_cols].astype(str)
-        logger.info(f"转换了 {len(gene_id_cols)} 个基因ID列为字符串类型: {gene_id_cols}")
 
     return df
 
@@ -66,6 +64,7 @@ def write_output_df(df, output_file, *args, **kwargs):
         df (_type_): _description_
         output_file (_type_): _description_
     """
+    from openpyxl.styles import Font, Border, Side
     ext = output_file.split('.')[-1]
     if ext in ['xls', 'xlsx']:
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
