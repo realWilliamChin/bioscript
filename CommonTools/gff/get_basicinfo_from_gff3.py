@@ -93,12 +93,16 @@ def get_basic_info(gff_file, output, re_pattern):
     df.index.name = 'GeneID'
     df.reset_index(inplace=True)
     df.columns = ['GeneID', 'Chromosome', 'Start', 'End', 'Strand', 'Gene_type']
+    # 如果 Gene_type 全部为 N/A 则去掉 Gene_type 列
+    if df['Gene_type'].eq('N/A').all():
+        df = df.drop(columns=['Gene_type'])
     write_output_df(df, output+'gene_basicinfo.txt', index=False)
     
     write_output_df(df[['GeneID']], output+'all_gene_id.txt', index=False)
     
     # 将重复的geneid行写入文件
     if duplicates_geneid_lines:
+        logger.warning(f"发现 {len(duplicates_geneid_lines)} 个重复的GeneID行，已保存到 duplicates_geneid_lines.txt 文件")
         with open('duplicates_geneid_lines.txt', 'w') as dup_file:
             for line in duplicates_geneid_lines:
                 dup_file.write(line + '\n')
