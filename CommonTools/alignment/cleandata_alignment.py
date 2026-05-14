@@ -7,13 +7,16 @@ import pandas as pd
 import argparse
 import subprocess
 from loguru import logger
-import concurrent.futures
+
+# 导入通用多线程任务运行器
+sys.path.append('/home/colddata/qinqiang/script/')
+from CommonTools.multithreads_task_runner import run_multithreads_tasks
 
 
 def parse_input():
     args = argparse.ArgumentParser()
     args.add_argument('-t', '--type', dest='alignment_type', choices=['hisat2', 'bowtie2', 'bwa', 'salmon'], help=("选择使用哪种方式比对，并确保提供必要的参数"))
-    args.add_argument('-s', '--samples', required=True, help='samples_described.txt (默认: samples_described.txt)', default='samples_described.txt')
+    args.add_argument('-s', '--samples', required=True, help='samples_described.txt', default='samples_described.txt')
     args.add_argument('-d', '--cd', help='cleandata file dir')
     args.add_argument('-o', '--result-dir', dest='result_dir', help='输出结果文件夹')
     args.add_argument('-r', '--ref', help='reference index，运行 salmon 时只需要输入目录')
@@ -25,8 +28,8 @@ def parse_input():
     return parsed_args
 
 
-def alignment(alignment_type, sample_name, R1, R2, result_dir, ref_index, num_threads, gff_file=None):
-    
+def alignment(alignment_type, sample_name, R1, R2, result_dir, ref_index, num_threads):
+
         mapping_file_name = os.path.join(result_dir, f'{sample_name}_mapping.txt')
         bam_file_name = os.path.join(result_dir, f'{sample_name}.bam')
         
@@ -94,7 +97,7 @@ def main():
     # 变量
     alignment_type = args.alignment_type
     ref = args.ref
-    samples_file, gff_file, mapping_summary_file = args.samples, args.gff, args.msf
+    samples_file, mapping_summary_file = args.samples, args.msf
     cleandata_dir, result_dir = args.cd, args.result_dir
     num_threads, parallel_num = args.cpu, args.parallel_num
     
@@ -103,64 +106,20 @@ def main():
     
     samples_df = pd.read_csv(samples_file, sep='\t', usecols=['sample', 'R1', 'R2'])
 
-    # 控制同时运行的样本数量
-    with concurrent.futures.ProcessPoolExecutor(max_workers=parallel_num) as executor:
-        # 活跃的任务列表
-        active_futures = []
-        # 样本索引
-        sample_index = 0
-        total_samples = len(samples_df)
-        
-        # 首先提交parallel_num个任务
-        while len(active_futures) < parallel_num and sample_index < total_samples:
-            row = samples_df.iloc[sample_index]
-            sample_name = row['sample']
-            R1 = os.path.join(cleandata_dir, row['R1'])
-            R2 = os.path.join(cleandata_dir, row['R2'])
-            logger.info(f'开始比对样本 {sample_name}, {R1} 和 {R2}')
-            
-            future = executor.submit(
-                alignment, alignment_type, sample_name, R1, R2, result_dir, ref, num_threads, gff_file
-            )
-            active_futures.append((future, sample_name))
-            sample_index += 1
-        
-        # 处理完成的任务并提交新任务
-        while active_futures:
-            # 等待任意一个任务完成
-            done, not_done = concurrent.futures.wait(
-                [f for f, _ in active_futures],
-                return_when=concurrent.futures.FIRST_COMPLETED
-            )
-            
-            # 处理完成的任务
-            for future in done:
-                # 找到对应的样本名
-                for i, (f, name) in enumerate(active_futures):
-                    if f == future:
-                        sample_name = name
-                        active_futures.pop(i)
-                        break
-                
-                try:
-                    result = future.result()
-                    logger.info(f'样本 {sample_name} 比对完成，结果: {result}')
-                except Exception as exc:
-                    logger.error(f'样本 {sample_name} 运行时出错: {exc}')
-                
-                # 如果还有未处理的样本，提交新任务
-                if sample_index < total_samples:
-                    row = samples_df.iloc[sample_index]
-                    new_sample_name = row['sample']
-                    R1 = os.path.join(cleandata_dir, row['R1'])
-                    R2 = os.path.join(cleandata_dir, row['R2'])
-                    logger.info(f'开始比对样本 {new_sample_name}, {R1} 和 {R2}')
-                    
-                    new_future = executor.submit(
-                        alignment, alignment_type, new_sample_name, R1, R2, result_dir, ref, num_threads, gff_file
-                    )
-                    active_futures.append((new_future, new_sample_name))
-                    sample_index += 1
+    # 准备所有任务的参数列表
+    tasks_args = []
+    for _, row in samples_df.iterrows():
+        sample_name = row['sample']
+        R1 = os.path.join(cleandata_dir, row['R1'])
+        R2 = os.path.join(cleandata_dir, row['R2'])
+        tasks_args.append((alignment_type, sample_name, R1, R2, result_dir, ref, num_threads))
+    
+    # 使用通用多线程任务运行器执行
+    results = run_multithreads_tasks(alignment, tasks_args, max_workers=parallel_num)
+    
+    # 汇总结果
+    success_count = sum(1 for r in results if r is not False and r is not None)
+    logger.info(f'所有比对任务完成，成功 {success_count}/{len(results)} 个')
 
 
 if __name__ == '__main__':
