@@ -41,7 +41,7 @@ def parse_input():
 
 
 def swiss_annotation(fasta_file, blast_file, num_threads):  
-    anno_cmd = f'/opt/biosoft/ncbi-blast-2.9.0+/bin/blastx \
+    anno_cmd = f'/home/data/opt/biosoft/ncbi-blast-2.9.0+/bin/blastx \
         -db /home/data/ref_data/Linux_centos_databases/2019_Unprot_databases/swissprot \
         -query {fasta_file} \
         -out {blast_file} \
@@ -72,31 +72,49 @@ def _keep_goid(s):
             return ''
 
 
+def _extract_go_id_and_def(go_string):
+    """
+    从 GO 字符串中提取 GO ID 和 pathway 定义
+    输入格式: "pathway_name [GO:xxxxxx]"
+    返回: (go_id, pathway_def) 或 (None, None)
+    """
+    if pd.isna(go_string) or not go_string:
+        return None, None
+    if '[GO:' in go_string:
+        parts = go_string.split('[GO:')
+        if len(parts) == 2:
+            pathway_def = parts[0].strip()
+            go_id_part = parts[1].split(']')[0]
+            go_id = 'GO:' + go_id_part
+            return go_id, pathway_def
+    return None, None
+
+
 def process_go(swiss_df, ref_df):
     df_lst = []
     for each_go in ['GO_BP', 'GO_CC', 'GO_MF']:
         # 分成 bp，cc，mf 的
-        df = pd.merge(left=swiss_df[['GeneID', 'GOID']], right=ref_df[['GOID', each_go]], on='GOID', how='left')
-        df = df.dropna().drop(columns=['GOID'])
+        df = pd.merge(left=swiss_df[['GeneID', 'Uniprot_ID']], right=ref_df[['Uniprot_ID', each_go]], on='Uniprot_ID', how='left')
+        df = df.dropna().drop(columns=['Uniprot_ID'])
 
         # 去除掉每个基因少于 3 个的 go
         df = df[df[each_go].str.count('GO') >= 3]
 
         # 把后面的 GO 功能都加到第二列
         df_expand = df[each_go].str.split(';', expand=True)
-        df = pd.concat([df['GeneID'], df_expand], axis=1).melt(id_vars=['GeneID'], value_name='GOID')
+        df = pd.concat([df['GeneID'], df_expand], axis=1).melt(id_vars=['GeneID'], value_name='GO_Pathway')
 
         df = df.drop(columns=['variable']).dropna()
 
         # 对后面的 GOID 格式改成 ID 在前，使用 _ 连接
-        df_expand = df['GOID'].str.split('\[GO', expand=True)
+        df_expand = df['GO_Pathway'].str.split('\[GO', expand=True)
         df['Def'] = df_expand[1].str.replace(':', 'GO:', regex=True).str.replace(']', '_', regex=True) + df_expand[0].str.strip()
         # 替换某些字符，在 Funrich 中会出错的
         df['Def'] = df['Def'].str.replace(', ', '_', regex=True)
         df['Def'] = df['Def'].str.replace('\'', '', regex=True)
         df['Def'] = df['Def'].str.replace('/', '_', regex=True)
         df['Def'] = df['Def'].str.replace(',', '_', regex=True)
-        df = df.drop(columns=['GOID']).sort_values('GeneID')
+        df = df.drop(columns=['GO_Pathway']).sort_values('GeneID')
         df_lst.append(df)
     return df_lst
 
@@ -149,7 +167,7 @@ def main():
     
     swiss_file = args.blast if args.blast else [x for x in os.listdir() if '_swiss.blast' in x][0]
     # 读取 swiss 参考文件和 blast 文件，并初始化
-    swiss_df = load_table(swiss_file, usecols=[0, 1, 14, 15], names=['GeneID', 'GOID', 'bitscore', 'Swiss_Def'], dtype={'GeneID': str})
+    swiss_df = load_table(swiss_file, usecols=[0, 1, 14, 15], names=['GeneID', 'Uniprot_ID', 'bitscore', 'Swiss_Def'], dtype={'GeneID': str})
     swiss_df = swiss_df.sort_values(by=['GeneID', 'bitscore'], ascending=[True, False])
     swiss_df = swiss_df.drop(columns=['bitscore'])
     swiss_df = swiss_df.drop_duplicates(subset='GeneID', keep='first')
@@ -160,16 +178,16 @@ def main():
     # 生成 _unigene_swiss_gene_def.txt
     write_output_df(swiss_df, args.output_prefix + 'swiss_gene_def.txt', index=False, header=['GeneID', 'Swissprot_ID', 'Swiss_Def'])
 
-    ref_file = '/home/data/ref_data/db/swiss_go_txt/Swiss_protein_go.txt'
-    ref_df = load_table(ref_file, skiprows=1, names=['GOID', 'GO_BP', 'GO_CC', 'GO_MF'], dtype={'GOID': str})
+    ref_file = '/home/colddata/qinqiang/script/lib/Swiss_protein_go.txt'
+    ref_df = load_table(ref_file, skiprows=1, names=['Uniprot_ID', 'GO_BP', 'GO_CC', 'GO_MF'], dtype={'Uniprot_ID': str})
 
     # 生成 idNO_def 文件
     idNO_def_filename = args.output_prefix + 'swiss_idNo_def.txt'
     gene_go_filename = args.output_prefix + 'swiss_gene_go.txt'
     ref_df['merge_go'] = ref_df['GO_BP'] + '_' + ref_df['GO_CC'] + '_' + ref_df['GO_MF']
     ref_df['merge_go'] = ref_df['merge_go'].replace('', np.nan, regex=True)
-    idNo_def = pd.merge(left=swiss_df.iloc[:, [0, 1]], right=ref_df.iloc[:, [0, 4]], on='GOID', how='left')
-    idNo_def = idNo_def.dropna().drop(columns=['GOID'])
+    idNo_def = pd.merge(left=swiss_df.iloc[:, [0, 1]], right=ref_df.iloc[:, [0, 4]], on='Uniprot_ID', how='left')
+    idNo_def = idNo_def.dropna().drop(columns=['Uniprot_ID'])
     idNo_def_expand = idNo_def['merge_go'].str.split('\[G', expand=True)
     idNo_def_expand = idNo_def_expand.map(_keep_goid)
     idNo_def = pd.concat([idNo_def['GeneID'], idNo_def_expand], axis=1).fillna('')
