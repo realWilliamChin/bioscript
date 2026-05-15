@@ -8,6 +8,7 @@ import os, sys
 import argparse
 import requests
 import poplib
+import traceback
 import pandas as pd
 from Bio import SeqIO
 from lxml import etree
@@ -21,6 +22,14 @@ from email.utils import parseaddr, formataddr
 import matplotlib.pyplot as plt
 import seaborn as sns
 from loguru import logger
+
+# Debug mode - controlled by --debug parameter
+DEBUG_MODE = False
+
+def debug_log(msg):
+    """Print debug message if debug mode is enabled"""
+    if DEBUG_MODE:
+        logger.debug(f'[DEBUG] {msg}')
 
 sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
 sys.path.append('/home/colddata/qinqiang/script/transcriptome/')
@@ -236,13 +245,40 @@ def email_link_click(link):
         'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
     }
     max_retry = 0
+    debug_log(f'开始请求链接: {link}')
+    
     while max_retry <= 5:
-        resp = requests.get(link, headers=headers)
-        if resp.status_code == 200:
-            return resp.text
-        else:
+        try:
+            debug_log(f'第 {max_retry + 1} 次尝试请求...')
+            resp = requests.get(link, headers=headers, timeout=60)
+            debug_log(f'响应状态码: {resp.status_code}')
+            debug_log(f'响应头: {dict(resp.headers)}')
+            
+            if resp.status_code == 200:
+                debug_log(f'请求成功，响应内容长度: {len(resp.text)} 字符')
+                debug_log(f'响应内容前500字符: {resp.text[:500]}')
+                return resp.text
+            else:
+                logger.warning(f'请求失败，状态码: {resp.status_code}，3秒后重试...')
+                debug_log(f'失败响应内容: {resp.text[:500]}')
+                max_retry += 1
+                time.sleep(3)
+        except requests.exceptions.Timeout as e:
+            logger.error(f'请求超时: {str(e)}')
             max_retry += 1
             time.sleep(3)
+        except requests.exceptions.RequestException as e:
+            logger.error(f'请求异常: {str(e)}')
+            debug_log(f'异常详情: {traceback.format_exc()}')
+            max_retry += 1
+            time.sleep(3)
+        except Exception as e:
+            logger.error(f'未知异常: {str(e)}')
+            debug_log(f'异常堆栈: {traceback.format_exc()}')
+            max_retry += 1
+            time.sleep(3)
+    
+    logger.critical(f'尝试 5 次后仍然失败，退出程序')
     sys.exit(1)
 
 
@@ -333,26 +369,56 @@ def kegg_anno(mail_type, username, password, fasta_file, org_lst: str, output_fi
             # you should click this link then you can download the file
             logger.info(f'downloading {output_file} ...')
             visit_link = f'https://www.genome.jp/kaas-bin/kaas_main?mode=brite&id={job_ID}&key={job_key}'
-            email_link_click(visit_link)
+            debug_log(f'访问链接: {visit_link}')
+            
+            try:
+                debug_log('开始访问结果页面...')
+                visit_resp = email_link_click(visit_link)
+                debug_log(f'访问页面完成，响应长度: {len(visit_resp)}')
+            except Exception as e:
+                logger.error(f'访问结果页面失败: {str(e)}')
+                debug_log(f'异常堆栈: {traceback.format_exc()}')
+                raise
+            
             time.sleep(5)
             
             # from download link get file
             # download_link = f'https://www.genome.jp/kegg-bin/download_htext?htext=q00001.keg&format=htext&filedir=/tools/kaas/files/log/result/{job_ID}'
             download_link = f'https://www.genome.jp/tools/kaas/files/dl/{job_ID}/query.ko'
-            resp = email_link_click(download_link)
+            debug_log(f'下载链接: {download_link}')
+            
+            try:
+                debug_log('开始下载文件...')
+                resp = email_link_click(download_link)
+                debug_log(f'下载完成，文件大小: {len(resp)} 字节')
+                debug_log(f'文件前10行内容:\n{"".join(resp.splitlines()[:10])}')
+            except Exception as e:
+                logger.error(f'下载文件失败: {str(e)}')
+                debug_log(f'异常堆栈: {traceback.format_exc()}')
+                raise
             
             # check file line > 1
             logger.info('checking file ...')
+            debug_log(f'文件行数: {len(resp.split(chr(10)))}')
+            
             if len(resp.split('\n')) > 1:
                 logger.success('checking file done ...')
             else:
-                logger.critical(f'get file failed!, file is not correct ID{job_ID},key{job_key}!\n{resp}')
+                logger.critical(f'get file failed!, file is not correct ID{job_ID},key{job_key}!')
+                debug_log(f'文件完整内容:\n{resp}')
                 raise KeggUploadError('获取结果文件失败!')
                 
             # output file
-            with open(output_file, 'w') as kegg_annotation:
-                kegg_annotation.write(resp)
-            logger.success(f'download success! {output_file} is ready!')
+            debug_log(f'开始写入文件: {output_file}')
+            try:
+                with open(output_file, 'w') as kegg_annotation:
+                    kegg_annotation.write(resp)
+                logger.success(f'download success! {output_file} is ready!')
+                debug_log(f'文件写入成功，文件大小: {os.path.getsize(output_file)} 字节')
+            except Exception as e:
+                logger.error(f'写入文件失败: {str(e)}')
+                debug_log(f'异常堆栈: {traceback.format_exc()}')
+                raise
             
             break
         elif mail_content['date'] == mail_date:
@@ -549,6 +615,8 @@ def parse_input():
     account_parser.add_argument('-m', '--mail_type', default='163', choices=['163', 'qq'],
                         help='【默认就行】输入邮箱类型 163 or qq，目前只支持 163 邮箱')
     
+    parser.add_argument('--debug', action='store_true', help='启用详细 debug 日志输出')
+    
     args = parser.parse_args()
     
     
@@ -571,25 +639,43 @@ def parse_input():
 
 
 def main():
-    args = parse_input()
-    ko_file = args.ko_file
-    # 直接运行注释
-    if args.org_lst and args.fasta:
-        kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, ko_file)
+    try:
+        global DEBUG_MODE
+        args = parse_input()
+        ko_file = args.ko_file
+        DEBUG_MODE = args.debug
+        
+        if DEBUG_MODE:
+            logger.info('Debug 模式已启用')
+            debug_log(f'参数信息: {args}')
+        
+        # 直接运行注释
+        if args.org_lst and args.fasta:
+            debug_log('开始 KEGG 注释流程...')
+            kegg_anno(args.mail_type, args.username, args.password, args.fasta, args.org_lst, ko_file)
+            debug_log('KEGG 注释流程完成')
 
-    # 未指定输出前缀时，仅保留 KO 文件，跳过后续解析与绘图
-    if not args.output_prefix:
-        logger.info('未指定 --output-prefix，只保留 KO 文件，跳过解析与绘图')
+        # 未指定输出前缀时，仅保留 KO 文件，跳过后续解析与绘图
+        if not args.output_prefix:
+            logger.info('未指定 --output-prefix，只保留 KO 文件，跳过解析与绘图')
+            logger.success('Done!')
+            return
+
+        # 解析 keg 文件
+        debug_log('开始解析 KEG 文件...')
+        parse_keg(ko_file, args.type, args.allid, args.fpkm, args.reads, args.output_prefix)
+        debug_log('KEG 文件解析完成')
+        
+        # 画图
+        debug_log('开始生成统计图...')
+        kegg_levelb_count_barplot(f'{args.output_prefix}KEGG_clean.txt', f'{args.output_prefix}KEGG_levelB_count.jpeg')
+        debug_log('统计图生成完成')
+        
         logger.success('Done!')
-        return
-
-    # 解析 keg 文件
-    parse_keg(ko_file, args.type, args.allid, args.fpkm, args.reads, args.output_prefix)
-    
-    # 画图
-    kegg_levelb_count_barplot(f'{args.output_prefix}KEGG_clean.txt', f'{args.output_prefix}KEGG_levelB_count.jpeg')
-    
-    logger.success('Done!')
+    except Exception as e:
+        logger.critical(f'程序执行失败: {str(e)}')
+        logger.critical(f'完整错误堆栈:\n{traceback.format_exc()}')
+        sys.exit(1)
 
 
 if __name__ == '__main__':
