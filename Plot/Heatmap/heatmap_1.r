@@ -409,176 +409,190 @@ smart_heatmap <- function(matrix_data,
                           output_format = NULL,
                           autoset_image_specification = TRUE,
                           ...) {
-  config <- .HEATMAP_CONFIG
+  # 最外层异常捕获，确保任何错误都不会终止R脚本
+  tryCatch({
+    config <- .HEATMAP_CONFIG
 
-  # 首先检查输入数据是否有效
-  if (is.null(matrix_data) || (is.matrix(matrix_data) && (nrow(matrix_data) == 0 || ncol(matrix_data) == 0))) {
-    warning("输入数据为空，无法生成热图")
-    return(invisible(NULL))
-  }
-  
-  # 使用自动参数设置函数，先获取参数以确定是否需要聚类
-  params <- auto_set_heatmap_parameters(matrix_data, autoset_image_specification, ...)
-  # 根据聚类参数决定是否移除方差为0的数据
-  needs_clustering <- (isTRUE(params$cluster_rows) || isTRUE(params$cluster_cols))
-  matrix_data <- clean_matrix_data(matrix_data, remove_zero_variance = needs_clustering)
-  
-  # 再次检查清理后的数据
-  if (is.null(matrix_data) || nrow(matrix_data) == 0 || ncol(matrix_data) == 0) {
-    warning("数据清理后矩阵为空，无法生成热图")
-    return(invisible(NULL))
-  }
-
-  # 获取dpi参数（用于输出设备设置）
-  dpi <- if ("dpi" %in% names(params)) params$dpi else config$DEFAULT_DPI
-
-  # 自动检测输出格式（如果未指定）
-  if (is.null(output_format) && !is.null(filename)) {
-    output_format <- detect_file_extension(filename)
-  }
-
-  # 计算所需尺寸
-  dimensions <- do.call(calculate_heatmap_dimensions, c(list(matrix_data), params))
-
-  # 针对位图设备限制进行像素尺寸自适应（避免超过设备最大尺寸）
-  max_pixels_per_side <- config$MAX_PIXELS_PER_SIDE
-  adjust_dpi_if_needed <- function(cur_dpi, width_in, height_in) {
-    width_px <- width_in * cur_dpi
-    height_px <- height_in * cur_dpi
-
-    # 检查是否超过最大像素限制
-    if (width_px > max_pixels_per_side || height_px > max_pixels_per_side) {
-      scale_factor <- min(max_pixels_per_side / width_px, max_pixels_per_side / height_px)
-      # 至少保持 72 DPI，防止过低导致设备报错或图形过于模糊
-      new_dpi <- max(config$MIN_DPI, floor(cur_dpi * scale_factor * 0.95)) # 乘以0.95提供额外安全边际
-      message(sprintf("警告：热图尺寸过大，自动调整DPI从 %d 到 %d", cur_dpi, new_dpi))
-      return(new_dpi)
+    # 首先检查输入数据是否有效
+    if (is.null(matrix_data) || (is.matrix(matrix_data) && (nrow(matrix_data) == 0 || ncol(matrix_data) == 0))) {
+      warning("输入数据为空，无法生成热图")
+      return(invisible(NULL))
     }
-    return(cur_dpi)
-  }
-
-  # 检查是否需要进行尺寸限制
-  max_dimension_inches <- config$MAX_DIMENSION_INCHES
-  if (dimensions$width > max_dimension_inches || dimensions$height > max_dimension_inches) {
-    scale_factor <- min(max_dimension_inches / dimensions$width, max_dimension_inches / dimensions$height)
-    dimensions$width <- dimensions$width * scale_factor
-    dimensions$height <- dimensions$height * scale_factor
-    message(sprintf(
-      "警告：热图尺寸过大，已按比例缩放至 %.2f x %.2f 英寸",
-      dimensions$width, dimensions$height
-    ))
-  }
-
-  cluster_checked <- validate_clustering(
-    matrix_data,
-    params$cluster_rows,
-    params$cluster_cols
-  )
-  params$cluster_rows <- cluster_checked$cluster_rows
-  params$cluster_cols <- cluster_checked$cluster_cols
-
-  # 如果指定了文件名，设置输出设备
-  if (!is.null(filename)) {
-    # 确保设备能被安全关闭
-    device_opened <- FALSE
-    should_skip <- FALSE
-
-    tryCatch(
-      {
-        if (output_format == "pdf") {
-          pdf(
-            file = filename,
-            width = dimensions$width,
-            height = dimensions$height
-          )
-          device_opened <- TRUE
-        } else if (output_format == "png") {
-          dpi <- adjust_dpi_if_needed(dpi, dimensions$width, dimensions$height)
-          # 确保像素尺寸不超过限制
-          width_px <- dimensions$width * dpi
-          height_px <- dimensions$height * dpi
-
-          if (width_px > max_pixels_per_side || height_px > max_pixels_per_side) {
-            warning(sprintf(
-              "热图尺寸过大 (%.0f x %.0f 像素)，无法生成PNG文件。建议：1) 使用PDF格式 2) 减少数据维度 3) 调整cellwidth/cellheight参数。跳过PNG生成",
-              width_px, height_px
-            ))
-            device_opened <- FALSE
-            should_skip <- TRUE
-          } else {
-            png(
-              filename = filename,
-              width = width_px,
-              height = height_px,
-              res = dpi
-            )
-            device_opened <- TRUE
-          }
-        } else if (output_format == "tiff") {
-          dpi <- adjust_dpi_if_needed(dpi, dimensions$width, dimensions$height)
-          tiff(
-            filename = filename,
-            width = dimensions$width * dpi,
-            height = dimensions$height * dpi,
-            res = dpi
-          )
-          device_opened <- TRUE
-        } else if (output_format == "svg") {
-          svg(
-            filename = filename,
-            width = dimensions$width,
-            height = dimensions$height
-          )
-          device_opened <- TRUE
-        } else if (output_format == "jpg" || output_format == "jpeg") {
-          dpi <- adjust_dpi_if_needed(dpi, dimensions$width, dimensions$height)
-          jpeg(
-            filename = filename,
-            width = dimensions$width * dpi,
-            height = dimensions$height * dpi,
-            res = dpi
-          )
-          device_opened <- TRUE
-        } else {
-          warning("不支持的输出格式。请选择: 'pdf', 'png', 'tiff', 'svg', 'jpg', 或 'jpeg'。跳过文件生成")
-          device_opened <- FALSE
-          should_skip <- TRUE
-        }
-      },
-      error = function(e) {
-        warning(sprintf("无法创建输出设备: %s\n建议使用PDF格式或减少热图尺寸", e$message))
-        device_opened <<- FALSE
-        should_skip <<- TRUE
-      }
-    )
-
-    if (should_skip) {
+    
+    # 使用自动参数设置函数，先获取参数以确定是否需要聚类
+    params <- auto_set_heatmap_parameters(matrix_data, autoset_image_specification, ...)
+    # 根据聚类参数决定是否移除方差为0的数据
+    needs_clustering <- (isTRUE(params$cluster_rows) || isTRUE(params$cluster_cols))
+    matrix_data <- clean_matrix_data(matrix_data, remove_zero_variance = needs_clustering)
+    
+    # 再次检查清理后的数据
+    if (is.null(matrix_data) || nrow(matrix_data) == 0 || ncol(matrix_data) == 0) {
+      warning("数据清理后矩阵为空，无法生成热图")
       return(invisible(NULL))
     }
 
-    # 绘制热图并保证关闭设备
-    on.exit(
-      {
-        if (isTRUE(device_opened)) {
-          try(dev.off(), silent = TRUE)
-        }
-      },
-      add = TRUE
+    # 获取dpi参数（用于输出设备设置）
+    dpi <- if ("dpi" %in% names(params)) params$dpi else config$DEFAULT_DPI
+
+    # 自动检测输出格式（如果未指定）
+    if (is.null(output_format) && !is.null(filename)) {
+      output_format <- detect_file_extension(filename)
+    }
+
+    # 计算所需尺寸，捕获可能的错误
+    dimensions <- tryCatch({
+      do.call(calculate_heatmap_dimensions, c(list(matrix_data), params))
+    }, error = function(e) {
+      warning(sprintf("计算热图尺寸失败: %s，使用默认尺寸", e$message))
+      return(list(width = 10, height = 8))
+    })
+
+    # 针对位图设备限制进行像素尺寸自适应（避免超过设备最大尺寸）
+    max_pixels_per_side <- config$MAX_PIXELS_PER_SIDE
+    adjust_dpi_if_needed <- function(cur_dpi, width_in, height_in) {
+      width_px <- width_in * cur_dpi
+      height_px <- height_in * cur_dpi
+
+      # 检查是否超过最大像素限制
+      if (width_px > max_pixels_per_side || height_px > max_pixels_per_side) {
+        scale_factor <- min(max_pixels_per_side / width_px, max_pixels_per_side / height_px)
+        # 至少保持 72 DPI，防止过低导致设备报错或图形过于模糊
+        new_dpi <- max(config$MIN_DPI, floor(cur_dpi * scale_factor * 0.95)) # 乘以0.95提供额外安全边际
+        message(sprintf("警告：热图尺寸过大，自动调整DPI从 %d 到 %d", cur_dpi, new_dpi))
+        return(new_dpi)
+      }
+      return(cur_dpi)
+    }
+
+    # 检查是否需要进行尺寸限制
+    max_dimension_inches <- config$MAX_DIMENSION_INCHES
+    if (dimensions$width > max_dimension_inches || dimensions$height > max_dimension_inches) {
+      scale_factor <- min(max_dimension_inches / dimensions$width, max_dimension_inches / dimensions$height)
+      dimensions$width <- dimensions$width * scale_factor
+      dimensions$height <- dimensions$height * scale_factor
+      message(sprintf(
+        "警告：热图尺寸过大，已按比例缩放至 %.2f x %.2f 英寸",
+        dimensions$width, dimensions$height
+      ))
+    }
+
+    cluster_checked <- validate_clustering(
+      matrix_data,
+      params$cluster_rows,
+      params$cluster_cols
     )
+    params$cluster_rows <- cluster_checked$cluster_rows
+    params$cluster_cols <- cluster_checked$cluster_cols
 
-    # 绘制热图
-    heatmap_result <- draw_heatmap_safe(matrix_data, params)
+    # 如果指定了文件名，设置输出设备
+    if (!is.null(filename)) {
+      # 确保设备能被安全关闭
+      device_opened <- FALSE
+      should_skip <- FALSE
 
-    message(sprintf(
-      "热图已保存到: %s (尺寸: %.2f × %.2f 英寸)",
-      filename, dimensions$width, dimensions$height
-    ))
-  } else {
-    # 如果没有指定文件名，直接在设备上绘制
-    heatmap_result <- draw_heatmap_safe(matrix_data, params)
-  }
+      tryCatch(
+        {
+          if (output_format == "pdf") {
+            pdf(
+              file = filename,
+              width = dimensions$width,
+              height = dimensions$height
+            )
+            device_opened <- TRUE
+          } else if (output_format == "png") {
+            dpi <- adjust_dpi_if_needed(dpi, dimensions$width, dimensions$height)
+            # 确保像素尺寸不超过限制
+            width_px <- dimensions$width * dpi
+            height_px <- dimensions$height * dpi
 
-  return(invisible(heatmap_result))
+            if (width_px > max_pixels_per_side || height_px > max_pixels_per_side) {
+              warning(sprintf(
+                "热图尺寸过大 (%.0f x %.0f 像素)，无法生成PNG文件。建议：1) 使用PDF格式 2) 减少数据维度 3) 调整cellwidth/cellheight参数。跳过PNG生成",
+                width_px, height_px
+              ))
+              device_opened <- FALSE
+              should_skip <- TRUE
+            } else {
+              png(
+                filename = filename,
+                width = width_px,
+                height = height_px,
+                res = dpi
+              )
+              device_opened <- TRUE
+            }
+          } else if (output_format == "tiff") {
+            dpi <- adjust_dpi_if_needed(dpi, dimensions$width, dimensions$height)
+            tiff(
+              filename = filename,
+              width = dimensions$width * dpi,
+              height = dimensions$height * dpi,
+              res = dpi
+            )
+            device_opened <- TRUE
+          } else if (output_format == "svg") {
+            svg(
+              filename = filename,
+              width = dimensions$width,
+              height = dimensions$height
+            )
+            device_opened <- TRUE
+          } else if (output_format == "jpg" || output_format == "jpeg") {
+            dpi <- adjust_dpi_if_needed(dpi, dimensions$width, dimensions$height)
+            jpeg(
+              filename = filename,
+              width = dimensions$width * dpi,
+              height = dimensions$height * dpi,
+              res = dpi
+            )
+            device_opened <- TRUE
+          } else {
+            warning("不支持的输出格式。请选择: 'pdf', 'png', 'tiff', 'svg', 'jpg', 或 'jpeg'。跳过文件生成")
+            device_opened <- FALSE
+            should_skip <- TRUE
+          }
+        },
+        error = function(e) {
+          warning(sprintf("无法创建输出设备: %s\n建议使用PDF格式或减少热图尺寸", e$message))
+          device_opened <<- FALSE
+          should_skip <<- TRUE
+        }
+      )
+
+      if (should_skip) {
+        return(invisible(NULL))
+      }
+
+      # 绘制热图并保证关闭设备
+      on.exit(
+        {
+          if (isTRUE(device_opened)) {
+            try(dev.off(), silent = TRUE)
+          }
+        },
+        add = TRUE
+      )
+
+      # 绘制热图
+      heatmap_result <- draw_heatmap_safe(matrix_data, params)
+
+      message(sprintf(
+        "热图已保存到: %s (尺寸: %.2f × %.2f 英寸)",
+        filename, dimensions$width, dimensions$height
+      ))
+    } else {
+      # 如果没有指定文件名，直接在设备上绘制
+      heatmap_result <- draw_heatmap_safe(matrix_data, params)
+    }
+
+    return(invisible(heatmap_result))
+  }, error = function(e) {
+    # 捕获所有未处理的错误，输出警告但不终止程序
+    warning(sprintf("热图生成完全失败: %s\n跳过热图绘制，继续后续分析", e$message))
+    # 尝试关闭可能打开的设备
+    try(dev.off(), silent = TRUE)
+    return(invisible(NULL))
+  })
 }
 
 #' 安全绘制热图，必要时禁用聚类
@@ -659,7 +673,7 @@ if (is_main()) {
       help = "输出图文件名，自动根据后缀选择格式（pdf/png/tiff/svg/jpg）"
     ),
     # 常见作图参数
-    make_option(c("--main"), type = "character", default = NULL, help = "主标题"),
+    make_option(c("--main"), type = "character", default = "", help = "主标题"),
     make_option(c("--scale"), type = "character", default = "none", help = "按行或列缩放：none,row,column"),
     make_option(c("--cluster_rows"), type = "logical", default = TRUE, help = "是否聚类行"),
     make_option(c("--cluster_cols"), type = "logical", default = TRUE, help = "是否聚类列"),
@@ -684,9 +698,8 @@ if (is_main()) {
   
   # 读取数据矩阵
   # 如果是 Excel 文件，默认读取第一个 sheet（sheet=1）；否则 sheet 参数会被忽略
-  data_mat <-
-  # data_df <- read_indexed_table(opt$input, sheet = if (is_excel_input) 1 else NULL, expect_numeric = TRUE)
-  # data_mat <- as.matrix(data_df)
+  data_df <- read_indexed_table(opt$input, sheet = if (is_excel_input) 1 else NULL, expect_numeric = TRUE)
+  data_mat <- as.matrix(data_df)
 
   # 读取注释
   # annotation_row 和 annotation_col 可以是：
@@ -756,6 +769,7 @@ if (is_main()) {
   heatmap_params <- list(
     annotation_row = if (!is.null(row_anno)) row_anno else NA,
     annotation_col = if (!is.null(col_anno)) col_anno else NA,
+    main = if (!is.null(opt$main) && nzchar(opt$main)) opt$main else NA_character_,
     scale = opt$scale,
     cluster_rows = isTRUE(opt$cluster_rows),
     cluster_cols = isTRUE(opt$cluster_cols),
