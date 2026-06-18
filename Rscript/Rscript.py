@@ -126,13 +126,19 @@ def anova_analysis(datafile, samples_file, output_file):
         return True
     
     
-def enrich_analysis(input_file, genego_file, keggclean_file, output_dir):
+def enrich_analysis(input_file, genego_file, keggclean_file, output_dir, genesymbol_file=None):
     script_path = '/home/colddata/qinqiang/script/Analysis/enrich_analysis/enrich.r'
-    cmd = f'Rscript {script_path} \
-        --inputidfile {input_file} \
-        --genego {genego_file} \
-        --keggclean {keggclean_file} \
-        --outputdir {output_dir}'
+    # 基础命令列表
+    cmd_list = [
+        'Rscript', script_path,
+        '--inputidfile', input_file,
+        '--genego', genego_file,
+        '--keggclean', keggclean_file,
+        '--outputdir', output_dir
+    ]
+    if genesymbol_file:
+        cmd_list.extend(['--genesymbol', genesymbol_file])
+    cmd = ' '.join(cmd_list)
     logger.debug(f'运行命令 {cmd}')
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
