@@ -92,9 +92,8 @@ unset __conda_setup
 conda activate
 # <<< conda initialize <<<
 
-# set tmux history
-source /home/colddata/qinqiang/script/LinuxEnviroments/tmux_history.sh
-source /home/colddata/qinqiang/script/LinuxEnviroments/qinqiang_custom.sh
+# tmux_history.sh 与 qinqiang_custom.sh 已移至 LinuxEnviroments/other/，
+# 由 env.sh 自动加载，无需在此重复 source
 
 # export MANPATH="/usr/local/man:$MANPATH"
 

@@ -1,0 +1,15 @@
+#!/bin/bash
+# 配置R语言核心环境变量，指向指定的R-4.4.3版本
+export R_HOME=/home/data/opt/biosoft/R-4.4.3/build/lib64/R
+export R_LIBS=/home/data/opt/biosoft/R-4.4.3/build/lib64/R/library
+# 配置R库文件加载路径，避免动态库缺失
+export LD_LIBRARY_PATH=$R_HOME/lib:$LD_LIBRARY_PATH
+# 将R的bin目录加入PATH，确保能找到R可执行文件
+export PATH=$R_HOME/bin:$PATH
+
+# 关键：替换为你python310虚拟环境中radian的实际绝对路径
+# 可通过终端执行 `which radian` 查看真实路径，复制过来即可
+RADIAN_PATH="/home/train/miniconda3/envs/python310/bin/radian"
+
+# 启动radian，仅保留有效参数，$@传递外部传入的参数
+exec "$RADIAN_PATH" "$@" --no-site-file --vanilla
