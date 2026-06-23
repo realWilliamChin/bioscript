@@ -4,7 +4,6 @@ pkgs <- c(
   "openxlsx", "optparse", "magrittr", "data.table"
 )
 suppressPackageStartupMessages(invisible(lapply(pkgs, require, character.only = TRUE)))
-Sys.setenv(R_LIBS="/home/data/opt/biosoft/R-422/lib64/R/library")
 
 source('/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r', echo = TRUE, encoding = 'UTF-8')
 source('/home/colddata/qinqiang/script/Plot/PCA/pca_1.r', echo = TRUE, encoding = 'UTF-8')
@@ -36,7 +35,9 @@ option_list <- list(
   make_option("--heatmap_cluster", type = "logical", default = FALSE, metavar = "logical",
               help = "是否需要多画一个聚类的 heatmap 图"),
   make_option("--ncomp", type = "integer", default = NULL, metavar = "integer",
-              help = "设置 PLS-DA 的主成分数量 (ncomp)，如果不指定则根据样本数量自动计算（程序跑不通的情况下手动设置这个参数）")
+              help = "设置 PLS-DA 的主成分数量 (ncomp)，如果不指定则根据样本数量自动计算（程序跑不通的情况下手动设置这个参数）"),
+  make_option(c("--multi_samples"), type = "character", default = NULL, metavar = "character",
+              help = "输入多个样本描述文件，逗号分隔的文件路径")
 )
 
 opt_parser <- OptionParser(option_list=option_list)
@@ -64,21 +65,21 @@ my_set_colors <- c(
 #' @param show_each 是否绘制每个类别的热图（默认TRUE）
 row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir, heatmap_cluster = FALSE) {
   
-  # 检查输入有效性
-  if (!is.data.frame(compound_def) || nrow(compound_def) == 0) {
-    warning("compound_def 为空或无效，跳过类别热图绘制")
-    return(invisible(TRUE))
-  }
-  
-  if (!all(rownames(data_frame) %in% rownames(compound_def))) {
-    stop("表达矩阵的行名必须与注释数据框完全匹配")
-  }
-  
   # 创建输出目录
   if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
   
-  # 准备注释数据
+  # 准备注释数据（可能为 NA，需要判空）
   annotation_row_df <- gen_annotation_row_df(compound_def, data_frame)
+  if (is.data.frame(annotation_row_df) && "Class" %in% colnames(annotation_row_df)) {
+    anno_row_df_class <- annotation_row_df[, "Class", drop = FALSE]
+  } else {
+    anno_row_df_class <- NA
+  }
+  if (is.data.frame(annotation_row_df) && "SubClass" %in% colnames(annotation_row_df)) {
+    anno_row_df_subclass <- annotation_row_df[, "SubClass", drop = FALSE]
+  } else {
+    anno_row_df_subclass <- NA
+  }
   annotation_col_df <- gen_annotation_col_df(samples_df)
   unique_classes <- unique(compound_def$Class)
 
@@ -101,7 +102,7 @@ row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir, 
       filename = file.path(output_dir, paste0(safe_name, "_heatmap.jpg")),
       cluster_rows = FALSE,
       cluster_cols = FALSE,
-      annotation_row = annotation_row_df,
+      annotation_row = anno_row_df_subclass,
       annotation_col = annotation_col_df,
       scale = 'row',
       main = paste("Class: ", class_name)
@@ -112,7 +113,7 @@ row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir, 
         filename = file.path(output_dir, paste0(safe_name, "_heatmap_cluster_row.jpg")),
         cluster_rows = TRUE,
         cluster_cols = FALSE,
-        annotation_row = annotation_row_df,
+        annotation_row = anno_row_df_subclass,
         annotation_col = annotation_col_df,
         scale = 'row',
         main = paste("Class: ", class_name)
@@ -138,10 +139,10 @@ row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir, 
           filename = file.path(class_dir, paste0(safe_sub, "_heatmap.jpg")),
           cluster_rows = FALSE,
           cluster_cols = FALSE,
-          annotation_row = annotation_row_df,
+          # annotation_row = anno_row_df_subclass,
           annotation_col = annotation_col_df,
           scale = 'row',
-          main = paste("Class/SubClass: ", class_name, "/", sub_name)
+          main = paste0("Class/SubClass: ", "\n", class_name, "/", sub_name)
         )
         if (heatmap_cluster) {
           smart_heatmap(
@@ -149,10 +150,105 @@ row_class_heatmap <- function(data_frame, samples_df, compound_def, output_dir, 
             filename = file.path(class_dir, paste0(safe_sub, "_heatmap_cluster_row.jpg")),
             cluster_rows = TRUE,
             cluster_cols = FALSE,
-            annotation_row = annotation_row_df,
+            # annotation_row = anno_row_df_subclass,
             annotation_col = annotation_col_df,
             scale = 'row',
-            main = paste("Class/SubClass: ", class_name, "/", sub_name)
+            main = paste0("Class/SubClass: ", "\n", class_name, "/", sub_name)
+          )
+        }
+      }
+    }
+  }
+  invisible(TRUE)
+}
+
+row_class_groupmean_heatmap <- function(data_frame, samples_df, compound_def, output_dir, heatmap_cluster = FALSE) {
+  
+  # 创建输出目录
+  if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+  
+  # 准备注释数据（可能为 NA，需要判空）
+  annotation_row_df <- gen_annotation_row_df(compound_def, data_frame)
+  if (is.data.frame(annotation_row_df) && "Class" %in% colnames(annotation_row_df)) {
+    anno_row_df_class <- annotation_row_df[, "Class", drop = FALSE]
+  } else {
+    anno_row_df_class <- NA
+  }
+  if (is.data.frame(annotation_row_df) && "SubClass" %in% colnames(annotation_row_df)) {
+    anno_row_df_subclass <- annotation_row_df[, "SubClass", drop = FALSE]
+  } else {
+    anno_row_df_subclass <- NA
+  }
+  annotation_col_df <- gen_annotation_col_df(samples_df)
+  unique_classes <- unique(compound_def$Class)
+
+  for (class_name in unique_classes) {
+    class_samples <- rownames(compound_def)[compound_def$Class == class_name]
+    class_data <- data_frame[class_samples, , drop = FALSE]
+    
+    # 跳过代谢物数量不足的类别（至少需要2个代谢物才能绘制热图）
+    if (nrow(class_data) < 2) {
+      warning("跳过类别 [", class_name, "] - 代谢物数量不足 (n=", nrow(class_data), ")")
+      next
+    }
+    
+    # 安全文件名处理
+    safe_name <- make.names(class_name)
+    
+    # 输出按 Class 的热图
+    smart_heatmap(
+      matrix_data = class_data, 
+      filename = file.path(output_dir, paste0(safe_name, "_groupmean_heatmap.jpg")),
+      cluster_rows = FALSE,
+      cluster_cols = FALSE,
+      annotation_row = anno_row_df_subclass,
+      scale = 'row',
+      main = paste("Class: ", class_name)
+    )
+    if (heatmap_cluster) {
+      smart_heatmap(
+        matrix_data = class_data,
+        filename = file.path(output_dir, paste0(safe_name, "_groupmean_heatmap_cluster_row.jpg")),
+        cluster_rows = TRUE,
+        cluster_cols = FALSE,
+        annotation_row = anno_row_df_subclass,
+        scale = 'row',
+        main = paste("Class: ", class_name)
+      )
+    }
+
+    # 如果存在 SubClass，则为当前 Class 下的每个 SubClass 分别绘图，放入 Class 子目录
+    if ("SubClass" %in% colnames(compound_def)) {
+      class_dir <- file.path(output_dir, safe_name)
+      if (!dir.exists(class_dir)) dir.create(class_dir, recursive = TRUE, showWarnings = FALSE)
+      class_subclasses <- unique(compound_def[class_samples, "SubClass"]) 
+      class_subclasses <- class_subclasses[!is.na(class_subclasses) & class_subclasses != ""]
+      for (sub_name in class_subclasses) {
+        sub_samples <- rownames(compound_def)[compound_def$Class == class_name & compound_def$SubClass == sub_name]
+        sub_data <- data_frame[sub_samples, , drop = FALSE]
+        if (nrow(sub_data) < 2) {
+          warning("跳过子类别 [", class_name, "/", sub_name, "] - 代谢物数量不足 (n=", nrow(sub_data), ")")
+          next
+        }
+        safe_sub <- make.names(sub_name)
+        smart_heatmap(
+          matrix_data = sub_data,
+          filename = file.path(class_dir, paste0(safe_sub, "_groupmean_heatmap.jpg")),
+          cluster_rows = FALSE,
+          cluster_cols = FALSE,
+          # annotation_row = anno_row_df_subclass,
+          scale = 'row',
+          main = paste0("Class/SubClass: ", "\n", class_name, "/", sub_name)
+        )
+        if (heatmap_cluster) {
+          smart_heatmap(
+            matrix_data = sub_data,
+            filename = file.path(class_dir, paste0(safe_sub, "_groupmean_heatmap_cluster_row.jpg")),
+            cluster_rows = TRUE,
+            cluster_cols = FALSE,
+            # annotation_row = anno_row_df_subclass,
+            scale = 'row',
+            main = paste0("Class/SubClass: ", "\n", class_name, "/", sub_name)
           )
         }
       }
@@ -327,72 +423,11 @@ gen_annotation_col_df <- function(samples_df) {
   return(annotation_col_df)
 }
 
-# 代谢物分析主函数
-metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, output_dir, log2data = FALSE, 
-  each_class_heatmap = FALSE, heatmap_cluster = FALSE, ncomp = NULL, significant_heatmap_plot = FALSE, sort_by_subclass = FALSE) {
-
-  select_sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
-  groups <- select_sample_info$group
-  sample_names <- select_sample_info$sample
-
-  # 按照样本排列顺序
-  select_data_frame <- data_matrix[, sample_names, drop = FALSE]
-  # mutligroup samples 的时候会出现每行都为 0 跑不了的情况
-  select_data_frame <- select_data_frame[rowSums(select_data_frame != 1e-6) > 0, ]
-  metabolites <- as.matrix(t(select_data_frame))
-  metabolites <- metabolites[rowSums(metabolites != 1e-6) > 0, ]
-  
-  # 创建 annotation_row_df，函数内自处理 NA 情况
-  if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
-    current_definition_df <- definition_df[rownames(select_data_frame), , drop = FALSE]
-  } else {
-    current_definition_df <- NA
-  }
-  annotation_row_df <- gen_annotation_row_df(current_definition_df, select_data_frame)
-  annotation_col_df <- gen_annotation_col_df(select_sample_info)
-  if ("SubClass" %in% colnames(annotation_row_df)) {
-    annotation_row_df <- annotation_row_df[, setdiff(colnames(annotation_row_df), "SubClass"), drop = FALSE]
-  }
-
-  smart_heatmap(matrix_data = select_data_frame, file.path(output_dir, 'Compounds_heatmap.png'), scale = 'row',
-    cluster_cols = FALSE, cluster_rows = FALSE,
-    annotation_row = annotation_row_df, annotation_col = annotation_col_df
-  )
-  if (heatmap_cluster) {
-    smart_heatmap(matrix_data = select_data_frame, file.path(output_dir, 'Compounds_heatmap_cluster_row.png'), scale = 'row',
-      cluster_cols = FALSE, cluster_rows = TRUE,
-      annotation_row = annotation_row_df, annotation_col = annotation_col_df
-    )
-  }
-  
-  # 每个 Class 一张图
-  if (each_class_heatmap) {
-    each_class_heatmap_dir = file.path(output_dir, 'Each_class_heatmap')
-    dir.create(each_class_heatmap_dir)
-    row_class_heatmap(
-      data_frame = select_data_frame,
-      samples_df = select_sample_info,
-      compound_def = current_definition_df,
-      output_dir = each_class_heatmap_dir,
-      heatmap_cluster = opt$heatmap_cluster
-    )
-  }
-
-  # 根据样本数量设置 ncomp（如果用户未指定）
-  num_samples <- nrow(metabolites)
-  num_metabolites <- ncol(metabolites)
-  num_groups <- length(unique(groups))
-  
-  # 检查数据维度是否满足 plsda 的要求（至少需要3行3列）
-  if (num_samples < 3 || num_metabolites < 3) {
-    warning(paste("数据维度不足（样本数:", num_samples, "代谢物数:", num_metabolites, "），无法进行 PLS-DA 分析。PLS-DA 需要至少3个样本和3个代谢物。"))
-    return(invisible(NULL))
-  }
-  
-  # 设置合理的 ncomp 值，根据样本数量和组数自动设置
+# 设置合理的 ncomp 值，根据样本数量和组数自动设置
+calculate_ncomp <- function(ncomp, num_samples, num_groups, num_compounds) {
   if (is.null(ncomp)) {
     # 一般规则：ncomp 不应超过样本数量的 1/10，且不应超过组数-1，但是 2 个不好看，目前至少画 4 个
-    max_ncomp <- min(floor(num_samples / 10), num_groups - 1, num_metabolites - 1)
+    max_ncomp <- min(floor(num_samples / 10), num_groups - 1, num_compounds - 1)
     if (num_samples < 10) {
       ncomp <- min(4, max_ncomp)
     } else if (num_samples < 20) {
@@ -407,7 +442,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     ncomp <- max(4, min(4, ncomp, max_ncomp))
   } else {
     # 用户指定的 ncomp 需要满足限制条件
-    max_ncomp <- min(floor(num_samples / 10), num_groups - 1, num_metabolites - 1)
+    max_ncomp <- min(floor(num_samples / 10), num_groups - 1, num_compounds - 1)
     if (ncomp > max_ncomp) {
       warning(paste("指定的 ncomp (", ncomp, ") 超过最大允许值 (", max_ncomp, 
                     ")，已自动调整为", max_ncomp))
@@ -419,17 +454,119 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
       ncomp <- 2
     }
   }
-  # 打印调试信息
-  print(paste("样本数量:", num_samples, "代谢物数量:", num_metabolites, "组数:", num_groups, "设置的ncomp:", ncomp))
+  return(ncomp)
+}
+
+# 代谢物分析主函数
+compounds_analysis <- function(samples_file, data_matrix, definition_df = NA, output_dir, log2data = FALSE, 
+  each_class_heatmap = FALSE, heatmap_cluster = FALSE, ncomp = NULL, significant_heatmap_plot = FALSE, sort_by_subclass = FALSE) {
+
+  samples_df <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
+  groups <- samples_df$group
+  sample_names <- samples_df$sample
+
+  # 按照样本排列顺序，且去掉在 samples_df 中不存在的样本
+  compounds_df <- data_matrix[, sample_names, drop = FALSE]
+  # 去掉一行全是 0 或全是 1e-6 的
+  compounds_df <- compounds_df[!(rowSums(compounds_df == 0, na.rm = TRUE) == ncol(compounds_df) | 
+                  rowSums(compounds_df == 1e-6, na.rm = TRUE) == ncol(compounds_df)), , drop = FALSE]
+  compounds_t_df <- as.matrix(t(compounds_df))
+  compounds_t_df <- compounds_t_df[rowSums(compounds_t_df != 1e-6) > 0, ]
+
+  # 组间平均热图矩阵
+  group_mean_heatmap <- sapply(unique(groups), function(g) {
+    samples_in_group <- sample_names[groups == g]
+    if (length(samples_in_group) == 1) {
+      compounds_df[, samples_in_group]
+    } else {
+      rowMeans(compounds_df[, samples_in_group, drop = FALSE])
+    }
+  })
+  group_mean_heatmap <- as.data.frame(group_mean_heatmap)
+  colnames(group_mean_heatmap) <- unique(groups)
+  rownames(group_mean_heatmap) <- rownames(compounds_df)
   
-  df_plsda <- plsda(metabolites, groups, ncomp = ncomp)
+  # 创建 annotation_row_df，函数内自处理 NA 情况
+  if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
+    definition_df <- definition_df[rownames(compounds_df), , drop = FALSE]
+    if ("Class" %in% colnames(definition_df)) {
+      definition_class_df <- definition_df[, "Class", drop = FALSE]
+    } else {
+      definition_class_df <- NA
+    }
+    if ("SubClass" %in% colnames(definition_df)) {
+      definition_subclass_df <- definition_df[, "SubClass", drop = FALSE]
+    } else {
+      definition_subclass_df <- NA
+    }
+  } else {
+    definition_df <- NA
+    definition_class_df <- NA
+    definition_subclass_df <- NA
+  }
+  annotation_col_df <- gen_annotation_col_df(samples_df)
+
+  smart_heatmap(matrix_data = compounds_df, file.path(output_dir, 'Compounds_heatmap.png'), scale = 'row',
+    cluster_cols = FALSE, cluster_rows = FALSE,
+    annotation_row = definition_class_df, annotation_col = annotation_col_df
+  )
+  smart_heatmap(matrix_data = group_mean_heatmap, file.path(output_dir, 'Compounds_groupmean_heatmap.png'), scale = 'row',
+    cluster_cols = FALSE, cluster_rows = FALSE, annotation_row = definition_class_df
+  )
+  if (heatmap_cluster) {
+    smart_heatmap(matrix_data = compounds_df, file.path(output_dir, 'Compounds_heatmap_cluster_row.png'),
+      scale = 'row', cluster_cols = FALSE, cluster_rows = TRUE,
+      annotation_row = definition_class_df, annotation_col = annotation_col_df
+    )
+    smart_heatmap(matrix_data = group_mean_heatmap, file.path(output_dir, 'Compounds_groupmean_heatmap_cluster_row.png'),
+      scale = 'row', cluster_cols = FALSE, cluster_rows = TRUE, annotation_row = definition_class_df
+    )
+  }
+  
+  # 每个 Class 一张图
+  if (each_class_heatmap && is.data.frame(definition_df) && nrow(definition_df) > 0) {
+    each_class_heatmap_dir = file.path(output_dir, 'Each_class_heatmap')
+    dir.create(each_class_heatmap_dir)
+    row_class_heatmap(
+      data_frame = compounds_df,
+      samples_df = samples_df,
+      compound_def = definition_df,
+      output_dir = each_class_heatmap_dir,
+      heatmap_cluster = opt$heatmap_cluster
+    )
+    row_class_groupmean_heatmap(
+      data_frame = group_mean_heatmap,
+      samples_df = samples_df,
+      compound_def = definition_df,
+      output_dir = each_class_heatmap_dir,
+      heatmap_cluster = opt$heatmap_cluster
+    )
+  }
+
+  # 根据样本数量设置 ncomp（如果用户未指定）
+  num_samples <- nrow(compounds_t_df)
+  num_compounds <- ncol(compounds_t_df)
+  num_groups <- length(unique(groups))
+  
+  # 检查数据维度是否满足 plsda 的要求（至少需要3行3列）
+  if (num_samples < 3 || num_compounds < 3) {
+    warning(paste("数据维度不足（样本数:", num_samples, "代谢物数:", num_compounds, "），无法进行 PLS-DA 分析。PLS-DA 需要至少3个样本和3个代谢物。"))
+    return(invisible(NULL))
+  }
+  
+  # 设置合理的 ncomp 值，根据样本数量和组数自动设置
+  ncomp <- calculate_ncomp(ncomp, num_samples, num_groups, num_compounds)
+  # 打印调试信息
+  print(paste("样本数量:", num_samples, "代谢物数量:", num_compounds, "组数:", num_groups, "设置的ncomp:", ncomp))
+  
+  plsda_df <- plsda(compounds_t_df, groups, ncomp = ncomp)
 
   # scree plot
-  scree_df <- as.data.frame(df_plsda$prop_expl_var$X)
+  scree_df <- as.data.frame(plsda_df$prop_expl_var$X)
   scree_df$comp <- rownames(scree_df)
   colnames(scree_df)[1] <- "value"
 
-  df <- data.frame(x = letters[1:6], y = seq(10, 60, 10))
+  # df <- data.frame(x = letters[1:6], y = seq(10, 60, 10)) 未被使用的 df，等待删除
   # 创建 scree plot 图
   scree_df$comp <- factor(scree_df$comp, levels = scree_df$comp)
   scree_plot <- ggplot(scree_df, aes(x = comp, y = value)) +
@@ -439,41 +576,31 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
     theme_minimal() +
     geom_line(aes(group = 1), color = "red") +
     geom_point()
+  ggsave(file.path(output_dir, "Compounds_quantitation_scree_plot.jpeg"), scree_plot, width = ncomp * 0.7 + 1, height = 4)
 
-  ggsave(file.path(output_dir, "Metabolite_quantitation_scree_plot.jpeg"), scree_plot, width = ncomp * 0.7 + 1, height = 4)
-
-  comp_load_df <- as.data.frame(df_plsda$loadings$X)
+  comp_load_df <- as.data.frame(plsda_df$loadings$X)
   comp_load_df <- cbind(rownames(comp_load_df), comp_load_df)
   colnames(comp_load_df)[1] <- "compound_name"
   
   write.xlsx(comp_load_df, file = file.path(output_dir, "pc_loading_value.xlsx"), sheetName = "Sheet1", rowNames = FALSE)
 
-  df <- unclass(df_plsda)
-  df1 <- as.data.frame(df$variates$X)
-  df1$group <- groups
-  df1$samples <- rownames(df1)
+  plsda_result <- unclass(plsda_df)
+  plsda_variates_df <- as.data.frame(plsda_result$variates$X)
+  plsda_variates_df$group <- groups
+  plsda_variates_df$samples <- rownames(plsda_variates_df)
 
-  explain <- df$prop_expl_var$X
+  explain <- plsda_result$prop_expl_var$X
   x_label <- round(explain[1], digits = 3)
   y_label <- round(explain[2], digits = 3)
 
-  num_samples <- nrow(df1)
   plot_width <- 5 + num_samples * 0.2
   plot_height <- 4 + num_samples * 0.2
 
-  p1 <- ggplot(df1, aes(x = comp1, y = comp2, color = group)) +
+  p1 <- ggplot(plsda_variates_df, aes(x = comp1, y = comp2, color = group)) +
     theme_bw() +
     geom_point(size = 5) +
-    geom_text_repel(
-      aes(label = samples),
-      size = 5,
-      box.padding = 0.35,
-      point.padding = 0.5
-    ) +
-    labs(
-      x = paste0("P1 (", x_label * 100, "%)"), 
-      y = paste0("P2 (", y_label * 100, "%)")
-    ) +
+    geom_text_repel(aes(label = samples), size = 5, box.padding = 0.35, point.padding = 0.5) +
+    labs(x = paste0("P1 (", x_label * 100, "%)"), y = paste0("P2 (", y_label * 100, "%)")) +
     scale_fill_discrete() +
     theme(
       axis.title.x = element_text(size = 12),
@@ -492,23 +619,20 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
   y_min <- y_range[1]
   y_max <- y_range[2]
   
-  p1 <- p1 + coord_cartesian(
-    xlim = c(x_min, x_max), 
-    ylim = c(y_min, y_max)
-  )
+  p1 <- p1 + coord_cartesian(xlim = c(x_min, x_max), ylim = c(y_min, y_max))
 
   ggsave(file.path(output_dir, "Multigroup_Plsda_Distribution_Graph.jpeg"), p1, width = plot_width, height = plot_height)
 
   # vip 值使用 fpkm, 其他值计算都是用 reads
   # predI 这里不知道为什么有时候需要写 NA 才行
-  plsda_model <- opls(x = metabolites, y = groups, predI = 1, crossvalI = 5)
+  plsda_model <- opls(x = compounds_t_df, y = groups, predI = 1, crossvalI = 5)
   
   vip_values <- plsda_model@vipVn
   df.vip <- as.data.frame(vip_values)
 
-  reads_data_with_def <- cbind(select_data_frame, VIP = df.vip$vip_values)
-  reads_data_with_def$Metabolite <- rownames(reads_data_with_def)
-  reads_data_with_def <- reads_data_with_def[, c("Metabolite", setdiff(names(reads_data_with_def), "Metabolite"))]
+  reads_data_with_def <- cbind(compounds_df, VIP = df.vip$vip_values)
+  reads_data_with_def$Compounds <- rownames(reads_data_with_def)
+  reads_data_with_def <- reads_data_with_def[, c("Compounds", setdiff(names(reads_data_with_def), "Compounds"))]
 
   if (is.data.frame(definition_df)) {
     # 添加 class count 和对应的名称
@@ -517,7 +641,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
       if (class_col %in% colnames(data)) {
         class_count <- data %>%
           group_by(!!sym(class_col)) %>%
-          summarize(count = n(), compounds = paste(Metabolite, collapse = ", ")) %>%
+          summarize(count = n(), compounds = paste(Compounds, collapse = ", ")) %>%
           filter(!!sym(class_col) != "") %>%
           arrange(desc(count))
         
@@ -525,7 +649,7 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
       }
     }
 
-    reads_data_with_def <- merge(reads_data_with_def, definition_df, by = "Metabolite", all.x = TRUE)
+    reads_data_with_def <- merge(reads_data_with_def, definition_df, by = "Compounds", all.x = TRUE)
     
     greater_than_one_data_def <- reads_data_with_def[reads_data_with_def$VIP > 1, ]
     # 如果 greater_than_one_data_def 没有数据，就是用 reads_data_with_def
@@ -549,15 +673,15 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
   if (significant_heatmap_plot && nrow(greater_than_one_data_def) >= 2) {
     vipgt1_data_def <- reads_data_with_def[reads_data_with_def$VIP > 1, ]
     vipgt1_data_df <- vipgt1_data_def[, sample_names, drop = FALSE]
-    rownames(vipgt1_data_df) <- vipgt1_data_def$Metabolite
-    rownames(vipgt1_data_def) <- vipgt1_data_def$Metabolite
+    rownames(vipgt1_data_df) <- vipgt1_data_def$Compounds
+    rownames(vipgt1_data_def) <- vipgt1_data_def$Compounds
     if (sort_by_subclass) {
       order_idx <- order(vipgt1_data_def$Class, vipgt1_data_def$SubClass)
       vipgt1_data_def <- vipgt1_data_def[order_idx, ]
       vipgt1_data_df <- vipgt1_data_df[order_idx, ]
     }
     vipgt1_annotation_row_df <- gen_annotation_row_df(vipgt1_data_def, vipgt1_data_df)
-    vipgt1_annotation_col_df <- gen_annotation_col_df(select_sample_info[select_sample_info$sample %in% sample_names, , drop = FALSE])
+    vipgt1_annotation_col_df <- gen_annotation_col_df(samples_df[samples_df$sample %in% sample_names, , drop = FALSE])
     if ("SubClass" %in% colnames(vipgt1_annotation_row_df)) {
       vipgt1_annotation_row_df <- vipgt1_annotation_row_df[, setdiff(colnames(vipgt1_annotation_row_df), "SubClass"), drop = FALSE]
     }
@@ -570,17 +694,31 @@ metabolite_analysis <- function(samples_file, data_matrix, definition_df = NA, o
       annotation_col = vipgt1_annotation_col_df,
       scale = 'row'
     )
+
+    # 组平均热图
+    vipgt1_group_mean_heatmap <- sapply(unique(groups), function(g) {
+      samples_in_group <- sample_names[groups == g]
+      if (length(samples_in_group) == 1) {
+        vipgt1_data_df[, samples_in_group]
+      } else {
+        rowMeans(vipgt1_data_df[, samples_in_group, drop = FALSE])
+      }
+    })
+    vipgt1_group_mean_heatmap <- as.data.frame(vipgt1_group_mean_heatmap)
+    colnames(vipgt1_group_mean_heatmap) <- unique(groups)
+    rownames(vipgt1_group_mean_heatmap) <- rownames(vipgt1_data_df)
+    smart_heatmap(
+      matrix_data = vipgt1_group_mean_heatmap,
+      file.path(output_dir, "Significant_compounds_groupmean_heatmap.png"),
+      cluster_cols = FALSE,
+      cluster_rows = FALSE,
+      annotation_row = vipgt1_annotation_row_df,
+      scale = 'row'
+    )
   }
 
   reads_data_with_def <- reads_data_with_def[order(-reads_data_with_def$VIP, na.last = TRUE),]
-  
-  write.xlsx(
-    reads_data_with_def, 
-    file = file.path(output_dir, "Metabolite_quantitation_VIP.xlsx"), 
-    sheetName = "Sheet1", 
-    rowNames = FALSE, 
-    colNames = TRUE
-  )
+  write.xlsx(reads_data_with_def, file = file.path(output_dir, "Compounds_quantitation_VIP.xlsx"), sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
 }
 
 # 组间分析函数
@@ -589,28 +727,17 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
 
   sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
   comp_info <- read.table(compare_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
-  
   comparisons <- list()
   for (i in seq_along(1:nrow(comp_info))) {
     comparisons <- append(comparisons, list(as.character(comp_info[i, ])))
   }
 
-  plot_types <- c(
-    "correlation", "outlier", "overview", "permutation",
-    "predict-train", "x-loading", "x-score",
+  plot_types <- c("correlation", "outlier", "overview", "permutation", "predict-train", "x-loading", "x-score", 
     "x-variance", "xy-score"
   )
 
-  deg_data <- data.frame(
-    group = character(0), 
-    Total = numeric(0),
-    All_Diff_compound = numeric(0), 
-    Up = numeric(0), 
-    Down = numeric(0),
-    Up_ration = character(0),
-    Down_ratio = character(0),
-    Up_list = character(0), 
-    Down_list = character(0)
+  deg_data <- data.frame(group = character(0), Total = numeric(0), All_Diff_compound = numeric(0), Up = numeric(0), 
+    Down = numeric(0), Up_ration = character(0), Down_ratio = character(0), Up_list = character(0), Down_list = character(0)
   )
 
   # 组间循环
@@ -628,50 +755,41 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
     current_samples <- c(groupA_cols, groupB_cols)
 
     if (is.data.frame(fpkm_df)) {
-      current_expression_fpkm_data <- fpkm_df[
-        , current_samples, 
-        drop = FALSE
-      ]
-      rows_to_remove <- apply(
-        current_expression_fpkm_data, 
-        1, 
-        function(row) all(row == 1e-6)
-      )
-      current_expression_fpkm_data <- current_expression_fpkm_data[!rows_to_remove, ]
+      current_expression_fpkm_data <- fpkm_df[, current_samples, drop = FALSE]
     }
-    
     current_expression_data <- reads_df[, current_samples, drop = FALSE]
-    keep_rows <- rowSums(current_expression_data != 1e-6, na.rm = TRUE) > 0
-    current_expression_data <- current_expression_data[keep_rows, , drop = FALSE]
-
+    current_expression_data <- current_expression_data[rowSums(current_expression_data == 0, na.rm = TRUE) != ncol(current_expression_data) & 
+      rowSums(current_expression_data == 1e-6, na.rm = TRUE) != ncol(current_expression_data), , drop = FALSE]
+    
     # 创建 annotation_row_df，函数内自处理 NA 情况
     if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
       current_definition_df <- definition_df[rownames(current_expression_data), , drop = FALSE]
+      current_annotation_row_df <- gen_annotation_row_df(current_definition_df, current_expression_data)
+      if ("Class" %in% colnames(current_annotation_row_df)) {
+        crt_anno_row_df_class <- current_annotation_row_df[, "Class", drop = FALSE]
+        crt_anno_row_df_class <- crt_anno_row_df_class[rownames(current_expression_data), , drop = FALSE]
+      } else {
+        crt_anno_row_df_class <- NA
+      }
+      if ("SubClass" %in% colnames(current_annotation_row_df)) {
+        crt_anno_row_df_subclass <- current_annotation_row_df[, "SubClass", drop = FALSE]
+        crt_anno_row_df_subclass <- crt_anno_row_df_subclass[rownames(current_expression_data), , drop = FALSE]
+      } else {
+        crt_anno_row_df_subclass <- NA
+      }
     } else {
       current_definition_df <- NA
+      crt_anno_row_df_class <- NA
+      crt_anno_row_df_subclass <- NA
     }
-    current_annotation_row_df <- gen_annotation_row_df(current_definition_df, current_expression_data)
     current_annotation_col_df <- gen_annotation_col_df(sample_info[sample_info$sample %in% current_samples, , drop = FALSE])
     
     # p_value_current_expression_data <- reads_data[, current_samples, drop = FALSE]
     # 检查因变量的水平数量
-    y_factor <- factor(
-      sample_info$group[sample_info$sample %in% current_samples],
-      levels = groups
-    )
+    y_factor <- factor(sample_info$group[sample_info$sample %in% current_samples], levels = groups)
     if (length(unique(y_factor)) < 2) {
-      print(paste(
-        "y_factor 小于 2 个", 
-        compare_name, 
-        " 确认 compare_info 和 samples_described.txt 是否完全匹配"
-      ))
+      print(paste("y_factor 小于 2 个", compare_name, " 确认 compare_info 和 samples_described.txt 是否完全匹配"))
       next
-    }
-
-    # 检查是否有缺失值
-    if (any(is.na(current_expression_data))) {
-      print(paste("Missing values found in expression data for:", compare_name))
-      next # 跳过当前的迭代
     }
 
     # 进行OPLS分析
@@ -696,51 +814,6 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
 
     # 获取VIP值，如果模型失败则赋予 0
     vip_values <- tryCatch({opls_model@vipVn}, error = function(e) {rep(0, ncol(current_expression_data))})
-
-    # 组间 heatmap 图
-    if (is.data.frame(fpkm_df)) {
-      smart_heatmap(
-        matrix_data = current_expression_fpkm_data,
-        file.path(compare_path, paste0(compare_name, "_heatmap.png")),
-        cluster_cols = FALSE,
-        cluster_rows = FALSE,
-        annotation_row = current_annotation_row_df,
-        annotation_col = current_annotation_col_df,
-        scale = 'row'
-      )
-      if (heatmap_cluster) {
-        smart_heatmap(
-          matrix_data = current_expression_fpkm_data,
-          file.path(compare_path, paste0(compare_name, "_heatmap_cluster_row.png")),
-          cluster_cols = FALSE,
-          cluster_rows = TRUE,
-          annotation_row = current_annotation_row_df,
-          annotation_col = current_annotation_col_df,
-          scale = 'row'
-        )
-      }
-    } else {
-      smart_heatmap(
-        matrix_data = current_expression_data,
-        file.path(compare_path, paste0(compare_name, "_heatmap.png")),
-        cluster_cols = FALSE,
-        cluster_rows = FALSE,
-        annotation_row = current_annotation_row_df,
-        annotation_col = current_annotation_col_df,
-        scale = 'row'
-      )
-      if (heatmap_cluster) {
-        smart_heatmap(
-          matrix_data = current_expression_data,
-          file.path(compare_path, paste0(compare_name, "_heatmap_cluster_row.png")),
-          cluster_cols = FALSE,
-          cluster_rows = TRUE,
-          annotation_row = current_annotation_row_df,
-          annotation_col = current_annotation_col_df,
-          scale = 'row'
-        )
-      }
-    }
 
     # 计算FoldChange
     baseMeanA <- rowMeans(current_expression_data[, groupA_cols])
@@ -776,30 +849,22 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
       vip_values_adjusted[matching_rows] <- vip_values
     }
     
-    current_expression_data_def <- cbind(
-      current_expression_data_def, 
-      VIP = vip_values_adjusted
-    )
-
+    current_expression_data_def <- cbind(current_expression_data_def, VIP = vip_values_adjusted)
     current_expression_data_def <- current_expression_data_def[order(current_expression_data_def$pvalues, na.last = TRUE), ]
-    
-    current_expression_data_def$Metabolite <- rownames(current_expression_data_def)
-    current_expression_data_def <- current_expression_data_def[
-      , c("Metabolite", setdiff(names(current_expression_data_def), "Metabolite"))
-    ]
-    
+    current_expression_data_def$Compounds <- rownames(current_expression_data_def)
+    current_expression_data_def <- current_expression_data_def[, c("Compounds", setdiff(names(current_expression_data_def), "Compounds"))]
     current_expression_data_def$padj <- p.adjust(current_expression_data_def$pvalues, "BH")
-
     if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
-      current_expression_data_def <- merge(current_expression_data_def, definition_df, by = "Metabolite", all.x = TRUE)
+      current_expression_data_def <- merge(current_expression_data_def, definition_df, by = "Compounds", all.x = TRUE)
     }
-
+    # 合并后行名会变成序号，重置为化合物名称，确保后续按行名索引不会得到 NA
+    rownames(current_expression_data_def) <- current_expression_data_def$Compounds
     current_expression_data_def <- current_expression_data_def[order(-current_expression_data_def$VIP, na.last = TRUE),]
 
     # 只替换数值列的 NA，保留来自 definition_df 的列中的 NA
     if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
-      # 获取来自 definition_df 的列名（排除 Metabolite，因为它是合并键）
-      definition_cols <- setdiff(colnames(definition_df), "Metabolite")
+      # 获取来自 definition_df 的列名（排除 Compounds，因为它是合并键）
+      definition_cols <- setdiff(colnames(definition_df), "Compounds")
       # 只对非 definition_df 列的数值列进行 NA 替换
       numeric_cols <- sapply(current_expression_data_def, is.numeric)
       cols_to_replace <- names(numeric_cols)[numeric_cols & !names(numeric_cols) %in% definition_cols]
@@ -815,28 +880,51 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
     }
 
     # 标注上调/下调/不显著
-    current_expression_data_def$regulation <- ifelse(
-      current_expression_data_def$VIP > 1 & current_expression_data_def$FoldChange >= 1.2, "Up",
-      ifelse(
-        current_expression_data_def$VIP > 1 & current_expression_data_def$FoldChange < 0.8, "Down", "NoSignificant"
-      )
-    )
+    current_expression_data_def$regulation <- ifelse(current_expression_data_def$VIP > 1 & current_expression_data_def$FoldChange >= 1.2, "Up",
+      ifelse(current_expression_data_def$VIP > 1 & current_expression_data_def$FoldChange < 0.8, "Down", "NoSignificant"))
 
     # 将更新后的数据框保存为文本文件
     vip_output_name <- file.path(compare_path, paste0(compare_name, "_VIP.xlsx"))
     write.xlsx(current_expression_data_def, file = vip_output_name, sheetName = "Sheet1", rowNames = FALSE, colNames = TRUE)
 
+    # 组间 heatmap 图
+    if (is.data.frame(fpkm_df)) {
+      comparison_all_compounds_heatmap_mat <- current_expression_fpkm_data
+    } else {
+      comparison_all_compounds_heatmap_mat <- current_expression_data
+    }
+    smart_heatmap(
+      matrix_data = comparison_all_compounds_heatmap_mat,
+      file.path(compare_path, paste0(compare_name, "_all_compounds_heatmap.png")),
+      cluster_cols = FALSE,
+      cluster_rows = FALSE,
+      annotation_row = crt_anno_row_df_class,
+      annotation_col = current_annotation_col_df,
+      scale = 'row'
+    )
+    if (heatmap_cluster) {
+      smart_heatmap(
+        matrix_data = comparison_all_compounds_heatmap_mat,
+        file.path(compare_path, paste0(compare_name, "_all_compounds_heatmap_cluster_row.png")),
+        cluster_cols = FALSE,
+        cluster_rows = TRUE,
+        annotation_row = crt_anno_row_df_class,
+        annotation_col = current_annotation_col_df,
+        scale = 'row'
+      )
+    }
+
     # significant_heatmap_plot 为 TRUE 时，绘制显著差异代谢物的热图
     significant_heatmap_data_def <- current_expression_data_def[current_expression_data_def$regulation != "NoSignificant", ]
-    significant_heatmap_data_df <- significant_heatmap_data_def[, current_samples, drop = FALSE]
+    significant_heatmap_data_df <- comparison_all_compounds_heatmap_mat[rownames(significant_heatmap_data_def), current_samples, drop = FALSE]
     if (sort_by_subclass) {
       order_idx <- order(significant_heatmap_data_def$Class, significant_heatmap_data_def$SubClass)
       significant_heatmap_data_def <- significant_heatmap_data_def[order_idx, ]
       significant_heatmap_data_df <- significant_heatmap_data_df[order_idx, ]
     }
-    rownames(significant_heatmap_data_def) <- significant_heatmap_data_def$Metabolite
-    rownames(significant_heatmap_data_df) <- significant_heatmap_data_def$Metabolite
-    significant_heatmap_annotation_row_df <- gen_annotation_row_df(significant_heatmap_data_def, significant_heatmap_data_df)
+    rownames(significant_heatmap_data_def) <- significant_heatmap_data_def$Compounds
+    rownames(significant_heatmap_data_df) <- significant_heatmap_data_def$Compounds
+    significant_heatmap_annotation_row_df <- significant_heatmap_data_def[, "Class", drop = FALSE]
     significant_heatmap_annotation_col_df <- gen_annotation_col_df(sample_info[sample_info$sample %in% current_samples, , drop = FALSE])
     smart_heatmap(
       matrix_data = significant_heatmap_data_df,
@@ -848,11 +936,11 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
       scale = 'row'
     )
 
-    # 使用已计算的regulation列来统计
+    # 使用已计算的regulation列来统计显著差异代谢物数量
     deg_up <- sum(current_expression_data_def$regulation == "Up")
-    deg_up_idlist <- current_expression_data_def$Metabolite[current_expression_data_def$regulation == "Up"]
+    deg_up_idlist <- current_expression_data_def$Compounds[current_expression_data_def$regulation == "Up"]
     deg_down <- sum(current_expression_data_def$regulation == "Down")
-    deg_down_idlist <- current_expression_data_def$Metabolite[current_expression_data_def$regulation == "Down"]
+    deg_down_idlist <- current_expression_data_def$Compounds[current_expression_data_def$regulation == "Down"]
     
     new_row <- data.frame(
       group = compare_name,
@@ -868,72 +956,43 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
     deg_data <- rbind(deg_data, new_row)
 
     # 每个 Class 一张图
-    if (each_class_heatmap && is.data.frame(current_definition_df) && nrow(current_definition_df) > 0) {
-      each_class_heatmap_dir <- file.path(compare_path, 'Each_class_metabolite_heatmap')
-      dir.create(each_class_heatmap_dir, showWarnings = FALSE)
-
-      # 根据是否有 fpkm 数据选择使用的数据
-      if (is.data.frame(fpkm_df)) {
-        data_for_class_heatmap <- current_expression_fpkm_data
-      } else {
-        data_for_class_heatmap <- current_expression_data
-      }
-
-
+    if (each_class_heatmap && is.data.frame(definition_df) && nrow(definition_df) > 0) {
+      # 组间显著的 each_class_heatmap 图
       if (significant_heatmap_plot) {
-        significant_heatmap_dir <- file.path(compare_path, 'Each_class_significant_metabolite_heatmap')
+        significant_heatmap_dir <- file.path(compare_path, 'Each_class_significant_compounds_heatmap')
         dir.create(significant_heatmap_dir, showWarnings = FALSE)
-        print(colnames(current_expression_data_def))
-        significant_expression_data_def_df <- current_expression_data_def[current_expression_data_def$regulation != "NoSignificant", ]
 
-        if (sort_by_subclass) {
-          order_idx <- order(significant_expression_data_def_df$Class, significant_expression_data_def_df$SubClass)
-          significant_expression_data_def_df <- significant_expression_data_def_df[order_idx, ]
-        }
-        
+        significant_expression_data_def_df <- current_expression_data_def[current_expression_data_def$regulation != "NoSignificant", ]
+        if ("SubClass" %in% colnames(significant_expression_data_def_df)) {
+          significant_expression_data_def_df <- significant_expression_data_def_df[order(significant_expression_data_def_df$SubClass), ]}
+
         # 如果显著差异代谢物数量小于1，跳过绘图
         if (nrow(significant_expression_data_def_df) <= 1) {
           cat("显著差异代谢物数量小于1，跳过绘图\n")
         } else {
-          significant_expression_data_df <- significant_expression_data_def_df[, current_samples, drop = FALSE] 
-          # 设置行名为代谢物名称，确保与注释数据框匹配
-          rownames(significant_expression_data_df) <- significant_expression_data_def_df$Metabolite
+          significant_expression_data_df <- comparison_all_compounds_heatmap_mat[rownames(significant_expression_data_def_df), current_samples, drop = FALSE]
           
-          # 筛选出显著差异代谢物的注释数据
-          if (is.data.frame(current_definition_df) && nrow(current_definition_df) > 0) {
-            # 只选择在 current_definition_df 中存在的代谢物
-            available_metabolites <- intersect(significant_expression_data_def_df$Metabolite, rownames(current_definition_df))
-            if (length(available_metabolites) > 0) {
-              significant_definition_df <- current_definition_df[available_metabolites, , drop = FALSE]
-              # 同时筛选表达数据，只保留有注释的代谢物
-              significant_expression_data_df <- significant_expression_data_df[available_metabolites, , drop = FALSE]
-            } else {
-              significant_definition_df <- NA
-            }
-          } else {
-            significant_definition_df <- NA
-          }
-
           row_class_heatmap(
             data_frame = significant_expression_data_df,
             samples_df = sample_info[sample_info$sample %in% current_samples, , drop = FALSE],
-            compound_def = significant_definition_df,
+            compound_def = significant_expression_data_def_df,
             output_dir = significant_heatmap_dir,
             heatmap_cluster = opt$heatmap_cluster
           )
         }
       }
 
-      
+      each_class_heatmap_dir <- file.path(compare_path, 'Each_class_compounds_heatmap')
+      dir.create(each_class_heatmap_dir, showWarnings = FALSE)
       # 使注释行名与热图数据完全一致
       if (is.data.frame(definition_df) && nrow(definition_df) > 0) {
-        current_definition_df <- definition_df[rownames(data_for_class_heatmap), , drop = FALSE]
+        current_definition_df <- definition_df[rownames(comparison_all_compounds_heatmap_mat), , drop = FALSE]
       } else {
         current_definition_df <- NA
       }
       
       row_class_heatmap(
-        data_frame = data_for_class_heatmap,
+        data_frame = comparison_all_compounds_heatmap_mat,
         samples_df = sample_info[sample_info$sample %in% current_samples, , drop = FALSE],
         compound_def = current_definition_df,
         output_dir = each_class_heatmap_dir,
@@ -958,7 +1017,7 @@ comparison_analysis <- function(compare_file, samples_file, reads_df, fpkm_df = 
   
   write.xlsx(
     deg_data, 
-    file = file.path(output_dir, "Significant_differential_metabolite_count_summary.xlsx"), 
+    file = file.path(output_dir, "Significant_differential_compounds_count_summary.xlsx"), 
     sheetName = "Sheet1", 
     rowNames = FALSE, 
     colNames = TRUE
@@ -982,18 +1041,23 @@ sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F,
 
 # 读取数据
 reads_data <- read.xlsx(opt$input, sheet = 1, rowNames = TRUE)
-# reads_data <- fread(opt$input, fileEncoding = "UTF-8", check.names = TRUE)
-# rownames(reads_data) <- make.names(reads_data[[1]], unique = TRUE)
-# reads_data <- reads_data[, -1, with = FALSE]
-
 # 检查并转换数据框列类型
-reads_data <- check_and_convert_numeric(reads_data)
-# 替换 0 为 1e-6
-reads_data <- replace_zeros_with_epsilon(reads_data)
-# 按照 sample 样本列进行排序
-reads_data <- reads_data[sample_info$sample]
-# 去掉一行全是 1e-6 的
-reads_data <- reads_data[rowSums(reads_data != 1e-6) > 0, ]
+reads_data <- check_and_convert_numeric(reads_data)         # 检查并转换数据框列类型
+reads_data <- reads_data[rowSums(reads_data != 0) > 0, ]    # 去掉一行全是 0 的
+reads_data <- replace_zeros_with_epsilon(reads_data)        # 替换 0 为 1e-6
+
+# 检查样本名称是否都存在于数据列中
+missing_samples <- sample_info$sample[!sample_info$sample %in% colnames(reads_data)]
+if (length(missing_samples) > 0) {
+    print("错误：以下样本在输入数据文件中不存在：")
+    for (sample in missing_samples) {
+        print(paste("  -", sample))
+    }
+    print(paste("数据文件中存在的样本列：", paste(colnames(reads_data), collapse = ", ")))
+    stop("样本名称不匹配，请检查samples_described.txt文件中的样本名是否与输入数据文件的列名一致")
+}
+
+reads_data <- reads_data[sample_info$sample]                # 按照 sample 样本列进行排序
 
 
 # 如果需要合并定义则读取单独定义文件，没有则跳过
@@ -1003,7 +1067,7 @@ if (!is.null(opt$definition)) {
   # definition_df <- fread(Compound_def_file, fileEncoding = "UTF-8", check.names = TRUE)
   # rownames(definition_df) <- make.names(definition_df[[1]], unique = TRUE)
   # definition_df <- definition_df[, -1, with = FALSE]
-  definition_df$Metabolite <- rownames(definition_df)
+  definition_df$Compounds <- rownames(definition_df)
 
   if (opt$sort_by_class) {
     # 按照 class 排序，reads_data 也按照 class 的顺序排序
@@ -1013,11 +1077,15 @@ if (!is.null(opt$definition)) {
   }
   current_definition_df <- definition_df[rownames(reads_data), , drop = FALSE]
   annotation_row_df <- gen_annotation_row_df(current_definition_df, reads_data)
+  if ("SubClass" %in% colnames(annotation_row_df)) {
+    annotation_row_df <- annotation_row_df[, setdiff(colnames(annotation_row_df), "SubClass"), drop = FALSE]
+  }
 } else {
   definition_df <- NA
   current_definition_df <- NA
   annotation_row_df <- NA
 }
+
 
 # ====================== 主程序流程 =================================
 # 1) 根据 runtype 生成处理后的数据和主图参数
@@ -1037,29 +1105,29 @@ annotation_col_df <- gen_annotation_col_df(sample_info)
 # 3) 整体热图
 smart_heatmap(
   matrix_data = data_used,
-  filename = file.path(zhengtifenxi_dir, "All_metabolites_heatmap.png"),
+  filename = file.path(zhengtifenxi_dir, "All_compounds_heatmap.png"),
   cluster_cols = FALSE,
   cluster_rows = FALSE,
   annotation_row = annotation_row_df,
   annotation_col = annotation_col_df,
   scale = 'row',
-  main = 'All metabolites heatmap'
+  main = 'All compounds heatmap'
 )
 if (opt$heatmap_cluster) {
   smart_heatmap(
     matrix_data = data_used,
-    filename = file.path(zhengtifenxi_dir, "All_metabolites_heatmap_cluster_row.png"),
+    filename = file.path(zhengtifenxi_dir, "All_compounds_heatmap_cluster_row.png"),
     cluster_cols = FALSE,
     cluster_rows = TRUE,
     annotation_row = annotation_row_df,
     annotation_col = annotation_col_df,
     scale = 'row',
-    main = 'All metabolites heatmap'
+    main = 'All compounds heatmap'
   )
 }
 
 # 4) 组平均热图与导出
-print(paste0('生成', file.path(zhengtifenxi_dir, "All_metabolites_groupmean_heatmap.png")))
+print(paste0('生成', file.path(zhengtifenxi_dir, "All_compounds_groupmean_heatmap.png")))
 grouped_means <- sapply(unique(sample_info$group), function(g) {
   samples_in_group <- sample_info$sample[sample_info$group == g]
   if (length(samples_in_group) == 1) {
@@ -1075,7 +1143,7 @@ rownames(grouped_means) <- rownames(reads_data)
 
 smart_heatmap(
   matrix_data = grouped_means,
-  filename = file.path(zhengtifenxi_dir, 'All_metabolites_groupmean_heatmap.png'),
+  filename = file.path(zhengtifenxi_dir, 'All_compounds_groupmean_heatmap.png'),
   cluster_cols = FALSE,
   cluster_rows = FALSE,
   annotation_row = annotation_row_df,
@@ -1085,7 +1153,7 @@ smart_heatmap(
 if (opt$heatmap_cluster) {
   smart_heatmap(
     matrix_data = grouped_means,
-    filename = file.path(zhengtifenxi_dir, 'All_metabolites_groupmean_heatmap_cluster_row.png'),
+    filename = file.path(zhengtifenxi_dir, 'All_compounds_groupmean_heatmap_cluster_row.png'),
     cluster_cols = FALSE,
     cluster_rows = TRUE,
     annotation_row = annotation_row_df,
@@ -1096,7 +1164,7 @@ if (opt$heatmap_cluster) {
 
 write.xlsx(
   grouped_means,
-  file = file.path(zhengtifenxi_dir, "All_metabolites_groupmean.xlsx"),
+  file = file.path(zhengtifenxi_dir, "All_compounds_groupmean.xlsx"),
   sheetName = "Sheet1",
   rowNames = TRUE,
   colNames = TRUE
@@ -1106,7 +1174,7 @@ write.xlsx(
 if (opt$log2data) {
   zhengtifenxi_log2heatmap_pic_name <- file.path(
     zhengtifenxi_dir,
-    "All_metabolites_log_heatmap.png"
+    "All_compounds_log_heatmap.png"
   )
   if (opt$runtype == "normal") {
     log2data_reads_data <- log2(reads_data + 1)
@@ -1118,7 +1186,7 @@ if (opt$log2data) {
       annotation_row = annotation_row_df,
       annotation_col = annotation_col_df,
       scale = 'row',
-      main = 'All metabolites log2 heatmap'
+      main = 'All compounds log2 heatmap'
     )
   } else {
     log2data_reads_data <- log2(reads_data + 1)
@@ -1142,31 +1210,74 @@ if (opt$each_class_heatmap) {
 # 7) 相关性图与 PCA（根据数据来源切换）
 cor_plot(
   data_used,
-  file.path(zhengtifenxi_dir, 'Metabolite_correlation_graph.png')
+  file.path(zhengtifenxi_dir, 'Compounds_correlation_graph.png')
 )
 
 pca_plot(
   data_frame = data_used,
   samples_file = samples_file,
-  output_prefix = file.path(zhengtifenxi_dir, 'Metabolite_')
+  output_prefix = file.path(zhengtifenxi_dir, 'Compounds_')
 )
 
 # 8) 多组分析（根据数据来源切换）
 multigroup_dir <- file.path(chayifenxi_dir, "多组分析")
 dir.create(multigroup_dir)
 
-metabolite_analysis(
-  samples_file = samples_file,
-  data_matrix = data_used,
-  definition_df = current_definition_df,
-  output_dir = multigroup_dir,
-  log2data = opt$log2data,
-  each_class_heatmap = opt$each_class_heatmap,
-  heatmap_cluster = opt$heatmap_cluster,
-  significant_heatmap_plot = opt$significant_heatmap_plot,
-  ncomp = opt$ncomp,
-  sort_by_subclass = opt$sort_by_subclass
-)
+# 如果指定了 multi_samples 参数，则解析并循环处理多个 samples 文件
+if (!is.null(opt$multi_samples) && opt$multi_samples != "") {
+  # 解析 multi_samples 参数（逗号分隔的文件路径）
+  multi_samples_files <- strsplit(opt$multi_samples, ",")[[1]]
+  multi_samples_files <- trimws(multi_samples_files)  # 去除首尾空格
+  
+  # 循环处理每个 samples 文件
+  for (multi_samples_file in multi_samples_files) {
+    # 检查文件是否存在
+    if (!file.exists(multi_samples_file)) {
+      warning(paste("文件不存在，跳过:", multi_samples_file))
+      next
+    }
+    
+    # 从文件名中提取组名（格式：samples_described_Group1.txt -> Group1）
+    # 获取文件名（不含路径）
+    file_basename <- basename(multi_samples_file)
+    # 去掉 samples_described_ 前缀和 .txt 后缀
+    group_name <- sub("^samples_described_", "", file_basename)
+    group_name <- sub("\\.txt$", "", group_name, ignore.case = TRUE)
+    
+    # 为当前组创建输出目录
+    group_output_dir <- file.path(multigroup_dir, group_name)
+    dir.create(group_output_dir, recursive = TRUE, showWarnings = FALSE)
+    
+    # 调用多组分析函数
+    print(paste("正在处理组:", group_name, "样本文件:", multi_samples_file))
+    compounds_analysis(
+      samples_file = multi_samples_file,
+      data_matrix = data_used,
+      definition_df = current_definition_df,
+      output_dir = group_output_dir,
+      log2data = opt$log2data,
+      each_class_heatmap = opt$each_class_heatmap,
+      heatmap_cluster = opt$heatmap_cluster,
+      significant_heatmap_plot = opt$significant_heatmap_plot,
+      ncomp = opt$ncomp,
+      sort_by_subclass = opt$sort_by_subclass
+    )
+  }
+} else {
+  # 如果没有指定 multi_samples，使用原来的单个 samples_file
+  compounds_analysis(
+    samples_file = samples_file,
+    data_matrix = data_used,
+    definition_df = current_definition_df,
+    output_dir = multigroup_dir,
+    log2data = opt$log2data,
+    each_class_heatmap = opt$each_class_heatmap,
+    heatmap_cluster = opt$heatmap_cluster,
+    significant_heatmap_plot = opt$significant_heatmap_plot,
+    ncomp = opt$ncomp,
+    sort_by_subclass = opt$sort_by_subclass
+  )
+}
 
 # 9) 组间分析（zscore 时传递 fpkm；normal 传 FALSE，保持原逻辑）
 if (!is.null(opt$compare)) {
