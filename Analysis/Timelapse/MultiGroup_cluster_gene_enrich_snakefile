@@ -1,0 +1,66 @@
+import os
+
+# 从命令行参数获取 KEGG 和 GO 文件路径
+KEGG_FILE = os.path.abspath(config.get("kegg_file"))
+GO_FILE = os.path.abspath(config.get("go_file"))
+
+DIRECTORIES = [d for d in os.listdir('.') if os.path.isdir(d) and not d.startswith('.') and not d.startswith('log')]
+
+# 创建 log 目录
+os.makedirs('log', exist_ok=True)
+
+
+rule all:
+    input:
+        expand("log/{directory}_merge_done.txt", directory=DIRECTORIES) if DIRECTORIES else []
+
+# 每个目录的基因富集分析
+rule genes_enrich:
+    conda: "python310"
+    input:
+        kegg_file = KEGG_FILE,
+        go_file = GO_FILE
+    output:
+        done = "log/{directory}_enrich_done.txt"
+    shell:
+        """
+        cd {wildcards.directory}
+        mkdir -p Cluster_module_enrich
+        cd Cluster_module_enrich
+        python /home/colddata/qinqiang/script/Analysis/enrich_analysis/genes_enrich.py \
+            -i ../*_gene.txt \
+            -k {KEGG_FILE} \
+            -g {GO_FILE} \
+            -o .
+        touch ../../log/{wildcards.directory}_enrich_done.txt
+        """
+
+# 生成富集分布图
+rule enrich_plot:
+    conda: "python310"
+    input:
+        "log/{directory}_enrich_done.txt"
+    output:
+        "log/{directory}_plot_done.txt"
+    shell:
+        """
+        cd {wildcards.directory}/Cluster_module_enrich
+        Rscript /home/colddata/qinqiang/script/Analysis/enrich_analysis/enrich_distribution_plot.r
+        touch ../../log/{wildcards.directory}_plot_done.txt
+        """
+
+# 合并基因ID富集数据
+rule enrich_merge:
+    conda: "python310"
+    input:
+        "log/{directory}_plot_done.txt"
+    output:
+        "log/{directory}_merge_done.txt"
+    shell:
+        """
+        cd {wildcards.directory}/Cluster_module_enrich/Pathway_enrichment_raw_data
+        python /home/colddata/qinqiang/script/Analysis/enrich_analysis/geneids_enrich_data_merge.py -i .
+        cd ../..
+        rm -f Cluster_module_enrich/*ID.txt 2>/dev/null || true
+        touch ../log/{wildcards.directory}_merge_done.txt
+        """
