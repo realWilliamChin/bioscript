@@ -53,9 +53,36 @@ metabolite_enrich <- function(data_table, output_prefix) {
   gene_list <- read.delim(data_table, stringsAsFactors = FALSE, header = T)
   names(gene_list)[1] <- c("c_number")
   gene_select <- gene_list$c_number
+  
+  # 标准化基因ID格式（统一转换为大写，去除空格）
+  gene_select <- toupper(trimws(gene_select))
+  gene_select <- gene_select[!is.na(gene_select) & gene_select != ""]
+  
+  # 标准化compound_matrix_df中的c_number格式
+  compound_matrix_df$c_number <- toupper(trimws(compound_matrix_df$c_number))
+  
+  # 检查有多少基因ID可以匹配
+  matched_genes <- intersect(gene_select, compound_matrix_df$c_number)
+  unmatched_genes <- setdiff(gene_select, compound_matrix_df$c_number)
+  
+  if (length(matched_genes) == 0) {
+    warning(paste0("错误：输入的基因ID无法在Compound_matrix.txt中找到匹配。\n",
+                   "输入的基因ID: ", paste(gene_select, collapse = ", "), "\n",
+                   "请检查基因ID格式是否正确（应为C开头的化合物编号，如C00279）。"))
+    message(paste0(output_prefix, "：没有可匹配的基因ID，跳过富集分析。"))
+    return(invisible(NULL))
+  }
+  
+  if (length(unmatched_genes) > 0) {
+    warning(paste0("警告：以下基因ID无法匹配: ", paste(unmatched_genes, collapse = ", "), "\n",
+                   "已匹配的基因ID数量: ", length(matched_genes), "/", length(gene_select)))
+  }
+  
+  # 只使用可以匹配的基因ID进行富集分析
+  gene_select_matched <- matched_genes
 
   go_rich <- enricher(
-    gene = gene_select,
+    gene = gene_select_matched,
     TERM2GENE = compound_matrix_df[c("entry", "c_number")],
     TERM2NAME = compound_matrix_df[c("entry", "name")],
     pvalueCutoff = 1,
@@ -64,6 +91,23 @@ metabolite_enrich <- function(data_table, output_prefix) {
     minGSSize = 1,
     maxGSSize = 1000
   )
+
+  # 检查enricher是否返回NULL
+  if (is.null(go_rich)) {
+    warning(paste0("错误：enricher()返回NULL，无法进行富集分析。\n",
+                   "输入的基因ID: ", paste(gene_select_matched, collapse = ", "), "\n",
+                   "请检查Compound_matrix.txt文件格式是否正确。"))
+    message(paste0(output_prefix, "：富集分析失败，跳过后续步骤。"))
+    return(invisible(NULL))
+  }
+  
+  # 检查结果是否为空
+  if (nrow(go_rich@result) == 0) {
+    warning(paste0("警告：富集分析完成，但没有找到任何富集结果。\n",
+                   "输入的基因ID: ", paste(gene_select_matched, collapse = ", ")))
+    message(paste0(output_prefix, "：没有富集结果，跳过后续步骤。"))
+    return(invisible(NULL))
+  }
 
   go_rich_result <- go_rich@result
   go_rich_result$GeneRatio <- sapply(go_rich_result$GeneRatio, calculate_ratio)
@@ -107,7 +151,7 @@ metabolite_enrich <- function(data_table, output_prefix) {
       scale_y_discrete(limits = dt$MID) +
       scale_colour_gradient(low = "red", high = "green") +
       ggtitle(paste0(group_name, "_Enrich_Bubble")) +
-      ylab(colnames(data)[1]) +
+      ylab("Metabolite Entry") +
       theme_base()
     ggsave(file.path(enrichment_graphs_dir, paste0(group_name, "_enrich_Bubble.png")), p, dpi = 320, width = 20, height = 10)
   } else {
