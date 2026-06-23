@@ -9,6 +9,65 @@ source('/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r', echo = TRUE, e
 source('/home/colddata/qinqiang/script/Plot/PCA/pca_1.r', echo = TRUE, encoding = 'UTF-8')
 source('/home/colddata/qinqiang/script/Plot/Corrplot/correlation_1.r', echo = TRUE, encoding = 'UTF-8')
 
+# ========== 热图绘制Debug函数 ==========
+check_heatmap_matrix <- function(mat, mat_name = "heatmap_matrix") {
+  # 首先检查输入类型，处理list类型的情况
+  if (is.list(mat) && !is.data.frame(mat)) {
+    # 尝试将list转换为数据框
+    mat <- as.data.frame(mat)
+    if (nrow(mat) == 0 || ncol(mat) == 0) {
+      cat(sprintf("\n===== 热图矩阵 %s 检查结果 =====\n", mat_name))
+      cat("警告：矩阵为空（0行或0列），跳过后续检查\n")
+      cat("==================================\n\n")
+      return(mat)
+    }
+  }
+  
+  # 检查矩阵是否为空
+  if (nrow(mat) == 0 || ncol(mat) == 0) {
+    cat(sprintf("\n===== 热图矩阵 %s 检查结果 =====\n", mat_name))
+    cat("警告：矩阵为空（0行或0列），跳过后续检查\n")
+    cat("==================================\n\n")
+    return(mat)
+  }
+  
+  # 确保是数值矩阵
+  if (!all(sapply(mat, is.numeric))) {
+    # 尝试转换为数值矩阵
+    mat <- data.matrix(mat)
+  }
+  
+  # 检查异常值
+  na_count <- sum(is.na(mat))
+  nan_count <- sum(is.nan(as.matrix(mat)))  # 转换为矩阵避免list错误
+  inf_count <- sum(is.infinite(as.matrix(mat)))
+  total_rows <- nrow(mat)
+  bad_rows <- sum(apply(mat, 1, function(x) any(is.na(x) | is.nan(x) | is.infinite(x))))
+  
+  cat(sprintf("\n===== 热图矩阵 %s 检查结果 =====\n", mat_name))
+  cat(sprintf("总行数: %d\n", total_rows))
+  cat(sprintf("含有NA的单元格数: %d\n", na_count))
+  cat(sprintf("含有NaN的单元格数: %d\n", nan_count))
+  cat(sprintf("含有Inf的单元格数: %d\n", inf_count))
+  cat(sprintf("含有异常值的行数: %d (%.2f%%)\n", bad_rows, ifelse(total_rows > 0, bad_rows/total_rows*100, 0)))
+  
+  # 输出前几个有问题的行
+  if (bad_rows > 0 && total_rows > 0) {
+    bad_row_idx <- which(apply(mat, 1, function(x) any(is.na(x) | is.nan(x) | is.infinite(x))))
+    cat("前10个有问题的行号:", head(bad_row_idx, 10), "\n")
+    cat("问题行示例:\n")
+    print(head(mat[bad_row_idx, ], 3))
+  }
+  
+  # 保存完整矩阵到文件
+  output_file <- sprintf("%s_%s.csv", mat_name, format(Sys.time(), "%Y%m%d_%H%M%S"))
+  write.csv(mat, output_file, row.names = TRUE)
+  cat(sprintf("完整矩阵已保存到: %s\n", output_file))
+  cat("==================================\n\n")
+  
+  return(mat)
+}
+
 
 option_list <- list(
   make_option(c("--fpkm"),
@@ -101,11 +160,13 @@ deg_dir <- paste0(output_dir, "DEG_analysis_results/")
 deg_exp_data_dir <- paste0(output_dir, "DEG_analysis_results/Expression_data/")
 deg_exp_graph_dir <- paste0(output_dir, "DEG_analysis_results/Expression_data_graphs/")
 exp_evaluation_dir <- paste0(output_dir, "Expression_data_evaluation/")
+prep_files_dir <- paste0(output_dir, "Prep_files/")
 
 dir.create(deg_dir)
 dir.create(deg_exp_data_dir)
 dir.create(deg_exp_graph_dir)
 dir.create(exp_evaluation_dir)
+dir.create(prep_files_dir)
 
 read.table(fpkm_file, sep = "\t", header = T, row.names = 1, check.names = F) -> fpkm
 
@@ -120,15 +181,27 @@ if (nrow(all_fpkm) > 65535) {
   subset_data <- all_fpkm[sample_indices, ]
   subset_data <- subset_data[order(sample_indices), ]
 
+  # 检查矩阵异常值
+  subset_data <- check_heatmap_matrix(subset_data, "all_gene_heatmap")
   # 创建热图
-  png(file.path(exp_evaluation_dir, 'All_gene_heatmap.png'), width = 10, height = 10, units = "in", res = 300)
-  all.heatmap <- pheatmap(subset_data, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
-  dev.off()
+  all.heatmap <- smart_heatmap(
+    matrix_data = subset_data,
+    filename = file.path(exp_evaluation_dir, 'All_gene_heatmap.png'),
+    scale = "row",
+    cluster_cols = FALSE,
+    show_rownames = FALSE
+  )
 } else {
+  # 检查矩阵异常值
+  all_fpkm <- check_heatmap_matrix(all_fpkm, "all_gene_heatmap")
   # 如果数据不超过 65535 行，直接创建热图
-  png(file.path(exp_evaluation_dir, 'All_gene_heatmap.png'), width = 10, height = 10, units = "in", res = 300)
-  all.heatmap <- pheatmap(all_fpkm, scale = "row", cluster_cols = FALSE, show_rownames = FALSE)
-  dev.off()
+  all.heatmap <- smart_heatmap(
+    matrix_data = all_fpkm,
+    filename = file.path(exp_evaluation_dir, 'All_gene_heatmap.png'),
+    scale = "row",
+    cluster_cols = FALSE,
+    show_rownames = FALSE
+  )
 }
 
 sample_info <- read.table(samples_file, sep = "\t", header = T, check.names = F, stringsAsFactors = F)
@@ -198,8 +271,8 @@ for (i in seq_along(1:nrow(comp_info))) {
   res <- as.data.frame(res[order(res$pvalue), ])
   
   # 设置输出文件名
-  outfile <- paste0(group_vs_group_name, "_DE_results")
-  outfile.ma <- paste0(group_vs_group_name, "_DE_results_readCounts.matrix")
+  outfile <- file.path(prep_files_dir, paste0(group_vs_group_name, "_DE_results"))
+  outfile.ma <- file.path(prep_files_dir, paste0(group_vs_group_name, "_DE_results_readCounts.matrix"))
   
   # 为reads count矩阵添加基因ID列，准备输出
   rnaseqMatrix <- cbind(as.data.frame(rownames(rnaseqMatrix)), rnaseqMatrix)
@@ -222,7 +295,14 @@ for (i in seq_along(1:nrow(comp_info))) {
 
   # 根据过滤标准和log2FoldChange阈值，标记基因的调控状态
   # Up: 上调基因，Down: 下调基因，NoSignificant: 无显著差异
-  volcano$regulation <- as.factor(ifelse(volcano[[filter_col]] < filter_value & abs(volcano$log2FoldChange) >= bs_pos, ifelse(volcano$log2FoldChange >= bs_pos, "Up", "Down"), "NoSignificant"))
+  is_significant <- volcano[[filter_col]] < filter_value
+  is_up <- volcano$log2FoldChange >= bs_pos
+  is_down <- volcano$log2FoldChange <= bs_neg
+
+  volcano$regulation <- "NoSignificant"
+  volcano$regulation[is_significant & is_up] <- "Up"
+  volcano$regulation[is_significant & is_down] <- "Down"
+  volcano$regulation <- as.factor(volcano$regulation)
   
   # 计算倍数变化（FC = 2^log2FoldChange）
   volcano$FC <- 2^volcano$log2FoldChange
@@ -271,14 +351,24 @@ for (i in seq_along(1:nrow(comp_info))) {
   # 提取差异表达基因的FPKM数据用于热图绘制
   tmp.deg <- as.character(rownames(volcano)[volcano$regulation == "Up" | volcano$regulation == "Down"])
   fpkm_tmp <- na.omit(fpkm.deg[tmp.deg, ])
-  fpkm_tmp <- log2(fpkm_tmp[rowSums(fpkm_tmp) > 0, ] + 1)  # log2(FPKM+1)转换
+  fpkm_tmp <- fpkm_tmp[rowSums(fpkm_tmp) > 0, ]  # 过滤表达量为0的行
+  if (nrow(fpkm_tmp) == 0) {
+    cat(sprintf("警告：%s 没有可用于绘制热图的差异基因，跳过热图绘制\n", group_vs_group_name))
+    next
+  }
+  fpkm_tmp <- log2(fpkm_tmp + 1)  # log2(FPKM+1)转换
   
+  # 检查矩阵异常值
+  fpkm_tmp <- check_heatmap_matrix(fpkm_tmp, paste0(group_vs_group_name, "_deg_heatmap"))
   # 绘制差异基因表达热图
-  p.tmpdeg.heatmap <- pheatmap(fpkm_tmp, scale = "row", cluster_cols = F, show_rownames = F)
-  
-  # 保存热图
   outfile.tmpdeg.heatmap <- paste0(deg_exp_graph_dir, group_vs_group_name, "_heatmap.jpeg")
-  ggsave(outfile.tmpdeg.heatmap, p.tmpdeg.heatmap, dpi = 300, width = 10, height = 10)
+  p.tmpdeg.heatmap <- smart_heatmap(
+    matrix_data = fpkm_tmp,
+    filename = outfile.tmpdeg.heatmap,
+    scale = "row",
+    cluster_cols = FALSE,
+    show_rownames = FALSE
+  )
   
   # 输出上调基因ID列表
   outfile.Up_ID <- paste0(deg_dir, group_vs_group_name, "_Up_ID.txt")
@@ -296,10 +386,21 @@ total.deg <- as.character(unique(total.deg))
 # length(total.deg)
 
 deg_fpkm <- na.omit(fpkm[total.deg, ])
-
-deg_fpkm <- log2(deg_fpkm[rowSums(deg_fpkm) > 0, ] + 1)
-p.heatmap <- pheatmap(deg_fpkm, scale = "row", cluster_cols = F, show_rownames = F)
-ggsave("deg_heatmap.jpeg", p.heatmap, dpi = 300, width = 10, height = 10)
+deg_fpkm <- deg_fpkm[rowSums(deg_fpkm) > 0, ]
+if (nrow(deg_fpkm) == 0) {
+  cat("警告：没有可用于绘制所有差异基因热图的基因，跳过该热图绘制\n")
+} else {
+  deg_fpkm <- log2(deg_fpkm + 1)
+# 检查矩阵异常值
+deg_fpkm <- check_heatmap_matrix(deg_fpkm, "total_deg_heatmap")
+  p.heatmap <- smart_heatmap(
+    matrix_data = deg_fpkm,
+    filename = file.path(prep_files_dir, "deg_heatmap.jpeg"),
+    scale = "row",
+    cluster_cols = FALSE,
+    show_rownames = FALSE
+  )
+}
 ############ draw boxplot density########
 
 melt(fpkm, variable.name = "sample", value.name = "fpkm") -> data.m
@@ -310,14 +411,14 @@ p <- ggplot(data.m, aes(x = sample, y = log2(fpkm), fill = sample)) +
   ylab("log2(FPKM)") +
   xlab("Sample") +
   theme(axis.title.x = element_text(size = 20), axis.title.y = element_text(size = 20), axis.text.x = element_text(size = rel(1.5), angle = 90, hjus = 1, vjust = .5))
-ggsave(filename = "Expression_data_evaluation/fpkm_boxplot.jpeg", plot = p, height = 10, width = 16.8, dpi = 300)
+ggsave(filename = file.path(exp_evaluation_dir, "fpkm_boxplot.jpeg"), plot = p, height = 10, width = 16.8, dpi = 300)
 d <- ggplot(data.m, aes(x = log10(fpkm), col = sample)) +
   geom_density(aes(fill = sample), colour = NA, alpha = .2) +
   geom_line(stat = "density", linewidth = 1.5) +
   xlab("log2(FPKM)") +
   theme_base() +
   theme(axis.title.x = element_text(size = 20), axis.title.y = element_text(size = 20), axis.text.x = element_text(size = rel(3)), axis.text.y = element_text(size = rel(3)))
-ggsave(filename = "Expression_data_evaluation/fpkm_density.jpeg", plot = d, height = 10, width = 16.8, dpi = 300)
+ggsave(filename = file.path(exp_evaluation_dir, "fpkm_density.jpeg"), plot = d, height = 10, width = 16.8, dpi = 300)
 
 # install.packages("ggcorrplot")
 fpkm.m <- as.matrix(fpkm)
@@ -328,7 +429,7 @@ fpkm.cor <- cor(fpkm.m)
 # cor.p<-corrplot(res, method = "number", col = RColorBrewer::brewer.pal(n=11, name = "RdYlGn"),title = "")
 # ?corrplot
 # ?ggcorrplot
-write.table(fpkm.cor, "sample_cor.txt", sep = "\t", quote = F)
+write.table(fpkm.cor, file.path(prep_files_dir, "sample_cor.txt"), sep = "\t", quote = F)
 # ggsave("correlation.jpeg",cor.p,dpi=300)
 min(fpkm.cor)
 # fpkm.m<-as.data.frame(fpkm)
@@ -340,7 +441,7 @@ min(fpkm.cor)
 
 cell_size <- 260
 
-png("Expression_data_evaluation/correlation.jpeg", res = 72 * 5, 
+png(file.path(exp_evaluation_dir, "correlation.jpeg"), res = 72 * 5, 
     height = (nrow(fpkm.cor) * cell_size) + 1000, width = (ncol(fpkm.cor) * cell_size) + 1000) 
 corrplot(fpkm.cor, is.corr = F, col = rev(COL2("PiYG")), method = "color", 
          addCoef.col = "black", tl.col = "black", col.lim = c(min(fpkm.cor) - 0.01, max(fpkm.cor)), 
@@ -399,7 +500,7 @@ p.adjust(data$p_value, method = "BH") -> p.aj
 data$BH_p_value <- p.aj
 df.rname <- data.frame(GeneID = rownames(data))
 data <- cbind(df.rname, data)
-write.table(data, "anova_analysis_p.txt", sep = "\t", quote = F, row.names = F)
+write.table(data, file.path(prep_files_dir, "anova_analysis_p.txt"), sep = "\t", quote = F, row.names = F)
 # dim(data)
 # rep(c("S1","S2","S3"),each=3)
 # as.numeric(data[1,])
@@ -446,5 +547,5 @@ p <- ggplot(data = pca_sample, aes(x = Dim.1, y = Dim.2)) +
 p <- p + geom_text_repel(data = pca_sample, aes(Dim.1, Dim.2, label = rownames(pca_sample)))
 cluster_border <- ddply(pca_sample, "group", function(df) df[chull(df[[1]], df[[2]]), ])
 p <- p + geom_polygon(data = cluster_border, aes(color = group), fill = NA, show.legend = FALSE)
-ggsave("Expression_data_evaluation/PCA.jpeg", p, dpi = 300, width = 10, height = 10)
+ggsave(file.path(exp_evaluation_dir, "PCA.jpeg"), p, dpi = 300, width = 10, height = 10)
 
