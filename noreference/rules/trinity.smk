@@ -82,7 +82,7 @@ rule assemble_trinitystats_report:
         report_file = f'{TRINITY_DIR}/trinity_stats.txt'
     shell:
         """
-        perl /opt/biosoft/Trinity-v2.8.5/util/TrinityStats.pl \
+        perl /home/data/opt/biosoft/Trinity-v2.8.5/util/TrinityStats.pl \
         {input.unigene_fasta} > {output.report_file}
         """
 
