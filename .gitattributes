@@ -1,0 +1,10 @@
+*.vcf filter=lfs diff=lfs merge=lfs -text
+*.h3f filter=lfs diff=lfs merge=lfs -text
+*.hmm filter=lfs diff=lfs merge=lfs -text
+*.h3m filter=lfs diff=lfs merge=lfs -text
+*.h3p filter=lfs diff=lfs merge=lfs -text
+*.cm filter=lfs diff=lfs merge=lfs -text
+*.cm.i1m filter=lfs diff=lfs merge=lfs -text
+gene_info filter=lfs diff=lfs merge=lfs -text
+gene2ensembl filter=lfs diff=lfs merge=lfs -text
+lib/Swiss_protein_go.txt filter=lfs diff=lfs merge=lfs -text
