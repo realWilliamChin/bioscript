@@ -20,7 +20,11 @@ option_list = list(
   make_option(c("-t", "--tableType"), type="character", default=NULL, 
               help="table type Species ...", metavar="character"),
   make_option(c("-p", "--bsPos"), type="numeric", default=2, 
-              help="positive log2FoldChange value", metavar="numeric")
+              help="positive log2FoldChange value", metavar="numeric"),
+  make_option(c("-f", "--fpkmFile"), type="character", default=NULL, 
+              help="FPKM/relative abundance file path", metavar="character"),
+  make_option(c("-r", "--readsFile"), type="character", default=NULL, 
+              help="reads count file path", metavar="character")
 )
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
@@ -32,6 +36,12 @@ if (is.null(opt$tableType)){
 }else if (is.null(opt$bsPos)){
   print_help(opt_parser)
   stop("Please provide the positive log2FoldChange value", call.=FALSE)
+}else if (is.null(opt$fpkmFile)){
+  print_help(opt_parser)
+  stop("Please provide the FPKM/relative abundance file path", call.=FALSE)
+}else if (is.null(opt$readsFile)){
+  print_help(opt_parser)
+  stop("Please provide the reads count file path", call.=FALSE)
 }
 
 # args=commandArgs(T)
@@ -45,14 +55,15 @@ deg_exp_data_dir <- "DEG_analysis_results/Expression_data"
 deg_exp_graph_dir <- paste0(table_type, "_data_graphs/")
 exp_evaluation_dir <- paste0(table_type, "_data_evaluation/")
 
-dir.create(deg_dir)
-dir.create(deg_exp_data_dir)
-dir.create(deg_exp_graph_dir)
-dir.create(exp_evaluation_dir)
+# 目录若已存在则不报错
+dir.create(deg_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(deg_exp_data_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(deg_exp_graph_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(exp_evaluation_dir, showWarnings = FALSE, recursive = TRUE)
 
 
-fpkm_file <- paste0(table_type, "_relative_abundance.txt")
-reads_file <- paste0(table_type, ".txt")
+fpkm_file <- opt$fpkmFile
+reads_file <- opt$readsFile
 
 read.table(fpkm_file,sep="\t",header=T,row.names=1,check.names=F)->fpkm
 
@@ -91,12 +102,41 @@ total.deg<-''
 stat.deg<-data.frame()
 for(i in seq_along(1:nrow(comp_info))){
   group_vs_group_name<-paste(comp_info[i,1],comp_info[i,2],sep="_vs_")
-  #print(i)
-  data.treat<-reads_data[,sample_info[sample_info$group == comp_info[i,1],]$sample]
-  data.control<-reads_data[,sample_info[sample_info$group == comp_info[i,2],]$sample]
+  # 针对当前比较，先根据分组拿到样本名
+  treat_samples <- sample_info$sample[sample_info$group == comp_info[i,1]]
+  control_samples <- sample_info$sample[sample_info$group == comp_info[i,2]]
+
+  # 检查这些样本名是否都在 reads_data 和 fpkm 的列名中，避免“选择了未定义的列”错误
+  missing_treat <- setdiff(treat_samples, intersect(colnames(reads_data), colnames(fpkm)))
+  missing_control <- setdiff(control_samples, intersect(colnames(reads_data), colnames(fpkm)))
+  if (length(missing_treat) > 0 || length(missing_control) > 0) {
+    msg <- "在 reads_data 或 fpkm 中找不到以下样本列："
+    if (length(missing_treat) > 0) {
+      msg <- paste0(
+        msg,
+        "处理组(", comp_info[i,1], "): ",
+        paste(missing_treat, collapse = ", ")
+      )
+    }
+    if (length(missing_treat) > 0 && length(missing_control) > 0) {
+      msg <- paste0(msg, "; ")
+    }
+    if (length(missing_control) > 0) {
+      msg <- paste0(
+        msg,
+        "对照组(", comp_info[i,2], "): ",
+        paste(missing_control, collapse = ", ")
+      )
+    }
+    stop(msg, call. = FALSE)
+  }
+
+  # 使用事先整理好的样本名向量做列筛选
+  data.treat<-reads_data[, treat_samples, drop = FALSE]
+  data.control<-reads_data[, control_samples, drop = FALSE]
   rnaseqMatrix<-cbind(data.treat,data.control)
-  fpkm.treat<-fpkm[,sample_info[sample_info$group == comp_info[i,1],]$sample]
-  fpkm.control<-fpkm[,sample_info[sample_info$group == comp_info[i,2],]$sample]
+  fpkm.treat<-fpkm[, treat_samples, drop = FALSE]
+  fpkm.control<-fpkm[, control_samples, drop = FALSE]
   fpkm.deg<-cbind(fpkm.treat,fpkm.control)
   rnaseqMatrix = round(rnaseqMatrix)
   rnaseqMatrix = rnaseqMatrix[rowSums(cpm(rnaseqMatrix) > 1) >= 2,]
@@ -222,7 +262,7 @@ write.table(stat.deg,file=paste0(deg_dir,"/DEG_summary.txt"),sep="\t",quote=F,ro
 #getwd()
 data<-read.table(fpkm_file,sep="\t",row.names=1,header=T,check.names=F)
 group<-read.table("samples_described.txt",sep="\t",header=T,check.names = F)
-head(group)
+#head(group)
 
 colnames(data)
 #match(colnames(data),group$sample)
@@ -245,7 +285,7 @@ for (i in rownames(data)) {
   p<-c(p,summary(mod)[[1]][5]$Pr[1])
 }
 length(p)
-head(p)
+#head(p)
 data$p_value<-p
 data<-data[order(data$p_value),]
 p.adjust(data$p_value,method = "BH")->p.aj
@@ -276,7 +316,7 @@ gene <- t(gene)
 gene.pca <- PCA(gene, ncp = 2, scale.unit = TRUE, graph = FALSE)
 
 pca_sample <- data.frame(gene.pca$ind$coord[ ,1:2])
-head(pca_sample)
+#head(pca_sample)
 
 #??ȡ PCA ǰ��???Ĺ??׶?
 pca_eig1 <- round(gene.pca$eig[1,2], 2)
@@ -300,7 +340,7 @@ p<-p+geom_text_repel(data=pca_sample,aes(Dim.1, Dim.2, label=rownames(pca_sample
 
 cluster_border <- ddply(pca_sample, 'group', function(df) df[chull(df[[1]], df[[2]]), ])
 p<-p + geom_polygon(data = cluster_border, aes(color = group),fill=NA, show.legend = FALSE)
-ggsave("Expression_data_evaluation/PCA.jpeg",p,dpi=300,width=10,height=10)
+ggsave(paste0(exp_evaluation_dir, "PCA.jpeg"), p, dpi=300, width=10, height=10)
 
 #????ͼ5
 #????????Ӱ
