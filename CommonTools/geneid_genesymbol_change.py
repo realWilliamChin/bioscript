@@ -18,7 +18,8 @@ def parse_input():
                    help='输出文件是否包含参考文件的其他列')
     p.add_argument('--mode', choices=['id2symbol', 'symbol2id'], default='id2symbol', help='映射方向')
     p.add_argument('--action', choices=['add', 'replace'], default='add', help='添加新列或替换原列')
-    p.add_argument('--dup', choices=['sum', 'max', 'min', 'first'], default='first', help='重复值处理方式')
+    p.add_argument('--dup', choices=['sum', 'max', 'min', 'first', 'none'], default='first', help='重复值处理方式，none表示不处理')
+    p.add_argument('--nomap', choices=['keep', 'delete'], default='keep', help='未映射上的处理方式，keep表示空着，delete表示删除该行')
     
     args = p.parse_args()
     
@@ -26,7 +27,9 @@ def parse_input():
 
 
 def handle_duplicates(df, group_col, agg_method):
-    if agg_method == 'first':
+    if agg_method == 'none':
+        return df
+    elif agg_method == 'first':
         return df.drop_duplicates(subset=group_col, keep='first')
     elif agg_method == 'sum':
         return df.groupby(group_col, as_index=False).sum(numeric_only=True)
@@ -38,7 +41,7 @@ def handle_duplicates(df, group_col, agg_method):
         return df
 
 
-def map_id_symbol(input_file, ref_file, output_file, mode, action, dup, include_ref_cols):
+def map_id_symbol(input_file, ref_file, output_file, mode, action, dup, include_ref_cols, nomap):
     input_df = load_table(input_file, dtype=str, keep_default_na=False, na_values=[])
     ref_df = load_table(ref_file, dtype=str, keep_default_na=False, na_values=[])
     ref_df.columns = [col.strip() for col in ref_df.columns]
@@ -70,6 +73,15 @@ def map_id_symbol(input_file, ref_file, output_file, mode, action, dup, include_
             merged = handle_duplicates(merged, out_col, dup)
         else:
             logger.info(f"未检测到 {out_col} 列重复，无需聚合处理。")
+    
+    # 处理未映射的行
+    map_target_col = 'GeneSymbol' if mode == 'id2symbol' else 'GeneID'
+    nomap_count = merged[map_target_col].isna().sum()
+    if nomap_count > 0:
+        logger.info(f"检测到 {nomap_count} 个未映射成功的记录，按 '{nomap}' 方式处理。")
+        if nomap == 'delete':
+            merged = merged[merged[map_target_col].notna()]
+    
     write_output_df(merged, output_file, index=False)
 
 def main():
@@ -80,7 +92,7 @@ def main():
             args.output = base + '_with_symbol.txt' if args.action == 'add' else base + '_symbol.txt'
         else:
             args.output = base + '_with_id.txt' if args.action == 'add' else base + '_id.txt'
-    map_id_symbol(args.input, args.ref, args.output, args.mode, args.action, args.dup, args.include_ref_cols)
+    map_id_symbol(args.input, args.ref, args.output, args.mode, args.action, args.dup, args.include_ref_cols, args.nomap)
 
 
 if __name__ == '__main__':
