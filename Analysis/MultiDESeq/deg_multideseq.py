@@ -25,14 +25,19 @@ if sys.version_info < (3, 10):
 
 
 def parse_input():
-    p = argparse.ArgumentParser(description='输入 kegg, nr, swiss file 的路径')
-    p.add_argument('--run-type', dest='run_type', type=str, choices=['deseq', 'limma_deseq'], default='deseq',
-                   help='运行类型: deseq 或 limma_deseq（不需要输入 reads_matrix）')
-    p.add_argument('--degvalue', type=float, help='deg value FC 值小于多少')
-    p.add_argument('--kns', type=str, help='输入 kns_def.txt')
+    p = argparse.ArgumentParser(description='')
+    p.add_argument('--run-type', type=str, choices=['deseq', 'limma_deseq'], required=True, help='运行类型: deseq 或 limma_deseq（不需要输入 reads_matrix）')
+    p.add_argument('--degvalue', type=float, required=True, help='deg value FC 值小于多少')
+    p.add_argument('--kns', type=str, required=True, help='输入 kns_def.txt')
     p.add_argument('--genego', type=str, help='gene_go swiss 注释出来的文件')
     p.add_argument('--keggclean', type=str, help='KEGG_clean.txt kegg 注释出来的文件')
     p.add_argument('-o', '--output-dir', help='分析结果输出目录，默认当前目录', default=os.getcwd())
+    
+    # limma specific arguments
+    p.add_argument('--limma-log2', action='store_true', help='limma_deseq 分析中是否对矩阵进行 log2')
+    
+    p.add_argument('--genesymbol', type=str, help='如果输入矩阵ID是 GeneSymbol，则分析使用 GeneSymbol 处理，需要输入 GeneID 和 GeneSymbol ID map 文件')
+    p.add_argument('--replace-matrix-id', action='store_true', help='是否替换输入矩阵的 ID 为 GeneSymbol')
     
     # 下面输入基本默认即可
     p.add_argument('--samples', type=str, default='samples_described.txt', help='默认 samples_described.txt')
@@ -74,7 +79,7 @@ def deseq(fpkm_file, reads_file, samples_file, compare_file, filter_col, filter_
         return True
 
 
-def deseq_limma(fpkm_file, samples_file, compare_file, filter_col, filter_value, deg_value, output_dir):
+def deseq_limma(fpkm_file, samples_file, compare_file, filter_col, filter_value, deg_value, output_dir, limma_log2=False):
     logger.info(f'检查 {samples_file} 和 {compare_file} 文件是否符合要求')
     rep = check_sample_comp(samples_file, compare_file)
     if rep == 1:
@@ -89,6 +94,8 @@ def deseq_limma(fpkm_file, samples_file, compare_file, filter_col, filter_value,
         --filtercol {filter_col} \
         --filtervalue {filter_value} \
         --outputdir {output_dir}"
+    if limma_log2:
+        cmd += " --limma-log2"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
         logger.error(f"limma 程序运行失败")
@@ -154,14 +161,49 @@ def process_deresults(de_results_file, kns_df, run_type='deseq'):
 def main():
     args = parse_input()
     
+    # 处理GeneSymbol映射
+    id_map = None
+    if args.genesymbol:
+        logger.info(f'加载GeneID到GeneSymbol映射文件: {args.genesymbol}')
+        id_map_df = load_table(args.genesymbol, dtype=str)
+        # 假设映射文件第一列为GeneID，第二列为GeneSymbol
+        id_map = dict(zip(id_map_df.iloc[:, 0], id_map_df.iloc[:, 1]))
+        logger.info(f'共加载{len(id_map)}条映射关系')
+    
+    # 处理矩阵ID替换
+    fpkm_file = args.fpkm
+    reads_file = args.reads
+    if id_map is not None and args.replace_matrix_id:
+        logger.info('正在替换输入矩阵的ID为GeneSymbol')
+        # 生成临时文件目录
+        temp_dir = os.path.join(args.output_dir, 'temp_matrix')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # 处理fpkm矩阵
+        fpkm_df = load_table(args.fpkm)
+        fpkm_first_col = fpkm_df.columns.tolist()[0]
+        fpkm_df[fpkm_first_col] = fpkm_df[fpkm_first_col].astype(str).map(id_map)
+        fpkm_df = fpkm_df.dropna(subset=[fpkm_first_col])
+        fpkm_file = os.path.join(temp_dir, 'temp_fpkm.txt')
+        write_output_df(fpkm_df, fpkm_file, index=False, sep='\t')
+        
+        # 处理reads矩阵（仅deseq模式需要）
+        if args.run_type == 'deseq':
+            reads_df = load_table(args.reads)
+            reads_first_col = reads_df.columns.tolist()[0]
+            reads_df[reads_first_col] = reads_df[reads_first_col].astype(str).map(id_map)
+            reads_df = reads_df.dropna(subset=[reads_first_col])
+            reads_file = os.path.join(temp_dir, 'temp_reads.txt')
+            write_output_df(reads_df, reads_file, index=False, sep='\t')
+    
     # 运行 R 脚本
     if args.degvalue:
         if args.run_type == 'deseq':
             logger.info(f'正在执行 deseq 分析, {args.degvalue}')
-            rep = deseq(args.fpkm, args.reads, args.samples, args.compare, args.filter_col, args.filter_value, args.degvalue, args.output_dir)
+            rep = deseq(fpkm_file, reads_file, args.samples, args.compare, args.filter_col, args.filter_value, args.degvalue, args.output_dir)
         else:
             logger.info(f'正在执行 limma_deseq 分析, {args.degvalue}')
-            rep = deseq_limma(args.fpkm, args.samples, args.compare, args.filter_col, args.filter_value, args.degvalue, args.output_dir)
+            rep = deseq_limma(fpkm_file, args.samples, args.compare, args.filter_col, args.filter_value, args.degvalue, args.output_dir, args.limma_log2)
         if not rep:
             logger.critical(f'R 脚本运行失败')
             sys.exit(1)
@@ -170,15 +212,41 @@ def main():
         deg_summary_plot(deg_summary_df, os.path.join(args.output_dir, 'DEG_analysis_results', 'DEG_summary_plot.jpeg'))
     else:
         logger.info(f'未输入 degvalue，不执行 R 分析，将针对现有分析结果进行处理')
+    genego_file = args.genego
+    keggclean_file = args.keggclean
     if args.genego and args.keggclean:
         logger.info('正在执行 deg enrich')
         enrich_dir = os.path.join(args.output_dir, 'Pathway_enrichment_analysis')
         os.makedirs(enrich_dir, exist_ok=True)
+        
+        # 如果是GeneSymbol模式，处理genego和keggclean文件
+        if id_map is not None:
+            logger.info('将genego和keggclean文件的ID替换为GeneSymbol')
+            # 处理genego文件
+            genego_df = load_table(args.genego, dtype=str)
+            genego_first_col = genego_df.columns.tolist()[0]
+            genego_df[genego_first_col] = genego_df[genego_first_col].map(id_map)
+            genego_df = genego_df.dropna(subset=[genego_first_col])
+            genego_df.rename(columns={genego_first_col: 'GeneID'}, inplace=True)
+            # 保存临时文件
+            genego_file = os.path.join(enrich_dir, 'temp_genego.txt')
+            write_output_df(genego_df, genego_file, index=False)
+            
+            # 处理keggclean文件
+            keggclean_df = load_table(args.keggclean, dtype=str)
+            keggclean_first_col = keggclean_df.columns.tolist()[0]
+            keggclean_df[keggclean_first_col] = keggclean_df[keggclean_first_col].map(id_map)
+            keggclean_df = keggclean_df.dropna(subset=[keggclean_first_col])
+            keggclean_df.rename(columns={keggclean_first_col: 'GeneID'}, inplace=True)
+            # 保存临时文件
+            keggclean_file = os.path.join(enrich_dir, 'temp_keggclean.txt')
+            write_output_df(keggclean_df, keggclean_file, index=False)
+        
         deg_enrich(
             compare = args.compare,
             degdata_dir = os.path.join(args.output_dir, 'DEG_analysis_results'),
-            genego_file = args.genego,
-            keggclean_file = args.keggclean,
+            genego_file = genego_file,
+            keggclean_file = keggclean_file,
             outputdir = enrich_dir
         )
         logger.info('正在执行 deg distribution 画图')
@@ -193,6 +261,12 @@ def main():
     de_results_output_dir = os.path.join(args.output_dir, 'DEG_analysis_results/Expression_data')
 
     kns_df = load_table(args.kns, dtype={"GeneID": str})
+    # 如果是GeneSymbol模式，替换kns_df的GeneID为GeneSymbol，列名保持GeneID
+    if id_map is not None:
+        logger.info('将kns文件的GeneID替换为GeneSymbol')
+        kns_df['GeneID'] = kns_df['GeneID'].map(id_map)
+        # 删除没有匹配到的行
+        kns_df = kns_df.dropna(subset=['GeneID'])
     for de_results_file in os.listdir(de_results_raw_input_dir):
         de_results_file = os.path.join(de_results_raw_input_dir, de_results_file)
         if de_results_file.endswith('DE_results') or de_results_file.endswith('DE_results.xlsx'):
