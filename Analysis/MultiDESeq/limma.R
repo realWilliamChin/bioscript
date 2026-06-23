@@ -37,6 +37,10 @@ option_list <- list(
   make_option(c("--outputdir"),
     type = "character", default = "./",
     help = "输出目录,默认当前目录", metavar = "character"
+  ),
+  make_option(c("--limma-log2"),
+    type = "logical", default = FALSE,
+    help = "是否对输入矩阵进行log2转换后再进行limma分析", metavar = "logical"
   )
 )
 opt_parser <- OptionParser(option_list = option_list)
@@ -143,8 +147,7 @@ for (i in seq_along(1:nrow(comp_info))) {
   colnames(design) <- safe_levels
   
   # 拟合线性模型
-  df.fit <- lmFit(data_frame_log2, design)
-  #df.fit <- lmFit(fpkm.deg, design)
+  df.fit <- lmFit(if (opt$`limma-log2`) data_frame_log2 else fpkm.deg, design)
   
   # 创建对比矩阵（使用标准化后的分组名）
   contrast_formula <- paste(make.names(comp_info[i, 1]), make.names(comp_info[i, 2]), sep = " - ")
