@@ -31,7 +31,7 @@ rule check_samples_data:
         touch(f'{WORK_DIR}/logs/samples_check.done')
     shell:
         """
-        python /home/colddata/qinqiang/script/CommonTools/check_cleandata_samples.py \
+        python /home/colddata/qinqiang/script/CommonTools/check_SampDesAndCompInfo.py \
             -s {input.samples_file} \
-            --cd {input.data_dir}
+            -d {input.data_dir}
         """
