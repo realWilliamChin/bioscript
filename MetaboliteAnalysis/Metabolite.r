@@ -5,9 +5,9 @@ pkgs <- c(
 )
 suppressPackageStartupMessages(invisible(lapply(pkgs, require, character.only = TRUE)))
 
-source('/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r', echo = TRUE, encoding = 'UTF-8')
-source('/home/colddata/qinqiang/script/Plot/PCA/pca_1.r', echo = TRUE, encoding = 'UTF-8')
-source('/home/colddata/qinqiang/script/Plot/Corrplot/correlation_1.r', echo = TRUE, encoding = 'UTF-8')
+source('/home/colddata/qinqiang/script/CommonTools/Plot/Heatmap/heatmap_1.r', echo = TRUE, encoding = 'UTF-8')
+source('/home/colddata/qinqiang/script/CommonTools/Plot/PCA/pca_1.r', echo = TRUE, encoding = 'UTF-8')
+source('/home/colddata/qinqiang/script/CommonTools/Plot/Corrplot/correlation_1.r', echo = TRUE, encoding = 'UTF-8')
 
 option_list <- list(
   make_option(c("-t", "--runtype"), type = "character", default = "normal", metavar = "character",

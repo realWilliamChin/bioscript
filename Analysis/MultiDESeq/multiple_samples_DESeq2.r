@@ -5,9 +5,9 @@ pkgs <- c(
 )
 suppressPackageStartupMessages(invisible(lapply(pkgs, require, character.only = TRUE)))
 
-source('/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r', echo = TRUE, encoding = 'UTF-8')
-source('/home/colddata/qinqiang/script/Plot/PCA/pca_1.r', echo = TRUE, encoding = 'UTF-8')
-source('/home/colddata/qinqiang/script/Plot/Corrplot/correlation_1.r', echo = TRUE, encoding = 'UTF-8')
+source('/home/colddata/qinqiang/script/CommonTools/Plot/Heatmap/heatmap_1.r', echo = TRUE, encoding = 'UTF-8')
+source('/home/colddata/qinqiang/script/CommonTools/Plot/PCA/pca_1.r', echo = TRUE, encoding = 'UTF-8')
+source('/home/colddata/qinqiang/script/CommonTools/Plot/Corrplot/correlation_1.r', echo = TRUE, encoding = 'UTF-8')
 
 # ========== 热图绘制Debug函数 ==========
 check_heatmap_matrix <- function(mat, mat_name = "heatmap_matrix") {

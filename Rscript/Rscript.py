@@ -182,7 +182,7 @@ def smart_heatmap(input_file, output_file=None, **kwargs):
     返回:
         bool: 成功返回 True，失败返回 False
     """
-    script_path = '/home/colddata/qinqiang/script/Plot/Heatmap/heatmap_1.r'
+    script_path = '/home/colddata/qinqiang/script/CommonTools/Plot/Heatmap/heatmap_1.r'
 
     # 构建命令（统一参数处理）
     cmd = _build_rscript_cmd(script_path, input=input_file, output=output_file, **kwargs)
@@ -199,7 +199,7 @@ def smart_heatmap(input_file, output_file=None, **kwargs):
 
 
 def volcano_plot(input_file, output_file, **kwargs):
-    script_path = '/home/colddata/qinqiang/script/Plot/Volcano/volcano_1.r'
+    script_path = '/home/colddata/qinqiang/script/CommonTools/Plot/Volcano/volcano_1.r'
 
     # 构建命令（统一参数处理）
     cmd = _build_rscript_cmd(script_path, input=input_file, output=output_file, **kwargs)

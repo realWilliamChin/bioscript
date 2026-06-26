@@ -18,7 +18,7 @@ def parse_input():
 
 
 def draw_venn_graph(input_file, output_file):
-    cmd = f'Rscript /home/colddata/qinqiang/script/Plot/Venn/venn2.r {input_file} {output_file}'
+    cmd = f'Rscript /home/colddata/qinqiang/script/CommonTools/Plot/Venn/venn2.r {input_file} {output_file}'
     rep = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if rep != 0:
         logger.error(f'运行 {cmd} 错误')

@@ -89,7 +89,7 @@ def count_file_lines(file_path):
 
 def draw_venn_diagram(go_id, swiss_id, kegg_id, nr_id, output_pic):
     """调用venn_plot.py绘制Venn图"""
-    venn_script = '/home/colddata/qinqiang/script/Plot/Venn/venn_plot.py'
+    venn_script = '/home/colddata/qinqiang/script/CommonTools/Plot/Venn/venn_plot.py'
     
     cmd = [
         sys.executable,
