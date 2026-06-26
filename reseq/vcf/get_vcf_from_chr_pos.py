@@ -2,16 +2,20 @@
 # -*- coding: utf-8 -*-
 # Created Time  : 2025/07/29 15:34
 # Author        : William GoGo
+import os, sys
 import argparse
 import pandas as pd
 from loguru import logger
 import pysam
 
+sys.path.append('/home/colddata/qinqiang/script/CommonTools')
+from load_input import load_table, write_output_df
+
 
 def parse_input():
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-i', '--input', help='输入文件')
-    argparser.add_argument('-r', '--ref', help='参考文件，没有表头，第一列chrom，第二列pos')
+    argparser.add_argument('-i', '--input', help='输入文件，第一列 CHROM, 第二列 POS')
+    argparser.add_argument('-v', '--vcf', help='参考文件，被提取的 vcf 文件')
     argparser.add_argument('-o', '--output', help='输出文件')
     
     return argparser.parse_args()
@@ -32,19 +36,15 @@ def skip_rows(input_file, skip_str):
 
 def main():
     args = parse_input()
-    in_file = args.input
-    skiprows = skip_rows(in_file, '##')   
-    vcf_df = pd.read_csv(in_file, sep='\t', skiprows=skiprows, low_memory=False)
-    ref_df = pd.read_csv(args.ref, sep='\t', header=None, usecols=[0, 1], names=['#CHROM', 'POS'])
-    vcf_df['chr_pos'] = vcf_df['#CHROM'].astype(str) + '_' + vcf_df['POS'].astype(str)
-    ref_df['chr_pos'] = ref_df['#CHROM'].astype(str) + '_' + ref_df['POS'].astype(str)
-    ref_df = ref_df.drop(columns=['#CHROM', 'POS'])
+    skiprows = skip_rows(args.vcf, '##')   
+    vcf_df = pd.read_csv(args.vcf, sep='\t', skiprows=skiprows, low_memory=False)
+    df = load_table(args.input, usecols=['Marker'])
+    vcf_df['Marker'] = vcf_df['#CHROM'].astype(str) + '_' + vcf_df['POS'].astype(str)
     
-    filtered_df = pd.merge(ref_df, vcf_df, how='left', on='chr_pos')
-    filtered_df = filtered_df.drop(columns=['chr_pos'])
-
+    filtered_df = pd.merge(df, vcf_df, how='left', on='Marker')
+    filtered_df = filtered_df.drop(columns=['Marker'])
     # 读取原始文件的注释行
-    with open(in_file, 'r') as f:
+    with open(args.vcf, 'r') as f:
         header_lines = [line for line in f if line.startswith('##')]
 
     # 保存过滤后的结果（包含注释行）
