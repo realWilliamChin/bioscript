@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 # Created Time  : 2024/12/25 15:34
 # Author        : William GoGo
+#
+# 【项目模板脚本】本脚本中的样本名/亲本组合等过滤逻辑是按具体项目需求硬编码的，
+# 每次新项目使用时需要按需修改内部的样本列表与基因型组合规则，不是一个通用 CLI 工具。
 import argparse
 import pandas as pd
 from loguru import logger
@@ -30,13 +33,19 @@ def skip_rows(input_file, skip_str):
 
 
 
-def filter_vcf(vcf_df, son, father, mother):
-    son_gt = vcf_df[son].str.split(':').str[0]
-    father_gt = vcf_df[father].str.split(':').str[0]
-    mother_gt = vcf_df[mother].str.split(':').str[0]
+def filter_vcf(vcf_df, fertile_20008, fertile_20515, fertile_20549, fertile_20594, fertile_20705, fertile_20879, sterile_285):
+    fertile_20008_gt = vcf_df[fertile_20008].str.split(':').str[0]
+    fertile_20515_gt = vcf_df[fertile_20515].str.split(':').str[0]
+    fertile_20549_gt = vcf_df[fertile_20549].str.split(':').str[0]
+    fertile_20594_gt = vcf_df[fertile_20594].str.split(':').str[0]
+    fertile_20705_gt = vcf_df[fertile_20705].str.split(':').str[0]
+    fertile_20879_gt = vcf_df[fertile_20879].str.split(':').str[0]
+    sterile_285_gt = vcf_df[sterile_285].str.split(':').str[0]
     
     hom_ref = r'^0[/|]0$'      # 纯合参考型 (0/0 或 0|0)
     hom_alt = r'^1[/|]1$'      # 纯合变异型 (1/1 或 1|1)
+    hom_het = r'^0[/|]1$'      # 杂合型 (0/1 或 0|1)
+    hom_het2 = r'^1[/|]0$'      # 杂合型 (1/0 或 1|0)
     missing = r'^\.[/|]\.$'    # 缺失数据 (./. 或 .|.)
     
     # 通用纯合变异 (支持任意 ALT 索引)
@@ -44,53 +53,19 @@ def filter_vcf(vcf_df, son, father, mother):
     # 通用杂合 (支持任意 ALT 组合)
     het_general = r'^[0-9]\d*[/|][0-9]\d*$'      # 如 0/3, 2|4  
     
-    # son_hom = son_gt.str.match(hom_ref) | son_gt.str.match(hom_alt)
-    # father_hom = father_gt.str.match(hom_ref) | father_gt.str.match(hom_alt)
-    # mother_hom = mother_gt.str.match(hom_ref) | mother_gt.str.match(hom_alt)
-    # father_missing = father_gt.str.match(missing)
-    # mother_missing = mother_gt.str.match(missing)
-    
-    # mask = (
-    #     # 儿子是纯合
-    #     son_hom &
-    #     # 父母都不缺失
-    #     ~father_missing & 
-    #     ~mother_missing &
-    #     # 父亲或母亲中至少有一个不是纯合
-    #     (~father_hom | ~mother_hom)
+    # 找出 fertile* 共有的（必须两个一模一样），sterile_285 没有的
+    mask = (
+        (fertile_20008_gt.str.match(hom_ref) & fertile_20515_gt.str.match(hom_ref) & fertile_20549_gt.str.match(hom_ref) & fertile_20594_gt.str.match(hom_ref) & fertile_20705_gt.str.match(hom_ref) & fertile_20879_gt.str.match(hom_ref)) |
+        (fertile_20008_gt.str.match(hom_het) & fertile_20515_gt.str.match(hom_het) & fertile_20549_gt.str.match(hom_het) & fertile_20594_gt.str.match(hom_het) & fertile_20705_gt.str.match(hom_het) & fertile_20879_gt.str.match(hom_het)) |
+        (fertile_20008_gt.str.match(hom_het2) & fertile_20515_gt.str.match(hom_het2) & fertile_20549_gt.str.match(hom_het2) & fertile_20594_gt.str.match(hom_het2) & fertile_20705_gt.str.match(hom_het2) & fertile_20879_gt.str.match(hom_het2)) |
+        (fertile_20008_gt.str.match(hom_alt) & fertile_20515_gt.str.match(hom_alt) & fertile_20549_gt.str.match(hom_alt) & fertile_20594_gt.str.match(hom_alt) & fertile_20705_gt.str.match(hom_alt) & fertile_20879_gt.str.match(hom_alt))
+    )
+    # # sterile_285 和其他都不一样的
+    # mask_sterile = (
+    #     ~mask & ~sterile_285_gt.str.match(hom_ref) & ~sterile_285_gt.str.match(hom_het) & ~sterile_285_gt.str.match(hom_het2) & ~sterile_285_gt.str.match(hom_alt)
     # )
     
-    son_only_mask = (
-        ~(son_gt.str.match(hom_ref) & father_gt.str.match(hom_ref))
-        & ~(son_gt.str.match(hom_ref) & mother_gt.str.match(hom_ref))
-        & ~(son_gt.str.match(hom_alt) & father_gt.str.match(hom_alt))
-        & ~(son_gt.str.match(hom_alt) & mother_gt.str.match(hom_alt))
-        & ~(son_gt.str.match(missing) & father_gt.str.match(missing))
-        & ~(son_gt.str.match(missing) & mother_gt.str.match(missing))
-        & ~(son_gt.str.match(r'^0[/|]1$') & father_gt.str.match(r'^0[/|]1$'))
-        & ~(son_gt.str.match(r'^0[/|]1$') & mother_gt.str.match(r'^0[/|]1$'))
-        & ~(son_gt.str.match(r'^1[/|]0$') & father_gt.str.match(r'^1[/|]0$'))
-        & ~(son_gt.str.match(r'^1[/|]0$') & mother_gt.str.match(r'^1[/|]0$'))
-    )
-
-    son_mother_mask = (
-        (son_gt.str.match(r'^1[/|]0$') & mother_gt.str.match(r'^1[/|]0$')) |
-        (son_gt.str.match(r'^1[/|]0$') & mother_gt.str.match(r'^0[/|]1$')) |
-        (son_gt.str.match(r'^0[/|]1$') & mother_gt.str.match(r'^0[/|]1$')) |
-        (son_gt.str.match(r'^0[/|]1$') & mother_gt.str.match(r'^1[/|]0$'))
-    )
-    son_father_mask = (
-        (son_gt.str.match(r'^1[/|]0$') & father_gt.str.match(r'^1[/|]0$')) |
-        (son_gt.str.match(r'^1[/|]0$') & father_gt.str.match(r'^0[/|]1$')) |
-        (son_gt.str.match(r'^0[/|]1$') & father_gt.str.match(r'^0[/|]1$')) |
-        (son_gt.str.match(r'^0[/|]1$') & father_gt.str.match(r'^1[/|]0$'))
-    )
-    
-    
-    filtered_df = vcf_df[son_only_mask]
-    droped_df = vcf_df[~son_only_mask]
-    
-    return filtered_df, droped_df
+    return vcf_df[mask], vcf_df[~mask]
 
 
 def main():
@@ -101,7 +76,7 @@ def main():
     df = pd.read_csv(in_file, sep='\t', skiprows=skiprows, low_memory=False)
     
     filter_before = df.shape[0]
-    filtered_df, droped_df = filter_vcf(df, 'Child', 'Father', 'Mother')
+    filtered_df, droped_df = filter_vcf(df, 'fertile_20008', 'fertile_20515', 'fertile_20549', 'fertile_20594', 'fertile_20705', 'fertile_20879', 'sterile_285')
     filter_after = filtered_df.shape[0]
     logger.info(f'过滤之前 {filter_before} 行，过滤之后 {filter_after} 行')
     
@@ -117,7 +92,7 @@ def main():
         f.writelines(header_lines)
         filtered_df.to_csv(f, sep='\t', index=False, header=True)   
     
-    droped_df.to_csv('son_only_droped.txt', sep='\t', index=False)
+    droped_df.to_csv('droped.txt', sep='\t', index=False)
 
 
 if __name__ == '__main__':
