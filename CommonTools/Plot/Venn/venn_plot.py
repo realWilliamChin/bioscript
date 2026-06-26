@@ -1,4 +1,4 @@
-#!/home/train/miniconda3/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Created Time  : 2025/03/10 12:41
 # Author        : William GoGo
@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from venn import venn
 
-sys.path.append('/home/colddata/qinqiang/script/CommonTools')
-from load_input import load_table, write_output_df
+# 添加CommonTools到路径（根据脚本位置自动计算）
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../'))
+from CommonTools.load_input import load_table, write_output_df
 
 
 def read_single_file(file_path, remove_header=False, first_column_only=False):

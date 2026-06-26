@@ -1,4 +1,4 @@
-#!/home/train/miniconda3/bin/python
+#!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 # Created Time  : 2024/5/28 14:46
 # Author        : WilliamGoGo

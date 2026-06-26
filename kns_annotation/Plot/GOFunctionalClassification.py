@@ -170,7 +170,10 @@ else:
 
     # Download GO DAG file, go-basic.obo if not exist
     # base.download_go_basic_obo("go-basic.obo")
-    obofile = obo_parser.GODag('/home/colddata/qinqiang/script/lib/go-basic.obo', load_obsolete=False)
+    # 根据脚本位置动态计算 lib 目录路径
+    script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    obo_path = os.path.join(script_dir, 'lib', 'go-basic.obo')
+    obofile = obo_parser.GODag(obo_path, load_obsolete=False)
 
     path_list = os.path.split(in_file)
     out_file_name = path_list[-1].rsplit(".", 1)[0] + '_GO_anno.xls'

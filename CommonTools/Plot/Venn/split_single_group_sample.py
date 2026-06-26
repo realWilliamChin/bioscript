@@ -7,9 +7,10 @@ import argparse
 import pandas as pd
 from loguru import logger
 
-sys.path.append('/home/colddata/qinqiang/script/CommonTools')
-from load_input import load_table, write_output_df
-from data_check import df_drop_row_sum_eq_zero
+# 添加CommonTools到路径（根据脚本位置自动计算）
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../'))
+from CommonTools.load_input import load_table, write_output_df
+from CommonTools.data_check import df_drop_row_sum_eq_zero
 
 
 def parse_input():
