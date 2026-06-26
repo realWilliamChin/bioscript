@@ -10,8 +10,10 @@ from concurrent.futures import ProcessPoolExecutor
 from loguru import logger
 
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+from load_input import load_table, write_output_df
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/transcriptome/'))
-from genedf_add_expression_and_def import add_kns_def
+from genedf_add_expression_and_def import add_def
+
 
 def parse_input():
     p = argparse.ArgumentParser()
@@ -26,7 +28,7 @@ def parse_input():
     p.add_argument('--kns', type=str, dest='kns',
                            help='输入 kns_def.txt，添加定义')
     p.add_argument('-o', '--output', type=str, dest='output',
-                           help='输出文件名，target_gene_def.txt')
+                   help='输出文件名，target_gene_def.txt')
     args = p.parse_args()
     
     if not os.path.isfile(args.basicinfo) or not os.path.isfile(args.input_file):
@@ -68,19 +70,22 @@ def process_sub_dataframe(sub_df, basicinfo_df):
     result_df_lst = []
     sub_df_columns = sub_df.columns.tolist()
     # eachrow_info_df = pd.DataFrame()
-    for each_row in sub_df.itertuples():
+    for _, each_row in sub_df.iterrows():
         # merge input_df pos 上下 10k 在 basicinfo 的 start 和 end 之间的数据
         eachrow_df = basicinfo_df[
-            ((each_row.start <= basicinfo_df['Target_Start']) & (each_row.end >= basicinfo_df['Target_Start']))
-            | ((each_row.start <= basicinfo_df['Target_End']) & (each_row.end >= basicinfo_df['Target_End']))
-            | ((basicinfo_df['Target_Start'] <= each_row.POS) & (basicinfo_df['Target_End'] >= each_row.POS))
+            (each_row['CHROM'] == basicinfo_df['Target_Chromosome']) &
+            (
+                ((each_row['start'] <= basicinfo_df['Target_Start']) & (each_row['end'] >= basicinfo_df['Target_Start']))
+                | ((each_row['start'] <= basicinfo_df['Target_End']) & (each_row['end'] >= basicinfo_df['Target_End']))
+                | ((basicinfo_df['Target_Start'] <= each_row['POS']) & (basicinfo_df['Target_End'] >= each_row['POS']))
+            )
         ].copy()
         # eachrow_df = eachrow_df.drop_duplicates(subset='Target_GeneID', keep='first')
         # 追加其他所有信息
         for column in sub_df_columns:
             if column in ['start', 'end']:
                 continue
-            eachrow_df[column] = getattr(each_row, column)
+            eachrow_df[column] = each_row[column]
         # eachrow_df = eachrow_df.assign(POS=each_row.POS, REF=each_row.REF, ALT=each_row.ALT, CHROM=each_row.CHROM)
         result_df_lst.append(eachrow_df)
     
@@ -93,6 +98,7 @@ def process_sub_dataframe(sub_df, basicinfo_df):
     
     result_df['On_Gene_Status'] = result_df.apply(gene_check_on_off_gene, axis=1)
     result_df = result_df.groupby('POS').apply(utr_check) # .reset_index(drop=True)  # for new python version(I don't understand this)
+    result_df = result_df.reset_index(drop=True)
     # result_df = result_df.sort_values(by=['POS'])  # for new python version (I don't understand this)
     return result_df
 
@@ -102,9 +108,13 @@ def find_target_gene_multithreads(input_df, gene_basic_info, pos_range, num_thre
     多进程处理
     input_df: 输入的表, 至少需要包含 POS 列
     """
-    basicinfo_df = pd.read_csv(gene_basic_info, sep='\t', usecols=[0, 2, 3, 4], skiprows=1,
-                         names=["Target_GeneID", "Target_Start", "Target_End", "Target_Gene_Strand"],
-                         dtype={"Target_GeneID": str, "Target_Start": int, "Target_End": int, "Target_Gene_Strand": str})
+    basicinfo_df = pd.read_csv(gene_basic_info, sep='\t', usecols=[0, 1, 2, 3, 4], skiprows=1,
+                         names=["Target_GeneID", "Target_Chromosome", "Target_Start", "Target_End", "Target_Gene_Strand"],
+                         dtype={"Target_GeneID": str, "Target_Chromosome": str, "Target_Start": int, "Target_End": int, "Target_Gene_Strand": str})
+    
+    # 保存输入文件和basicinfo的染色体示例用于错误提示
+    input_chromosomes = input_df['CHROM'].unique().tolist()[:5]
+    basicinfo_chromosomes = basicinfo_df['Target_Chromosome'].unique().tolist()[:5]
     # 标出 pos 位置的上下 pos_range 默认10k，再去比对 gff start 和 end 判断是否包含在内，包含在内则把 basicinfo_df 的信息添加到 input_df 中
     # 1. 标出 pos 位置的上下 pos_range，命名为 start 和 end
     input_df['start'] = input_df['POS'].apply(lambda x: max(x - pos_range, 0))
@@ -125,13 +135,26 @@ def find_target_gene_multithreads(input_df, gene_basic_info, pos_range, num_thre
             results = [future.result() for future in futures if future.result().shape[0] > 0]
             result_df = pd.concat(results)
         if len(results) == 0:
+            logger.error("未找到任何匹配的目标基因")
+            logger.error(f"输入文件染色体示例: {input_chromosomes}")
+            logger.error(f"basicinfo文件染色体示例: {basicinfo_chromosomes}")
+            logger.error("请检查两者染色体格式是否一致（如是否存在'chr'前缀差异）")
             return pd.DataFrame()
     
     sources_columns = input_df.columns.tolist()
     sources_columns.remove('start')
     sources_columns.remove('end')
-    re_columns = sources_columns + ['Target_GeneID', 'Target_Start', 'Target_End', 'Target_Gene_Strand', 'On_Gene_Status']
+    re_columns = sources_columns + ['Target_GeneID', 'Target_Chromosome', 'Target_Start', 'Target_End', 'Target_Gene_Strand', 'On_Gene_Status']
+    
+    if result_df.empty:
+        logger.error("未找到任何匹配的目标基因")
+        logger.error(f"输入文件染色体示例: {input_chromosomes}")
+        logger.error(f"basicinfo文件染色体示例: {basicinfo_chromosomes}")
+        logger.error("请检查两者染色体格式是否一致（如是否存在'chr'前缀差异）")
+        return pd.DataFrame()
+    
     result_df = result_df.reindex(columns=re_columns)
+    
     result_df = result_df.sort_values(by=['POS'])
     
     return result_df
@@ -153,16 +176,9 @@ def load_input(input_file):
         input_df = pd.read_csv(input_file, sep='\t', skiprows=skip_rows, usecols=[0, 1, 2, 3, 4, 5, 6, 7, 8], 
                                low_memory=False, names=vcf_columns,
                                dtype={"CHROM": str, "POS": int, "ID": str, "REF": str, "ALT": str, "QUAL": str, "FILTER": str, "INFO": str, "FORMAT": str})
-    
-    elif input_file.endswith('.csv'):
-        input_df = pd.read_csv(input_file)
-    elif input_file.endswith('.txt') or input_file.endswith('.tsv'):
-        input_df = pd.read_csv(input_file, sep='\t')
     else:
-        # 其他格式文件未做优化，可能会出现 bug
-        logger.error('不支持其他文件格式')
-        exit(1)
-    
+        input_df = load_table(input_file)
+
     return input_df
 
 
@@ -181,15 +197,15 @@ def main():
         # 添加 kns 定义
         df.rename(columns={"Target_GeneID": "GeneID"}, inplace=True)
         no_kns_rows = df.shape[0]
-        df = add_kns_def(df, kns_file=args.kns)
+        df = add_def(df, def_file=args.kns)
         add_kns_rows = df.shape[0]
         logger.debug(f'添加定义之前的行数 {no_kns_rows}, 添加定义之后的行数 {add_kns_rows}')
         df.rename(columns={"GeneID": "Target_GeneID"}, inplace=True)
     
     df = pd.concat([df['Marker'], df.iloc[:, df.columns != 'Marker']], axis=1)
-    df.to_csv(args.output, sep='\t', index=False)
-    
+    write_output_df(df, args.output, index=False)
     logger.success(f'处理完成，结果文件为 {args.output}, 结果行数为 {df.shape[0]}')
     
+
 if __name__ == '__main__':
     main()
