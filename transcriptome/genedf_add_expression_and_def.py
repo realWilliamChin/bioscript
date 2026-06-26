@@ -148,7 +148,8 @@ def main() -> None:
     result_df = add_def(df, for_merge_column, args.kegg, args.nr, args.swiss, args.defi, args.merge_how, args.remove_duplicates, args.dup_col, args.na_fill)
     
     if args.output.endswith('.xlsx'):
-        result_df = result_df.rename(columns={for_merge_column: args.input_header})
+        if not isinstance(args.input_header, int):
+            result_df = result_df.rename(columns={for_merge_column: args.input_header})
         write_output_df(result_df, args.output, index=False)
     if type(args.input_header) == str:
         result_df = result_df.rename(columns={for_merge_column: args.input_header})
