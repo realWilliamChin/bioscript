@@ -10,8 +10,7 @@ from loguru import logger
 
 sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
 from load_input import load_table, write_output_df
-sys.path.append('/home/colddata/qinqiang/script/Rscript/')
-from Rscript import volcano_plot
+from r_wrapper import volcano_plot
 
 
 def parse_input():

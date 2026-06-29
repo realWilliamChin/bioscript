@@ -10,12 +10,11 @@ import argparse
 import subprocess
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from data_check import df_drop_row_sum_eq_zero
 from data_check import df_drop_element_side_space
 from data_check import df_replace_illegal_folder_chars
-from Rscript import smart_heatmap
+from r_wrapper import smart_heatmap
 from load_input import load_table, write_output_df
 
 

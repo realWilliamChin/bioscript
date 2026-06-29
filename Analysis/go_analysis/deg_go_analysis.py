@@ -12,9 +12,8 @@ import datetime
 import gene_interaction_network_plot
 from goid_enrich_summary import goid_enrich_summary
 from each_go_gene_heatmap import each_go_gene_heatmap, each_go_gene_expression
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
-from Rscript import enrichment_barplot, smart_heatmap
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+from r_wrapper import enrichment_barplot, smart_heatmap
 from load_input import load_table, write_output_df
 from data_check import df_drop_element_side_space, df_replace_illegal_folder_chars
 from logger_config import get_logger

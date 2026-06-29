@@ -11,9 +11,8 @@ import subprocess
 import openpyxl
 from loguru import logger
 
-sys.path.append('/home/colddata/qinqiang/script/Rscript/')
-from Rscript import smart_heatmap
-sys.path.append('/home/colddata/qinqiang/script/CommonTools')
+sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
+from r_wrapper import smart_heatmap
 from load_input import load_table, write_output_df
 from data_check import df_drop_row_sum_eq_zero, df_drop_element_side_space, df_replace_illegal_folder_chars
 

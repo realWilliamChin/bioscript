@@ -88,7 +88,7 @@ def draw_multigroup_heatmap(datafile, output, other_args=''):
     """
     if not datafile.endswith('xlsx'):
         logger.error(f'文件不是 xlsx 格式 \n 参考yi下说明 {draw_multigroup_heatmap.__doc__}')
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/heatmap/heatmap_multigroup.r -f {datafile} -o {output} {other_args}"
+    cmd = f"Rscript /home/colddata/qinqiang/script/CommonTools/Plot/Heatmap/multigroup_heatmap.r -f {datafile} -o {output} {other_args}"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
         logger.error(f"{datafile} multigroup_heatmap 画图失败")
@@ -101,7 +101,7 @@ def draw_multigroup_heatmap(datafile, output, other_args=''):
 
 
 def draw_twogroup_heatmap(datafile, output_file):
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/heatmap/heatmap_twogroup.r -f {datafile} -o {output_file}"
+    cmd = f"Rscript /home/colddata/qinqiang/script/CommonTools/Plot/Heatmap/heatmap_twogroup.r -f {datafile} -o {output_file}"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
         logger.error(f"{datafile} twogroup_heatmap 画图失败")
@@ -114,7 +114,7 @@ def draw_twogroup_heatmap(datafile, output_file):
 
 
 def anova_analysis(datafile, samples_file, output_file):
-    cmd = f"Rscript /home/colddata/qinqiang/script/Rscript/anova/anova.r -f {datafile} -s {samples_file} -o {output_file}"
+    cmd = f"Rscript /home/colddata/qinqiang/script/transcriptome/anova/anova.r -f {datafile} -s {samples_file} -o {output_file}"
     ret = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if ret.returncode != 0:
         logger.error(f"{datafile} anova.r 执行失败")

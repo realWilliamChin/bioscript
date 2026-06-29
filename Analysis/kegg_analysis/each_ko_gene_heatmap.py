@@ -4,9 +4,8 @@ import pandas as pd
 import argparse
 from loguru import logger
 
-sys.path.append('/home/colddata/qinqiang/script/Rscript/')
-from Rscript import smart_heatmap
 sys.path.append('/home/colddata/qinqiang/script/CommonTools/')
+from r_wrapper import smart_heatmap
 from load_input import load_table, write_output_df
 from data_check import df_drop_row_sum_eq_zero, str_replace_illegal_folder_chars
 

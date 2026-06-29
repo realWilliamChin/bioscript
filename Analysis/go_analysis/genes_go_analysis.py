@@ -8,9 +8,8 @@ import pandas as pd
 from pathlib import Path
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
-from Rscript import enrichment_barplot
+from r_wrapper import enrichment_barplot
 import gene_interaction_network_plot
 from load_input import load_table, write_output_df
 if sys.version_info < (3, 10):

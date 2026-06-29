@@ -9,9 +9,8 @@ import argparse
 from pathlib import Path
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
-from Rscript import draw_pathview
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+from r_wrapper import draw_pathview
 from load_input import load_table, write_output_df
 
 if sys.version_info < (3, 10):

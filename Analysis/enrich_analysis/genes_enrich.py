@@ -7,10 +7,9 @@ import argparse
 import pandas as pd
 from loguru import logger
 
-sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/Rscript/'))
-from Rscript import enrich_analysis
-
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
+from r_wrapper import enrich_analysis
+
 from load_input import load_table, write_output_df
 
 def parse_input():
