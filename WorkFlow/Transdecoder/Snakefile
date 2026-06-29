@@ -1,0 +1,51 @@
+"""
+TransDecoder 标准Snakemake流程
+使用方式：
+snakemake -s Snakefile --config input_fasta="xxx.fa" out_dir="result" --cores 8
+"""
+import os
+
+# 配置参数
+input_fasta = config["input_fasta"]
+out_dir = config.get("out_dir", "transdecoder_result")
+min_orf = config.get("min_orf_length", 100)
+
+# 预处理路径
+input_abs = os.path.abspath(input_fasta)
+sample_name = os.path.basename(input_fasta).rsplit('.', 1)[0]
+os.makedirs(out_dir, exist_ok=True)
+os.makedirs(f"{out_dir}/logs", exist_ok=True)
+
+rule all:
+    input:
+        f"{out_dir}/{sample_name}.transdecoder.pep",
+        f"{out_dir}/{sample_name}.transdecoder.cds",
+        f"{out_dir}/{sample_name}.transdecoder.gff3"
+
+rule run_longorfs:
+    input: input_fasta
+    output:
+        f"{out_dir}/{sample_name}.transdecoder_dir/longest_orfs.pep"
+    threads: 8
+    log: f"{out_dir}/logs/longorfs.log"
+    shell:
+        """
+        cd {out_dir}
+        TransDecoder.LongOrfs -t {input_abs} -m {min_orf} > logs/longorfs.log 2>&1
+        """
+
+rule run_predict:
+    input:
+        fa = input_fasta,
+        longorfs = rules.run_longorfs.output[0]
+    output:
+        pep = f"{out_dir}/{sample_name}.transdecoder.pep",
+        cds = f"{out_dir}/{sample_name}.transdecoder.cds",
+        gff3 = f"{out_dir}/{sample_name}.transdecoder.gff3"
+    threads: 8
+    log: f"{out_dir}/logs/predict.log"
+    shell:
+        """
+        cd {out_dir}
+        TransDecoder.Predict -t {input_abs} > logs/predict.log 2>&1
+        """
