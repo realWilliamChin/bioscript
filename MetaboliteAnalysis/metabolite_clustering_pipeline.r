@@ -34,6 +34,8 @@ option_list <- list(
               help = "化合物分类注释表(可选)，需含化合物名(Compound_ID或Compound_name)、Class、SubClass列;不提供则热图不加分类注释"),
   make_option(c("-o", "--outdir"), type = "character", default = "clustering_result",
               help = "结果输出目录 [默认: %default]"),
+  make_option(c("-k", "--k"), type = "integer", default = NULL,
+              help = "手动指定聚类数;不指定时用NbClust全指标投票自动决定"),
   make_option(c("--min_k"), type = "integer", default = 2,
               help = "NbClust最小聚类数 [默认: %default]"),
   make_option(c("--max_k"), type = "integer", default = 10,
@@ -103,27 +105,36 @@ if (is.na(n_pc)) n_pc <- length(cum_contrib)  # 兜底：达不到阈值则用�
 n_pc <- max(n_pc, 2)                           # 至少保留2个主成分供聚类
 pca_scores <- pca_for_clust$ind$coord[, 1:n_pc]
 
-# 用PCA分数做NbClust投票
-nb_ward <- NbClust(pca_scores, min.nc = opt$min_k, max.nc = opt$max_k, method = "ward.D2", index = "all")
+# 确定聚类数：指定--k时直接使用，否则用NbClust全指标投票
+if (!is.null(opt$k)) {
+  bestK <- as.integer(opt$k)
+  if (bestK < 2) stop("--k 必须 >= 2")
+  used_nbclust <- FALSE
+  cat("使用手动指定的聚类数 K =", bestK, "\n")
+} else {
+  used_nbclust <- TRUE
+  # 用PCA分数做NbClust投票
+  nb_ward <- NbClust(pca_scores, min.nc = opt$min_k, max.nc = opt$max_k, method = "ward.D2", index = "all")
 
-index_names <- colnames(nb_ward$Best.nc)
-opt_k_vals <- as.integer(nb_ward$Best.nc[1, ])
+  index_names <- colnames(nb_ward$Best.nc)
+  opt_k_vals <- as.integer(nb_ward$Best.nc[1, ])
 
-index_k_table <- data.frame(
-  Index = index_names,
-  Opt_K = opt_k_vals,
-  row.names = NULL
-)
+  index_k_table <- data.frame(
+    Index = index_names,
+    Opt_K = opt_k_vals,
+    row.names = NULL
+  )
 
-# 定义核心指标清单（保持原变量名）
-core_index <- c("Hartigan", "CH", "Silhouette", "DB", "Tracew", "Ball")
-core_k_table <- subset(index_k_table, Index %in% core_index)
+  # 定义核心指标清单（保持原变量名）
+  core_index <- c("Hartigan", "CH", "Silhouette", "DB", "Tracew", "Ball")
+  core_k_table <- subset(index_k_table, Index %in% core_index)
 
-# 统计每个K获得的票数
-vote_count <- table(index_k_table$Opt_K)
+  # 统计每个K获得的票数
+  vote_count <- table(index_k_table$Opt_K)
 
-bestK <- as.integer(names(which.max(vote_count)))
-if (length(bestK) == 0 || bestK == 0) bestK <- 2
+  bestK <- as.integer(names(which.max(vote_count)))
+  if (length(bestK) == 0 || bestK == 0) bestK <- 2
+}
 
 hc <- hclust(dist(clustering_df_scale), method = "ward.D2")
 ward_group <- cutree(hc, k = bestK)
@@ -289,12 +300,15 @@ smart_heatmap(
 )
 
 # ========== 输出Excel - 保持原文件名 ==========
-vote_count_df <- as.data.frame(vote_count)
-colnames(vote_count_df) <- c('Cluster_k', 'Vote_Num')
-write_xlsx(vote_count_df, file.path(testDir, "04_Clustering_full_index.xlsx"))
+# NbClust投票结果（仅在自动模式下输出）
+if (used_nbclust) {
+  vote_count_df <- as.data.frame(vote_count)
+  colnames(vote_count_df) <- c('Cluster_k', 'Vote_Num')
+  write_xlsx(vote_count_df, file.path(testDir, "04_Clustering_full_index.xlsx"))
 
-colnames(core_k_table) <- c('Index_Name', 'Recommend_K')
-write_xlsx(core_k_table, file.path(testDir, "04_Clustering_core_index.xlsx"))
+  colnames(core_k_table) <- c('Index_Name', 'Recommend_K')
+  write_xlsx(core_k_table, file.path(testDir, "04_Clustering_core_index.xlsx"))
+}
 
 # 样本聚类对应表
 # 按Cluster排序，Cluster内部保持输入原始顺序；Cluster列放前面方便查看；无分组时不含Group_ID列
