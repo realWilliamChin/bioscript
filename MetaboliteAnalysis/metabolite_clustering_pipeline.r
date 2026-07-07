@@ -1,10 +1,4 @@
 #!/usr/bin/env Rscript
-# 代谢物聚类分析流程
-# 功能：标准化 -> PCA降维 -> NbClust投票确定最佳聚类数 -> Ward层次聚类
-#       -> PCA分组图(按Cluster/按Group) -> 带化合物Class/SubClass注释的热图 -> 输出聚类结果表
-# 说明：样本数远小于代谢物数时，直接对原始矩阵做NbClust会出现TSS矩阵奇异，
-#       故先用PCA降维到累计解释度阈值以上的主成分再投票。
-# 输入：代谢物丰度表(Sample_ID + 各代谢物) + 样本分组表(Sample_ID/Group_ID) + 化合物分类表
 
 library(ggplot2)
 library(ggdendro)
@@ -78,8 +72,6 @@ if (has_group) {
   df <- df_expr
 }
 
-# 挑选用于聚类的指标变量（原结构：clustering_df）
-# 代谢物：除分组列外全部用于聚类；无分组时全部列都是代谢物
 if (has_group) {
   clustering_df <- df %>% select(-Group_ID)
 } else {
@@ -94,15 +86,13 @@ for (e in colnames(clustering_df)) {
 # 数据标准化
 clustering_df_scale <- scale(clustering_df)
 
-# ========== 层次聚类 - 修复：PCA降维解决矩阵奇异问题 ==========
-# 先做PCA降维（FactoMineR默认只保留5个主成分，需保留全部以免降维取分数时越界）
 max_ncp <- min(nrow(clustering_df_scale), ncol(clustering_df_scale))
 pca_for_clust <- PCA(clustering_df_scale, graph = FALSE, ncp = max_ncp)
 var_contrib <- pca_for_clust$eig[, 2]
 cum_contrib <- cumsum(var_contrib)
 n_pc <- which(cum_contrib > opt$pca_cutoff)[1]
-if (is.na(n_pc)) n_pc <- length(cum_contrib)  # 兜底：达不到阈值则用全部主成分
-n_pc <- max(n_pc, 2)                           # 至少保留2个主成分供聚类
+if (is.na(n_pc)) n_pc <- length(cum_contrib)
+n_pc <- max(n_pc, 2)
 pca_scores <- pca_for_clust$ind$coord[, 1:n_pc]
 
 # 确定聚类数：指定--k时直接使用，否则用NbClust全指标投票
@@ -142,8 +132,6 @@ ward_group <- as.factor(ward_group)
 
 clustering_df.pca <- PCA(clustering_df_scale, graph = F)
 
-# ========== PCA绘图：自动纳入点和椭圆范围，统一正方形坐标轴 ==========
-# 根据ggplot所有图层（点、椭圆等）计算正方形坐标范围
 add_square_coord <- function(grp_pca) {
   gb <- ggplot_build(grp_pca)
 
@@ -273,7 +261,7 @@ smart_heatmap(
   fontsize_row = 7,
   fontsize_col = 7,
   color = colorRampPalette(c("#4575B4","white","#D73027"))(100),
-  autoset_image_specification = TRUE   # 自动控制尺寸
+  autoset_image_specification = TRUE
 )
 
 # 版本2：行聚类（按相似度排序）
@@ -296,7 +284,7 @@ smart_heatmap(
   fontsize_row = 7,
   fontsize_col = 7,
   color = colorRampPalette(c("#4575B4","white","#D73027"))(100),
-  autoset_image_specification = TRUE   # 自动控制尺寸
+  autoset_image_specification = TRUE
 )
 
 # ========== 输出Excel - 保持原文件名 ==========
@@ -310,8 +298,6 @@ if (used_nbclust) {
   write_xlsx(core_k_table, file.path(testDir, "04_Clustering_core_index.xlsx"))
 }
 
-# 样本聚类对应表
-# 按Cluster排序，Cluster内部保持输入原始顺序；Cluster列放前面方便查看；无分组时不含Group_ID列
 df$Cluster <- paste0("C", ward_group)
 df_result <- rownames_to_column(df, var = "Sample_ID")
 df_result$.orig_order <- seq_len(nrow(df_result))  # 记录输入原始顺序
@@ -327,5 +313,4 @@ if (has_group) {
 write_xlsx(df_result, file.path(testDir, "04_SampleID_to_clusterID.xlsx"))
 
 cat("===== 分析完成 =====\n")
-print(paste("结果保存在:", testDir))
 print(paste("最佳聚类数K =", bestK))
