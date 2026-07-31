@@ -15,7 +15,7 @@ from each_go_gene_heatmap import each_go_gene_heatmap, each_go_gene_expression
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from r_wrapper import enrichment_barplot, smart_heatmap
 from load_input import load_table, write_output_df
-from data_check import df_drop_element_side_space, df_replace_illegal_folder_chars
+from data_check import df_drop_element_side_space, df_replace_illegal_folder_chars, assert_no_duplicate_ids
 from logger_config import get_logger
 
 if sys.version_info < (3, 10):
@@ -343,6 +343,7 @@ def main():
     # target_go_df 预处理，只需要
     target_go_df = load_table(args.input)
     target_go_df = df_drop_element_side_space(target_go_df)
+    assert_no_duplicate_ids(target_go_df, 'GO_pathway_ID', label=args.input)
     target_go_df['GO_pathway_ID'] = target_go_df['GO_pathway_ID'].str.split('_').str[0]
     
     # 读取 gene_go_df 和 ref_go_def_df，并合并，格式为 GeneID, GO_pathway_ID, GO_pathway_def

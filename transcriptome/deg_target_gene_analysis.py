@@ -14,6 +14,7 @@ sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from data_check import df_drop_row_sum_eq_zero
 from data_check import df_drop_element_side_space
 from data_check import df_replace_illegal_folder_chars
+from data_check import assert_no_duplicate_ids
 from r_wrapper import smart_heatmap
 from load_input import load_table, write_output_df
 
@@ -120,8 +121,8 @@ def target_gene_heatmap(target_gene_df, fpkm_matrix_df, samples_df, group_mean, 
         else:
             sub_samples_df = original_samples_df
         
-        ontology_excel = os.path.join(output_dir, f'{ontology}_target_gene_heatmap.xlsx')
-        ontology_pic = os.path.join(output_dir, f'{ontology}_target_gene_heatmap.jpg')
+        ontology_excel = os.path.join(output_dir, f'{ontology}_heatmap.xlsx')
+        ontology_pic = os.path.join(output_dir, f'{ontology}_heatmap.jpg')
         with pd.ExcelWriter(ontology_excel, engine='openpyxl') as writer:
             heatmap_data_df.to_excel(writer, sheet_name="Sheet1", index=False)
             sub_samples_df.to_excel(writer, sheet_name='Sheet2', index=False)
@@ -446,6 +447,7 @@ def main():
     # 加载为 DataFrame
     samples_df = load_table(args.samplesinfo, usecols=[0, 1], dtype=str)
     target_gene_def_df = load_table(args.target_gene_file, dtype={'GeneID': str})
+    assert_no_duplicate_ids(target_gene_def_df, 'GeneID', label=args.target_gene_file)
     target_gene_def_df['Ontology'] = target_gene_def_df['Ontology'].str.replace('/', '_').str.replace(' ', '_')
     target_gene_def_df = df_drop_element_side_space(target_gene_def_df)
     target_gene_def_df = df_replace_illegal_folder_chars(target_gene_def_df, ['Ontology', 'SubOntology'])

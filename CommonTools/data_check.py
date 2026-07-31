@@ -121,6 +121,31 @@ def df_drop_row_sum_eq_zero(df: pd.DataFrame) -> pd.DataFrame:
     return filtered_df
 
 
+def assert_no_duplicate_ids(df, column, label=None):
+    """检查 DataFrame 指定列中是否有重复 ID,有重复则打印重复项并 sys.exit(1)。
+
+    Args:
+        df (pd.DataFrame): 输入数据表
+        column (str): 需要检查重复的列名
+        label (str): 日志中使用的输入文件/字段说明(可选)
+    """
+    if column not in df.columns:
+        logger.error(f"输入文件中找不到列 `{column}`,无法做重复 ID 检查")
+        sys.exit(1)
+    # 去空白、过滤 NA 后再判断
+    col = df[column].astype(str).str.strip()
+    col = col[col != '' ]
+    dup_mask = col.duplicated(keep=False)
+    if dup_mask.any():
+        dup_vals = sorted(col[dup_mask].unique().tolist())
+        desc = f"{label} 的" if label else ""
+        logger.error(f"{desc}`{column}` 列存在重复值,共 {len(dup_vals)} 个重复 ID,停止运行。重复项如下:")
+        for v in dup_vals:
+            logger.error(f"  {v}")
+        sys.exit(1)
+    logger.info(f"`{column}` 列无重复 (共 {col.shape[0]} 个 ID){' - ' + label if label else ''}")
+
+
 def df_replace_illegal_folder_chars(df, columns, replace_with="_"):
     """
     替换指定列中不能作为文件夹名的非法字符

@@ -12,7 +12,7 @@ from loguru import logger
 sys.path.append(os.path.abspath('/home/colddata/qinqiang/script/CommonTools/'))
 from r_wrapper import smart_heatmap, draw_pathview
 from load_input import load_table, write_output_df
-from data_check import df_drop_row_sum_eq_zero, df_replace_illegal_folder_chars
+from data_check import df_drop_row_sum_eq_zero, df_replace_illegal_folder_chars, assert_no_duplicate_ids
 sys.path.append('/home/colddata/qinqiang/script/Analysis/kegg_analysis')
 from each_ko_gene_heatmap import each_ko_gene_heatmap
 from get_passed_path import passed_path
@@ -413,6 +413,7 @@ def main():
     ref_kegg_def_df['KEGG_pathway_def'] = ref_kegg_def_df['KEGG_pathway_def'].str.strip()
     ref_kegg_def_df.drop(columns=['KEGG_Pathway'], inplace=True)
     input_ko_df = load_table(args.target_ko_file, dtype=str)
+    assert_no_duplicate_ids(input_ko_df, 'KEGG_pathway_ID', label=args.target_ko_file)
     input_ko_df = pd.merge(input_ko_df, ref_kegg_def_df, on='KEGG_pathway_ID', how='left')
     
     genesymbol_df = None
